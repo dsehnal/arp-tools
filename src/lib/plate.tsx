@@ -1,0 +1,399 @@
+import { BehaviorSubject, distinctUntilChanged, distinctUntilKeyChanged, pairwise } from 'rxjs';
+import { ReactiveModel } from './reactive-model';
+import { PlateColors, PlateDimensions, PlateLabels, PlateSelection, PlateUtils, WellCoords } from '@/model/plate';
+import { useEffect, useRef } from 'react';
+import { arrayEqual, resizeArray } from './util/array';
+
+export interface PlateState {
+    labels: PlateLabels;
+    colors: PlateColors;
+    selection: PlateSelection;
+    highlight: PlateSelection;
+}
+
+export class PlateModel extends ReactiveModel {
+    state = new BehaviorSubject<PlateState>({
+        labels: [],
+        colors: [],
+        selection: [],
+        highlight: [],
+    });
+
+    private parent: HTMLDivElement | undefined = undefined;
+
+    metrics: ReturnType<typeof getCanvasMetrics> = { dx: 1, dy: 1 };
+
+    get size() {
+        return this.parent?.getBoundingClientRect();
+    }
+
+    get selection() {
+        return this.state.value.selection;
+    }
+
+    layers: {
+        grid: HTMLCanvasElement;
+        wells: HTMLCanvasElement;
+        select: HTMLCanvasElement;
+        highlight: HTMLCanvasElement;
+    };
+
+    update(next: Partial<PlateState>, dimensions?: PlateDimensions) {
+        const update = { ...this.state.value, ...next };
+        if (dimensions) {
+            const size = PlateUtils.size(dimensions);
+            this.dimensions = dimensions;
+            if (!next.selection) update.selection = resizeArray(this.state.value.selection, size, 0 as any);
+            if (!next.highlight) update.highlight = resizeArray(this.state.value.highlight, size, 0 as any);
+            if (!next.colors) update.colors = resizeArray(this.state.value.colors, size, undefined);
+            if (!next.labels) update.labels = resizeArray(this.state.value.labels, size, undefined);
+        }
+
+        this.state.next(update);
+    }
+
+    private handleResize = () => {
+        const { size } = this;
+        if (!size) return;
+
+        Object.values(this.layers).forEach((canvas) => {
+            canvas.width = size.width;
+            canvas.height = size.height;
+        });
+
+        this.metrics = getCanvasMetrics(this);
+        drawPlateGrid(this);
+        drawPlateWells(this);
+        drawPlateSelection(this, this.layers.select, this.state.value.selection, DefaultPlateColors.select);
+        drawPlateSelection(this, this.layers.highlight, this.state.value.highlight, DefaultPlateColors.highlight);
+    };
+
+    private mouseMoveCoords: WellCoords = [0, 0];
+    private isMouseInside = false;
+    private isMouseDown = false;
+    private mouseDownCoords: WellCoords = [0, 0];
+    private prevSelection: PlateSelection | undefined = undefined;
+
+    private handleMouseMove(ev: MouseEvent) {
+        if (this.isMouseDown || this.isMouseInside) {
+            ev.preventDefault();
+        }
+
+        if (!this.isMouseInside && !this.isMouseDown) return;
+
+        this.getWellCoords(ev, this.mouseMoveCoords);
+
+        const selection = PlateUtils.emptySelection(this.dimensions);
+        PlateUtils.applySelectionCoords(
+            this.dimensions,
+            selection,
+            this.isMouseDown ? this.mouseDownCoords : this.mouseMoveCoords,
+            this.mouseMoveCoords
+        );
+        this.update({ highlight: selection });
+    }
+
+    private handleMouseDown(ev: MouseEvent) {
+        this.prevSelection = this.state.value.selection;
+        this.update({ selection: PlateUtils.emptySelection(this.dimensions) });
+        this.getWellCoords(ev, this.mouseDownCoords);
+        this.isMouseDown = true;
+
+        const sel = PlateUtils.emptySelection(this.dimensions);
+        PlateUtils.applySelectionCoords(this.dimensions, sel, this.mouseDownCoords, this.mouseMoveCoords);
+        this.update({ highlight: sel });
+    }
+
+    private handleMouseUp(ev: MouseEvent) {
+        if (this.isMouseDown) {
+            const highlight = this.state.value.highlight;
+            const toggleSelection =
+                this.prevSelection &&
+                PlateUtils.selectionSize(highlight) === 1 &&
+                arrayEqual(this.prevSelection, this.state.value.highlight);
+
+            if (!toggleSelection) {
+                this.update({ selection: highlight });
+            }
+            this.update({ highlight: PlateUtils.emptySelection(this.dimensions) });
+        }
+        this.isMouseDown = false;
+    }
+
+    private getWellCoords(ev: MouseEvent, coords: WellCoords) {
+        const { size } = this;
+        if (!size) {
+            return;
+        }
+
+        const x = ev.clientX - size.left - PlateVisualConstants.leftOffset;
+        const y = ev.clientY - size.top - PlateVisualConstants.topOffset;
+
+        coords[0] = Math.floor(y / this.metrics.dy);
+        coords[1] = Math.floor(x / this.metrics.dx);
+    }
+
+    mount(parent: HTMLDivElement) {
+        this.parent = parent;
+
+        parent.appendChild(this.layers.wells);
+        parent.appendChild(this.layers.select);
+        parent.appendChild(this.layers.highlight);
+        parent.appendChild(this.layers.grid);
+
+        const resizeObserver = new ResizeObserver(this.handleResize);
+        resizeObserver.observe(parent);
+        this.customDispose(() => resizeObserver.unobserve(parent));
+
+        this.event(window, 'mousemove', (ev) => this.handleMouseMove(ev));
+        this.event(parent, 'mousedown', (ev) => this.handleMouseDown(ev));
+        this.event(window, 'mouseup', (ev) => this.handleMouseUp(ev));
+        this.event(parent, 'mouseenter', () => {
+            this.isMouseInside = true;
+        });
+        this.event(parent, 'mouseout', () => {
+            this.isMouseInside = false;
+            if (!this.isMouseDown) {
+                this.update({ highlight: PlateUtils.emptySelection(this.dimensions) });
+            }
+        });
+
+        this.handleResize();
+
+        this.subscribe(this.state.pipe(distinctUntilChanged((a, b) => arrayEqual(a.highlight, b.highlight))), () => {
+            drawPlateSelection(this, this.layers.highlight, this.state.value.highlight, DefaultPlateColors.highlight);
+        });
+        this.subscribe(this.state.pipe(distinctUntilChanged((a, b) => arrayEqual(a.selection, b.selection))), () => {
+            drawPlateSelection(this, this.layers.select, this.state.value.selection, DefaultPlateColors.select);
+        });
+        this.subscribe(
+            this.state.pipe(distinctUntilChanged((a, b) => a.colors === b.colors && a.labels === b.labels)),
+            () => {
+                drawPlateWells(this);
+            }
+        );
+    }
+
+    dispose() {
+        super.dispose();
+        Object.values(this.layers).forEach((canvas) => this.parent?.removeChild(canvas));
+        this.parent = undefined;
+    }
+
+    constructor(public dimensions: PlateDimensions) {
+        super();
+
+        this.layers = {
+            grid: createCanvas(),
+            wells: createCanvas(),
+            select: createCanvas(),
+            highlight: createCanvas(),
+        };
+
+        this.update({
+            colors: PlateUtils.emptyColors(dimensions),
+            labels: PlateUtils.emptyLabels(dimensions),
+            selection: PlateUtils.emptySelection(dimensions),
+            highlight: PlateUtils.emptySelection(dimensions),
+        });
+    }
+}
+
+const DefaultPlateColors = {
+    highlight: 'rgba(173, 216, 230, 0.66)',
+    select: 'rgba(255, 219, 187, 0.66)',
+    label: '#DDD',
+    labelOutline: '#333',
+};
+
+const PlateVisualConstants = {
+    leftOffset: 40,
+    topOffset: 30,
+    maxLabelSize: 20,
+};
+
+function createCanvas() {
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';
+    canvas.style.left = '0px';
+    canvas.style.right = '0px';
+    canvas.style.top = '0px';
+    canvas.style.bottom = '0px';
+    canvas.style.pointerEvents = 'none';
+    return canvas;
+}
+
+function getCanvasMetrics(plate: PlateModel) {
+    const {
+        size,
+        dimensions: [rows, cols],
+    } = plate;
+    if (!size) return { dx: 0, dy: 0 };
+
+    const dx = (size.width - PlateVisualConstants.leftOffset - 2) / cols;
+    const dy = (size.height - PlateVisualConstants.topOffset - 2) / rows;
+
+    return { dx, dy };
+}
+
+function drawPlateGrid(plate: PlateModel) {
+    const {
+        size,
+        dimensions: [rows, cols],
+        metrics: { dx, dy },
+    } = plate;
+    if (!size) return;
+    const ctx = plate.layers.grid.getContext('2d')!;
+    ctx.clearRect(0, 0, size.width, size.height);
+
+    ctx.setLineDash([2, 2]);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(99, 99, 99, 0.33)';
+
+    for (let row = 1; row < rows; row++) {
+        const offset = PlateVisualConstants.topOffset + 0.5 + row * dy;
+        ctx.moveTo(PlateVisualConstants.leftOffset, offset);
+        ctx.lineTo(size.width, offset);
+        ctx.stroke();
+    }
+
+    for (let col = 1; col < cols; col++) {
+        const offset = PlateVisualConstants.leftOffset + 0.5 + col * dx;
+        ctx.moveTo(offset, PlateVisualConstants.topOffset);
+        ctx.lineTo(offset, size.height);
+        ctx.stroke();
+    }
+
+    ctx.setLineDash([]);
+    ctx.strokeStyle = 'rgba(155, 155, 155, 1.0)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(
+        PlateVisualConstants.leftOffset,
+        PlateVisualConstants.topOffset,
+        size.width - PlateVisualConstants.leftOffset - 0.5,
+        size.height - PlateVisualConstants.topOffset - 0.5
+    );
+
+    const labelSize = Math.min(PlateVisualConstants.maxLabelSize, (3 * dx) / 5);
+    ctx.font = `${labelSize}px monospace`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#999';
+
+    for (let row = 0; row < rows; row++) {
+        ctx.fillText(
+            PlateUtils.rowToLabel(row),
+            PlateVisualConstants.leftOffset - 8,
+            PlateVisualConstants.topOffset + 1 + row * dy + dy / 2
+        );
+    }
+
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    for (let col = 0; col < cols; col++) {
+        ctx.fillText(
+            `${col + 1}`,
+            PlateVisualConstants.leftOffset + 1 + col * dx + dx / 2,
+            PlateVisualConstants.topOffset - 6
+        );
+    }
+}
+
+function drawPlateSelection(plate: PlateModel, target: HTMLCanvasElement, selection: PlateSelection, color: string) {
+    const {
+        size,
+        dimensions: [rows, cols],
+        metrics: { dx, dy },
+    } = plate;
+    if (!size) return;
+
+    const ctx = target.getContext('2d')!;
+    ctx.clearRect(0, 0, size.width, size.height);
+    ctx.fillStyle = color;
+
+    let index = 0;
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            const sel = selection[index++];
+            if (!sel) continue;
+
+            ctx.fillRect(
+                PlateVisualConstants.leftOffset + 0.5 + col * dx,
+                PlateVisualConstants.topOffset + 0.5 + row * dy,
+                dx,
+                dy
+            );
+        }
+    }
+}
+
+function drawPlateWells(plate: PlateModel) {
+    const {
+        size,
+        dimensions: [rows, cols],
+        metrics: { dx, dy },
+    } = plate;
+    if (!size) return;
+
+    const ctx = plate.layers.wells.getContext('2d')!;
+    const colors = plate.state.value.colors;
+    const labels = plate.state.value.labels;
+
+    ctx.clearRect(0, 0, size.width, size.height);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${PlateVisualConstants.maxLabelSize}px monospace`;
+
+    ctx.strokeStyle = DefaultPlateColors.labelOutline;
+    ctx.miterLimit = 2;
+    ctx.lineJoin = 'round';
+
+    let index = 0;
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            const color = colors[index];
+            const label = labels[index];
+            index++;
+            if (color) {
+                ctx.fillStyle = color;
+                ctx.fillRect(
+                    PlateVisualConstants.leftOffset + col * dx,
+                    PlateVisualConstants.topOffset + row * dy,
+                    dx + 0.5,
+                    dy + 0.5
+                );
+            }
+
+            // TODO: handle labels as svg?
+            if (label) {
+                ctx.fillStyle = DefaultPlateColors.label;
+                const dims = ctx.measureText(label);
+                const scale = Math.min(1, (dx - 6) / dims.width);
+
+                const x = (1 / scale) * (PlateVisualConstants.leftOffset + col * dx + dx / 2);
+                const y = (1 / scale) * (PlateVisualConstants.topOffset + row * dy + dy / 2);
+
+                ctx.lineWidth = 2;
+
+                ctx.scale(scale, scale);
+                ctx.strokeText(label, x, y);
+                ctx.fillText(label, x, y);
+                ctx.scale(1 / scale, 1 / scale);
+            }
+        }
+    }
+
+    const labelSize = Math.min(PlateVisualConstants.maxLabelSize, (3 * dx) / 5);
+    ctx.font = `${labelSize}px monospace`;
+    ctx.fillStyle = DefaultPlateColors.label;
+}
+
+export function PlateVisual({ model }: { model: PlateModel }) {
+    const parent = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        model.mount(parent.current!);
+        return () => model.dispose();
+    }, [model]);
+
+    return <div ref={parent} style={{ position: 'absolute', width: '100%', height: '100%', inset: 0 }} />;
+}
