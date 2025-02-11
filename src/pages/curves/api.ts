@@ -7,5 +7,6 @@ export const CurvesApi = {
     list: () => store.query(),
     get: async (id: string): Promise<DilutionCurve | undefined> => (await store.query(id))[0],
     save: (value: DilutionCurve) => store.update([value]),
+    remove: (id: string) => store.remove(id),
     __clear: () => store.__clear(),
 };

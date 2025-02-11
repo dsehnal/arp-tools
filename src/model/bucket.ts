@@ -13,6 +13,8 @@ export interface BucketTemplateWell {
 }
 
 export interface Bucket {
+    id?: string;
+    
     name: string;
     description: string;
     project: string;

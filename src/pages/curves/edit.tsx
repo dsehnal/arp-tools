@@ -12,6 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { findCurve } from '@/lib/curve';
 import { formatConc, roundValue, toNano } from '@/utils';
 import { toaster } from '@/components/ui/toaster';
+import { AsyncWrapper } from '@/lib/components/async-wrapper';
+import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 
 class EditCurveModel extends ReactiveModel {
     state = {
@@ -72,20 +74,15 @@ async function createModel(id: string) {
 
 export function EditCurveUI() {
     const { id } = useParams();
-    const { model, loading, error } = useAsyncModel(createModel, [id]);
+    const { model, loading, error } = useAsyncModel(createModel, id);
 
-    if (error) {
-        return <div>Error: {String(error)}</div>;
-    }
-
-    if (!model || loading) {
-        return <div>Loading...</div>;
-    }
-
-    return <EditCurve model={model} />;
+    return <AsyncWrapper loading={!model || loading} error={error}>
+        <EditCurve model={model!} />
+    </AsyncWrapper>;
 }
 
 function EditCurve({ model }: { model: EditCurveModel }) {
+    useReactiveModel(model);
     return (
         <HStack h='100%' position='relative'>
             <Box
@@ -115,7 +112,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                 Build
             </Button>
             <Field label='Name'>
-                <SmartInput value={name} onChange={(v) => model.state.name.next(v)} index={3} sm />
+                <SmartInput value={name} onChange={(v) => model.state.name.next(v)} index={0} sm />
             </Field>
             <Field label='nARP Concentration (mM)'>
                 <SmartInput
@@ -123,7 +120,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e3)}
                     parse={SmartParsers.unit(1e-3)}
                     onChange={(v) => model.update({ nARP_concentration_M: v })}
-                    index={3}
+                    index={1}
                     sm
                 />
             </Field>
@@ -133,7 +130,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e6)}
                     parse={SmartParsers.unit(1e-7)}
                     onChange={(v) => model.update({ intermediate_volume_l: v })}
-                    index={3}
+                    index={2}
                     sm
                 />
             </Field>
@@ -152,7 +149,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     value={options.max_intermadiate_plates}
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ max_intermadiate_plates: v })}
-                    index={3}
+                    index={4}
                     sm
                 />
             </Field>
@@ -161,7 +158,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     value={options.max_intermediate_points_per_plate}
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ max_intermediate_points_per_plate: v })}
-                    index={3}
+                    index={5}
                     sm
                 />
             </Field>
@@ -171,7 +168,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e6)}
                     parse={SmartParsers.unit(1e-6)}
                     onChange={(v) => model.update({ top_concentration_m: v })}
-                    index={3}
+                    index={6}
                     sm
                 />
             </Field>
@@ -180,7 +177,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     value={options.num_points}
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ num_points: v })}
-                    index={3}
+                    index={7}
                     sm
                 />
             </Field>
@@ -190,7 +187,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1, 6)}
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ dilution_factor: v })}
-                    index={3}
+                    index={8}
                     sm
                 />
             </Field>
@@ -200,7 +197,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e2)}
                     parse={SmartParsers.unit(1e-2)}
                     onChange={(v) => model.update({ tolerance: v })}
-                    index={3}
+                    index={9}
                     sm
                 />
             </Field>
@@ -217,7 +214,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e9)}
                     parse={SmartParsers.unit(1e-9)}
                     onChange={(v) => model.update({ min_transfer_volume_l: v })}
-                    index={3}
+                    index={10}
                     sm
                 />
             </Field>
@@ -227,7 +224,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e9)}
                     parse={SmartParsers.unit(1e-9)}
                     onChange={(v) => model.update({ max_transfer_volume_l: v })}
-                    index={3}
+                    index={11}
                     sm
                 />
             </Field>
@@ -237,7 +234,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e9)}
                     parse={SmartParsers.unit(1e-9)}
                     onChange={(v) => model.update({ max_intermediate_transfer_volume_l: v })}
-                    index={3}
+                    index={12}
                     sm
                 />
             </Field>
@@ -247,7 +244,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e9)}
                     parse={SmartParsers.unit(1e-9)}
                     onChange={(v) => model.update({ droplet_size_l: v })}
-                    index={3}
+                    index={13}
                     sm
                 />
             </Field>
@@ -256,7 +253,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     value={options.num_intermediate_point_samples}
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ num_intermediate_point_samples: v })}
-                    index={3}
+                    index={14}
                     sm
                 />
             </Field>

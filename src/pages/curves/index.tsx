@@ -19,6 +19,11 @@ class CurvesModel extends ReactiveModel {
         const curves = await CurvesApi.list();
         this.state.curves.next(curves);
     }
+
+    remove = async (id: string) => {
+        await CurvesApi.remove(id);
+        await this.init();
+    };
 }
 
 async function createModel() {
@@ -28,7 +33,7 @@ async function createModel() {
 }
 
 export function CurvesUI() {
-    const { model, loading, error } = useAsyncModel(createModel, []);
+    const { model, loading, error } = useAsyncModel(createModel);
 
     return (
         <AsyncWrapper loading={!model || loading} error={error}>
@@ -70,6 +75,15 @@ function CurveList({ model }: { model: CurvesModel }) {
                                             onClick={() => navigate(`/curves/${curve.id}`)}
                                         >
                                             Edit
+                                        </Button>
+                                        <Button
+                                            key={curve.id}
+                                            size='xs'
+                                            colorPalette='red'
+                                            ms={2}
+                                            onClick={() => model.remove(curve.id!)}
+                                        >
+                                            Remove
                                         </Button>
                                     </Table.Cell>
                                     <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>

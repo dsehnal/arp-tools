@@ -8,6 +8,7 @@ import { LabwareUI } from './pages/labware';
 import { ProductionUI } from './pages/production';
 import { RequestsUI } from './pages/requests';
 import { Toaster } from './components/ui/toaster';
+import { EditBucketUI } from './pages/buckets/edit';
 
 type Tab = 'requests' | 'production' | 'curves' | 'labware' | 'buckets';
 
@@ -35,6 +36,7 @@ export function UIRoot() {
                     <Route key={h[0]} path={h[0]} element={<PagesUI tab={h[0]} page={Pages[h[0]]} />} />
                 ))}
                 <Route path='curves/:id' element={<PagesUI tab='curves' page={<EditCurveUI />} />} />
+                <Route path='buckets/:id' element={<PagesUI tab='buckets' page={<EditBucketUI />} />} />
                 <Route path='*' element={<PagesUI tab='requests' page={Pages.requests} />} />
             </Routes>
         </BrowserRouter>

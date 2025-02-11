@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 export function useAsyncModel<T, Args extends any[]>(
     factory: (...args: Args) => Promise<T>,
-    args: Args
+    ...args: Args
 ): { model?: T; loading?: boolean; error?: any } {
     const [state, setState] = useState<{ model?: T; loading?: boolean; error?: any }>({});
 
