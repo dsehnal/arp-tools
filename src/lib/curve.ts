@@ -6,7 +6,7 @@ import {
     DilutionCurve,
     DilutionPoint,
 } from '@/model/curve';
-import { formatConc, roundNM, toNM } from '../utils';
+import { formatConc, roundNano, toNano } from '../utils';
 
 function getCurvePoints(options: DilutionCurveOptions): CurvePoints {
     const ret = new Array(options.num_points);
@@ -136,7 +136,7 @@ export function alias(
     }
 
     // round to nM
-    aliasedConc = roundNM(aliasedConc);
+    aliasedConc = roundNano(aliasedConc);
 
     // console.log('[aliased]', toNM(aliasedConc), 'nM')
 
@@ -146,17 +146,13 @@ export function alias(
 function evaluateFast(state: ExploreState, depth: number, concentrations: IntermediateConcentrations) {
     const { options, curve } = state;
 
-    let rmse = 0;
     let maxErr = 0;
 
     for (const pt of curve) {
         const aliased = alias(options, false, 0, depth, concentrations, pt, undefined);
         const err = (pt - aliased) / pt;
         if (Math.abs(err) > maxErr) maxErr = Math.abs(err);
-        rmse += err * err;
     }
-
-    rmse = Math.sqrt(rmse);
     return maxErr;
 }
 
@@ -251,7 +247,7 @@ function evaluateFinal(state: ExploreState): [_CurvePrintPoint[], DilutionCurve]
                 target: formatConc(conc),
                 actual: '-',
                 error: '-',
-                transfers: `${xfers.map(({ concentration_m: c, volumeL: v }) => `[${toNM(v)} nL@${formatConc(c)}]`).join(', ')}`,
+                transfers: `${xfers.map(({ concentration_m: c, volumeL: v }) => `[${toNano(v)} nL@${formatConc(c)}]`).join(', ')}`,
             });
 
             xs.push({
@@ -272,7 +268,7 @@ function evaluateFinal(state: ExploreState): [_CurvePrintPoint[], DilutionCurve]
             target: formatConc(pt),
             actual: formatConc(aliased),
             error: `${Math.round(1000 * err) / 10} %`,
-            transfers: `${xfers.map(({ concentration_m: c, volumeL: v }) => `[${toNM(v)} nL@${formatConc(c)}]`).join(', ')}`,
+            transfers: `${xfers.map(({ concentration_m: c, volumeL: v }) => `[${toNano(v)} nL@${formatConc(c)}]`).join(', ')}`,
         });
 
         points.push({
@@ -297,9 +293,10 @@ export function findCurve(options: DilutionCurveOptions) {
     const state: ExploreState = { curve, options, bestScore: Number.POSITIVE_INFINITY, bestIntermediates: [] };
     explore(state, 1, [[options.nARP_concentration_M], []]);
 
-    const [result] = evaluateFinal(state);
+    const [, result] = evaluateFinal(state);
 
-    console.log(state.bestIntermediates);
-    console.table(options);
-    console.table(result);
+    // console.log(state.bestIntermediates);
+    // console.table(options);
+    // console.table(result);
+    return result;
 }

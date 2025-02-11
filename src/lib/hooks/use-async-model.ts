@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
-export function useAsyncModel<T, Args extends any[]>(factory: (...args: Args) => Promise<T>, args: Args): { model?: T, loading?: boolean, error?: any } {
-    const [state, setState] = useState<{ model?: T, loading?: boolean, error?: any }>({});
-  
+export function useAsyncModel<T, Args extends any[]>(
+    factory: (...args: Args) => Promise<T>,
+    args: Args
+): { model?: T; loading?: boolean; error?: any } {
+    const [state, setState] = useState<{ model?: T; loading?: boolean; error?: any }>({});
+
     useEffect(() => {
         let mounted = true;
         async function init() {
@@ -15,7 +18,7 @@ export function useAsyncModel<T, Args extends any[]>(factory: (...args: Args) =>
                 if (!mounted) return;
                 setState({ error });
             }
-        };
+        }
         init();
         return () => {
             mounted = false;

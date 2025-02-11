@@ -25,7 +25,10 @@ export class IndexedDBStore<T> implements SimpleStore<T> {
         return db[this.name];
     }
 
-    constructor(public name: string, public idColumn = 'id') {
+    constructor(
+        public name: string,
+        public idColumn = 'id'
+    ) {
         db.version(1).stores({ [name]: 'id,value' });
     }
 
@@ -34,14 +37,16 @@ export class IndexedDBStore<T> implements SimpleStore<T> {
             let id = x[this.idColumn] as string;
             if (id) return { id, value: JSON.stringify(x) };
             id = uuid4();
-            return { id, value: JSON.stringify({ ...x, id }) }
+            return { id, value: JSON.stringify({ ...x, id }) };
         });
         await db[this.name].bulkPut(items);
         return items.map((x) => x.id);
     }
 
     update(v: T[]): Promise<void> {
-        return db[this.name].bulkPut(v.map(value => ({ id: value[this.idColumn], value: JSON.stringify(value) }))) as any;
+        return db[this.name].bulkPut(
+            v.map((value) => ({ id: value[this.idColumn], value: JSON.stringify(value) }))
+        ) as any;
     }
 
     remove(id: string | string[]): Promise<void> {
@@ -55,9 +60,7 @@ export class IndexedDBStore<T> implements SimpleStore<T> {
     }
 
     async query(id?: string | string[]): Promise<T[]> {
-        const values = !id 
-            ? await db[this.name].toArray()
-            : await db[this.name].bulkGet(Array.isArray(id) ? id : [id]);
+        const values = !id ? await db[this.name].toArray() : await db[this.name].bulkGet(Array.isArray(id) ? id : [id]);
         return values.filter((x) => !!x).map((x) => JSON.parse(x.value));
     }
 

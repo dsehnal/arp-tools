@@ -11,7 +11,7 @@ export interface DilutionPoint {
 
 export interface DilutionCurve {
     id?: string;
-    
+
     name?: string;
     options?: DilutionCurveOptions;
 
@@ -45,7 +45,6 @@ export interface DilutionCurveOptions {
 export type CurvePoints = number[];
 export type IntermediateConcentrations = number[][];
 export type IntermediateVolumes = number[];
-
 
 export const DefaultCurveOptions: DilutionCurveOptions = {
     nARP_concentration_M: 10e-3,

@@ -7,6 +7,7 @@ import { EditCurveUI } from './pages/curves/edit';
 import { LabwareUI } from './pages/labware';
 import { ProductionUI } from './pages/production';
 import { RequestsUI } from './pages/requests';
+import { Toaster } from './components/ui/toaster';
 
 type Tab = 'requests' | 'production' | 'curves' | 'labware' | 'buckets';
 
@@ -40,35 +41,38 @@ export function UIRoot() {
     );
 }
 
-function PagesUI({ tab, page }: { tab: Tab, page: ReactNode }) {
+function PagesUI({ tab, page }: { tab: Tab; page: ReactNode }) {
     const navigate = useNavigate();
 
     return (
-        <Flex direction='column'>
-            <Tabs.Root
-                value={tab}
-                onValueChange={(e) => navigate(`/${e.value}`)}
-                position='fixed'
-                background='black'
-                width='100%'
-                zIndex={10000}
-            >
-                <Tabs.List>
-                    {Headers.map((h) => (
-                        <Tabs.Trigger key={h[0]} value={h[0]}>
-                            {h[1]}
-                        </Tabs.Trigger>
-                    ))}
-                    <Box margin='auto' />
-                    <Flex alignItems='center' marginRight={4}>
-                        <b>ARP Tools</b>
-                    </Flex>
-                </Tabs.List>
-            </Tabs.Root>
+        <>
+            <Flex direction='column'>
+                <Tabs.Root
+                    value={tab}
+                    onValueChange={(e) => navigate(`/${e.value}`)}
+                    position='fixed'
+                    background='black'
+                    width='100%'
+                    zIndex={10000}
+                >
+                    <Tabs.List>
+                        {Headers.map((h) => (
+                            <Tabs.Trigger key={h[0]} value={h[0]}>
+                                {h[1]}
+                            </Tabs.Trigger>
+                        ))}
+                        <Box margin='auto' />
+                        <Flex alignItems='center' marginRight={4}>
+                            <b>ARP Tools</b>
+                        </Flex>
+                    </Tabs.List>
+                </Tabs.Root>
 
-            <Box flexGrow={1} padding={4} marginTop={41}>
-                {page}
-            </Box>
-        </Flex>
+                <Box flexGrow={1} padding={4} top={41} pos='absolute' bottom={0} right={0} left={0}>
+                    {page}
+                </Box>
+            </Flex>
+            <Toaster />
+        </>
     );
 }

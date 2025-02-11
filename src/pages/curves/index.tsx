@@ -1,13 +1,14 @@
-import { ReactiveModel } from "@/lib/reactive-model";
-import { DefaultCurveOptions, DilutionCurve, DilutionCurveOptions } from "@/model/curve";
-import { BehaviorSubject } from "rxjs";
-import { CurvesApi } from "./api";
-import { useNavigate, useParams } from "react-router";
-import { useAsyncModel } from "@/lib/hooks/use-async-model";
-import { AsyncWrapper } from "@/lib/components/async-wrapper";
-import { Box, Button, VStack } from "@chakra-ui/react";
-import { useBehavior } from "@/lib/hooks/use-behavior";
-import { uuid4 } from "@/lib/uuid";
+import { AsyncWrapper } from '@/lib/components/async-wrapper';
+import { useAsyncModel } from '@/lib/hooks/use-async-model';
+import { useBehavior } from '@/lib/hooks/use-behavior';
+import { ReactiveModel } from '@/lib/reactive-model';
+import { uuid4 } from '@/lib/uuid';
+import { DilutionCurve } from '@/model/curve';
+import { formatConc } from '@/utils';
+import { Box, Button, Table, VStack } from '@chakra-ui/react';
+import { useNavigate } from 'react-router';
+import { BehaviorSubject } from 'rxjs';
+import { CurvesApi } from './api';
 
 class CurvesModel extends ReactiveModel {
     state = {
@@ -36,16 +37,49 @@ export function CurvesUI() {
     );
 }
 
-function CurveList({ model }: {model: CurvesModel}) {
+function CurveList({ model }: { model: CurvesModel }) {
     const curves = useBehavior(model.state.curves);
     const navigate = useNavigate();
     return (
-        <VStack>
-            <Box>
-                <Button onClick={() => navigate(`/curves/${uuid4()}`)}>New Curve</Button>
+        <VStack gap={2} w='100%'>
+            <Box textAlign='right' w='100%'>
+                <Button onClick={() => navigate(`/curves/${uuid4()}`)} size='sm' colorPalette='blue'>
+                    New Curve
+                </Button>
             </Box>
-            <Box>
-                {curves.map(curve => <Button key={curve.id} onClick={() => navigate(`/curves/${curve.id}`)}>{curve.id}: {curve.name ?? 'unnamed'}</Button>)}
+            <Box w='100%'>
+                <Table.ScrollArea borderWidth='1px' w='100%'>
+                    <Table.Root size='sm' stickyHeader>
+                        <Table.Header>
+                            <Table.Row bg='bg.subtle'>
+                                <Table.ColumnHeader></Table.ColumnHeader>
+                                <Table.ColumnHeader>Name</Table.ColumnHeader>
+                                <Table.ColumnHeader># Points</Table.ColumnHeader>
+                                <Table.ColumnHeader>Top Concentration</Table.ColumnHeader>
+                            </Table.Row>
+                        </Table.Header>
+
+                        <Table.Body>
+                            {curves.map((curve) => (
+                                <Table.Row key={curve.id}>
+                                    <Table.Cell>
+                                        <Button
+                                            key={curve.id}
+                                            size='xs'
+                                            colorPalette='blue'
+                                            onClick={() => navigate(`/curves/${curve.id}`)}
+                                        >
+                                            Edit
+                                        </Button>
+                                    </Table.Cell>
+                                    <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
+                                    <Table.Cell>{curve.points.length}</Table.Cell>
+                                    <Table.Cell>{formatConc(curve.points[0].target_concentration_m)}</Table.Cell>
+                                </Table.Row>
+                            ))}
+                        </Table.Body>
+                    </Table.Root>
+                </Table.ScrollArea>
             </Box>
         </VStack>
     );

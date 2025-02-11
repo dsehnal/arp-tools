@@ -6,10 +6,7 @@ describe('simple-store', () => {
     store.__clear();
 
     it('works', async () => {
-        const ids = await store.add([
-            { value: 'a' },
-            { value: 'b' },
-        ]);
+        const ids = await store.add([{ value: 'a' }, { value: 'b' }]);
         const _1 = await store.get(ids[0]);
         expect(_1.value).toBe('a');
         const all = await store.query(ids);

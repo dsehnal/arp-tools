@@ -11,11 +11,11 @@ export function roundValue(value: number, digits: number) {
     return Math.round(f * value) / f;
 }
 
-export function roundNM(value: number) {
+export function roundNano(value: number) {
     return Math.round(1e10 * value) / 1e10;
 }
 
-export function toNM(value: number) {
+export function toNano(value: number) {
     return Math.round(1e10 * value) / 10;
 }
 

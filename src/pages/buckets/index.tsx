@@ -8,16 +8,7 @@ import { ReactiveModel } from '@/lib/reactive-model';
 import { arrayMapAdd, resizeArray } from '@/lib/util/array';
 import { Bucket, BucketTemplateWell, DefaultBucket, getBucketTemplateWellKey } from '@/model/bucket';
 import { PlateDimensions, PlateUtils } from '@/model/plate';
-import {
-    Box,
-    Button,
-    FileUploadRoot,
-    FileUploadTrigger,
-    Flex,
-    HStack,
-    Input,
-    VStack
-} from '@chakra-ui/react';
+import { Box, Button, FileUploadRoot, FileUploadTrigger, Flex, HStack, Input, VStack } from '@chakra-ui/react';
 import * as d3c from 'd3-scale-chromatic';
 import { useRef } from 'react';
 import { HiUpload } from 'react-icons/hi';
@@ -205,7 +196,7 @@ class EditBucketModel extends ReactiveModel {
     };
 
     mount(): void {
-        this.subscribe(this.state.bucket.pipe(distinctUntilKeyChanged('template')), (b) => {
+        this.subscribe(this.state.bucket.pipe(distinctUntilKeyChanged('template')), () => {
             this.syncPlate();
         });
     }

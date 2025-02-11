@@ -1,3 +1,4 @@
+import { roundValue } from '@/utils';
 import { Input } from '@chakra-ui/react';
 import { useEffect, useRef } from 'react';
 
@@ -7,7 +8,7 @@ export interface SmartInputProps<T> {
     format?: (value: T) => string;
     parse?: (value: string) => T | null;
     onChange?: (value: T) => void;
-    size?: 'sm';
+    sm?: boolean;
     readOnly?: boolean;
     indexGroup?: string;
     index?: number;
@@ -19,7 +20,7 @@ export function SmartInput<T>({
     format,
     parse,
     onChange,
-    size,
+    sm,
     readOnly,
     index,
     indexGroup,
@@ -33,7 +34,7 @@ export function SmartInput<T>({
     return (
         <Input
             ref={ref}
-            size={size}
+            size={sm ? 'sm' : undefined}
             readOnly={readOnly}
             placeholder={placeholder}
             data-index={`${indexGroup ?? ''}-${index}`}
@@ -44,7 +45,7 @@ export function SmartInput<T>({
                     return;
                 }
                 ref.current!.value = format ? format(parsed) : String(parsed);
-                onChange?.(parsed);
+                if (parsed !== value) onChange?.(parsed);
             }}
             onKeyDown={(e) => {
                 if (e.key === 'Enter') {
@@ -61,10 +62,36 @@ export function SmartInput<T>({
     );
 }
 
+const unitParsers = new Map<number, (v: string) => number | null>();
+
 export const SmartParsers = {
     number: (value: string) => {
         if (value.trim() === '') return null;
         const parsed = +value;
         return Number.isNaN(parsed) ? null : parsed;
+    },
+    unit: (factor: number) => {
+        if (unitParsers.has(factor)) return unitParsers.get(factor)!;
+        const f = (value: string) => {
+            if (value.trim() === '') return null;
+            const parsed = +value;
+            return Number.isNaN(parsed) ? null : factor * parsed;
+        };
+        unitParsers.set(factor, f);
+        return f;
+    },
+};
+
+const unitFormatters = new Map<string, (v: number) => string>();
+
+export const SmartFormatters = {
+    unit: (factor = 1, round = 3) => {
+        const key = `${factor}-${round}`;
+        if (unitFormatters.has(key)) return unitFormatters.get(key)!;
+        const f = (value: number) => {
+            return `${roundValue(factor * value, round)}`;
+        };
+        unitFormatters.set(key, f);
+        return f;
     },
 };
