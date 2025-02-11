@@ -1,7 +1,7 @@
-import { BehaviorSubject, distinctUntilChanged, distinctUntilKeyChanged, pairwise } from 'rxjs';
-import { ReactiveModel } from './reactive-model';
 import { PlateColors, PlateDimensions, PlateLabels, PlateSelection, PlateUtils, WellCoords } from '@/model/plate';
 import { useEffect, useRef } from 'react';
+import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
+import { ReactiveModel } from './reactive-model';
 import { arrayEqual, resizeArray } from './util/array';
 
 export interface PlateState {
@@ -104,7 +104,7 @@ export class PlateModel extends ReactiveModel {
         this.update({ highlight: sel });
     }
 
-    private handleMouseUp(ev: MouseEvent) {
+    private handleMouseUp() {
         if (this.isMouseDown) {
             const highlight = this.state.value.highlight;
             const toggleSelection =
@@ -147,7 +147,7 @@ export class PlateModel extends ReactiveModel {
 
         this.event(window, 'mousemove', (ev) => this.handleMouseMove(ev));
         this.event(parent, 'mousedown', (ev) => this.handleMouseDown(ev));
-        this.event(window, 'mouseup', (ev) => this.handleMouseUp(ev));
+        this.event(window, 'mouseup', () => this.handleMouseUp());
         this.event(parent, 'mouseenter', () => {
             this.isMouseInside = true;
         });

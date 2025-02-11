@@ -76,9 +76,11 @@ export function EditCurveUI() {
     const { id } = useParams();
     const { model, loading, error } = useAsyncModel(createModel, id);
 
-    return <AsyncWrapper loading={!model || loading} error={error}>
-        <EditCurve model={model!} />
-    </AsyncWrapper>;
+    return (
+        <AsyncWrapper loading={!model || loading} error={error}>
+            <EditCurve model={model!} />
+        </AsyncWrapper>
+    );
 }
 
 function EditCurve({ model }: { model: EditCurveModel }) {

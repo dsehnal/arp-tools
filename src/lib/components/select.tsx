@@ -1,11 +1,4 @@
-import {
-    SelectContent,
-    SelectItem,
-    SelectLabel,
-    SelectRoot,
-    SelectTrigger,
-    SelectValueText,
-} from '@/components/ui/select';
+import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValueText } from '@/components/ui/select';
 import { createListCollection } from '@chakra-ui/react';
 import { useMemo } from 'react';
 
@@ -16,6 +9,7 @@ export interface SimpleSelectProps<T extends string> {
     readOnly?: boolean;
     size?: 'sm';
     placeholder?: string;
+    allowEmpty?: boolean;
 }
 
 export function SimpleSelect<T extends string>({
@@ -25,6 +19,7 @@ export function SimpleSelect<T extends string>({
     size,
     readOnly,
     placeholder,
+    allowEmpty,
 }: SimpleSelectProps<T>) {
     const col = useMemo(() => {
         return createListCollection({
@@ -45,7 +40,12 @@ export function SimpleSelect<T extends string>({
             <SelectTrigger>
                 <SelectValueText placeholder={placeholder ?? 'Select value...'} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent portalled={false}>
+                {allowEmpty && (
+                    <SelectItem item={{ label: placeholder ?? 'Select value...', value: '' }}>
+                        {placeholder ?? 'Select value...'}
+                    </SelectItem>
+                )}
                 {col.items.map((item) => (
                     <SelectItem item={item} key={item.value}>
                         {item.label}

@@ -5,19 +5,22 @@ import { SmartInput } from '@/lib/components/input';
 import { SimpleSelect } from '@/lib/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
+import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { PlateModel, PlateVisual } from '@/lib/plate';
 import { ReactiveModel } from '@/lib/reactive-model';
+import { DialogService } from '@/lib/services/dialog';
 import { arrayMapAdd, resizeArray } from '@/lib/util/array';
 import { Bucket, BucketTemplateWell, DefaultBucket, getBucketTemplateWellKey } from '@/model/bucket';
+import { formatCurve } from '@/model/curve';
 import { PlateDimensions, PlateUtils } from '@/model/plate';
-import { Box, Button, FileUploadRoot, FileUploadTrigger, Flex, HStack, Input, VStack } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, Input, VStack } from '@chakra-ui/react';
 import * as d3c from 'd3-scale-chromatic';
 import { useRef } from 'react';
 import { HiUpload } from 'react-icons/hi';
 import { useParams } from 'react-router';
 import { BehaviorSubject, distinctUntilKeyChanged } from 'rxjs';
+import { CurvesApi } from '../curves/api';
 import { BucketsApi } from './api';
-import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -62,7 +65,7 @@ class EditBucketModel extends ReactiveModel {
 
                     let ret = '';
                     if (w.kind) ret += w.kind;
-                    else if (typeof w.sample_index === 'number') ret += `S${w.sample_index + 1}`;
+                    if (typeof w.sample_index === 'number') ret += `${w.sample_index + 1}`;
                     if (typeof w.point_index === 'number') {
                         if (ret) ret += ':';
                         ret += `${w.point_index + 1}`;
@@ -72,6 +75,30 @@ class EditBucketModel extends ReactiveModel {
             },
             template.dimensions
         );
+    }
+
+    clearCurve(kind: string) {
+        this.update({
+            sample_info: { ...this.bucket.sample_info, [kind]: { ...this.bucket.sample_info[kind], curve: undefined } },
+        });
+    }
+
+    async selectCurve(kind: string) {
+        const curves = await CurvesApi.list();
+        const options = curves.map((c) => [c.id, formatCurve(c)]);
+        const state = new BehaviorSubject('');
+        DialogService.show({
+            title: 'Select Curve',
+            body: SelectCurveDialog,
+            state,
+            model: options,
+            onOk: (state) => {
+                const curve = curves.find((c) => c.id === state);
+                this.update({
+                    sample_info: { ...this.bucket.sample_info, [kind]: { ...this.bucket.sample_info[kind], curve } },
+                });
+            },
+        });
     }
 
     private copyWells: (BucketTemplateWell | undefined | null)[] = [];
@@ -234,15 +261,16 @@ async function createModel(id: string) {
     return model;
 }
 
-
 export function EditBucketUI() {
     const { id } = useParams();
     const { model, loading, error } = useAsyncModel(createModel, id);
     useReactiveModel(model);
 
-    return <AsyncWrapper loading={!model || loading} error={error}>
-        <EditBucket model={model!} />
-    </AsyncWrapper>;
+    return (
+        <AsyncWrapper loading={!model || loading} error={error}>
+            <EditBucket model={model!} />
+        </AsyncWrapper>
+    );
 }
 
 function EditBucket({ model }: { model: EditBucketModel }) {
@@ -292,15 +320,6 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     index={4}
                 />
             </Field>
-            <Field label='Sample Dilution Curve'>
-                <FileUploadRoot maxFiles={5}>
-                    <FileUploadTrigger asChild>
-                        <Button variant='outline' size='sm'>
-                            <HiUpload /> Select Curve
-                        </Button>
-                    </FileUploadTrigger>
-                </FileUploadRoot>
-            </Field>
             <Field label='Normalize Solvent'>
                 <SimpleSelect
                     value={bucket.normalize_solvent}
@@ -314,19 +333,18 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                 <Box width={640} height={480} position='relative'>
                     <PlateVisual model={model.plate} />
                 </Box>
-                <VStack gap={2} mt={4} w={300}>
-                    <ControlButton model={model} kind='+' label='Control +' />
-                    <ControlButton model={model} kind='-' label='Control -' />
-                    <ControlButton model={model} kind='R1' label='Ref1' />
-                    <ControlButton model={model} kind='R2' label='Ref2' />
-                    <ControlButton model={model} kind='R3' label='Ref3' />
+                <VStack gap={2} mt={4} w={600}>
+                    <SampleInfoButton model={model} kind='C' label='Compound' />
+                    <SampleInfoButton model={model} kind='+' label='Control +' />
+                    <SampleInfoButton model={model} kind='-' label='Control -' />
+                    <SampleInfoButton model={model} kind='R1' label='Ref1' />
+                    <SampleInfoButton model={model} kind='R2' label='Ref2' />
                     <HStack gap={2} alignItems='flex-start' w='100%'>
                         <Button
                             variant='outline'
                             size='sm'
                             onClick={() => {
                                 model.templateBuilder.updateWell({
-                                    kind: undefined,
                                     sample_index: +sampleIndex.current!.value - 1,
                                 });
                                 sampleIndex.current!.value = '';
@@ -382,7 +400,8 @@ function EditBucket({ model }: { model: EditBucketModel }) {
     );
 }
 
-function ControlButton({ model, kind, label }: { model: EditBucketModel; kind: string; label: string }) {
+function SampleInfoButton({ model, kind, label }: { model: EditBucketModel; kind: string; label: string }) {
+    const info = model.bucket.sample_info?.[kind];
     return (
         <HStack gap={2} w='100%'>
             <Button
@@ -393,11 +412,23 @@ function ControlButton({ model, kind, label }: { model: EditBucketModel; kind: s
             >
                 {label}
             </Button>
-            <Button variant='outline' size='sm'>
-                <HiUpload /> Curve
-            </Button>
             <Input placeholder='Smpl. Id' w='100px' />
+            {!info?.curve && (
+                <Button variant='outline' size='sm' onClick={() => model.selectCurve(kind)}>
+                    <HiUpload /> Curve
+                </Button>
+            )}
+            {info?.curve && <i>{formatCurve(info.curve)}</i>}
+            {info?.curve && (
+                <Button variant='outline' size='sm' onClick={() => model.clearCurve(kind)}>
+                    X
+                </Button>
+            )}
         </HStack>
     );
 }
 
+function SelectCurveDialog({ model, state }: { model: any; state: BehaviorSubject<string | undefined> }) {
+    const current = useBehavior(state);
+    return <SimpleSelect value={current} allowEmpty onChange={(v) => state.next(v)} options={model} />;
+}

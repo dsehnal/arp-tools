@@ -9,6 +9,7 @@ import { ProductionUI } from './pages/production';
 import { RequestsUI } from './pages/requests';
 import { Toaster } from './components/ui/toaster';
 import { EditBucketUI } from './pages/buckets/edit';
+import { DialogProvider } from './lib/services/dialog';
 
 type Tab = 'requests' | 'production' | 'curves' | 'labware' | 'buckets';
 
@@ -75,6 +76,7 @@ function PagesUI({ tab, page }: { tab: Tab; page: ReactNode }) {
                 </Box>
             </Flex>
             <Toaster />
+            <DialogProvider />
         </>
     );
 }

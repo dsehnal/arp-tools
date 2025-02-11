@@ -1,3 +1,5 @@
+import { formatConc } from '@/utils';
+
 export interface DilutionTransfer {
     concentration_m: number;
     volumeL: number;
@@ -65,3 +67,7 @@ export const DefaultCurveOptions: DilutionCurveOptions = {
     droplet_size_l: 2.5e-9,
     num_intermediate_point_samples: 20,
 };
+
+export function formatCurve(conc: DilutionCurve) {
+    return `${conc.name ?? 'unnamed'}, ${conc.points.length}pt, ${formatConc(conc.points[0].target_concentration_m)}`;
+}

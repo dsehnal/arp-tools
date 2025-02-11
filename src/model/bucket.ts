@@ -1,7 +1,7 @@
 import { DilutionCurve } from '@/model/curve';
 import { Plate, PlateLayouts, PlateUtils } from './plate';
 
-export interface BucketControl {
+export interface BucketSampleInfo {
     default_sample_id?: string;
     curve?: DilutionCurve;
 }
@@ -14,18 +14,17 @@ export interface BucketTemplateWell {
 
 export interface Bucket {
     id?: string;
-    
+
     name: string;
     description: string;
     project: string;
 
-    curve?: DilutionCurve;
     normalize_solvent: 'per-curve' | 'global' | 'no';
 
     source_labware: string;
     arp_labware: string;
 
-    controls: { [kind: string]: BucketControl };
+    sample_info: { [kind: string]: BucketSampleInfo };
 
     template: Plate<BucketTemplateWell>;
 }
@@ -37,12 +36,11 @@ export const DefaultBucket: Bucket = {
     source_labware: '',
     arp_labware: '',
     normalize_solvent: 'global',
-    controls: {},
+    sample_info: {},
     template: PlateUtils.empty(PlateLayouts[384]),
 };
 
 export function getBucketTemplateWellKey(well?: BucketTemplateWell | null) {
-    if (well?.kind) return well.kind;
-    if (typeof well?.sample_index === 'number') return `S${well.sample_index}`;
+    if (well?.kind || typeof well?.sample_index === 'number') return `${well.kind ?? '?'}-${well.sample_index}`;
     return undefined;
 }
