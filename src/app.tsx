@@ -5,33 +5,28 @@ import { BucketsUI } from './pages/buckets';
 import { EditBucketUI } from './pages/buckets/edit';
 import { CurvesUI } from './pages/curves';
 import { EditCurveUI } from './pages/curves/edit';
-import { LabwareUI } from './pages/labware';
-import { ProductionUI } from './pages/production';
 import { RequestsUI } from './pages/requests';
+import { ProductionsUI } from './pages/production';
 
-const Pages = {
-    requests: <RequestsUI />,
-    production: <ProductionUI />,
-    curves: <CurvesUI />,
-    curve: <EditCurveUI />,
-    buckets: <BucketsUI />,
-    bucket: <EditBucketUI />,
-    labware: <LabwareUI />,
-};
+const Pages = [
+    ['requests', <RequestsUI />],
+    ['production', <ProductionsUI />],
+    ['curves', <CurvesUI />, <EditCurveUI />],
+    ['buckets', <BucketsUI />, <EditBucketUI />],
+] as const;
 
 export function UIRoot() {
     return (
         <>
             <BrowserRouter>
                 <Routes>
-                    <Route path='curves'>
-                        <Route index element={Pages.curves} />
-                        <Route path=':id' element={Pages.curve} />
-                    </Route>
-                    <Route path='buckets'>
-                        <Route index element={Pages.buckets} />
-                        <Route path=':id' element={Pages.bucket} />
-                    </Route>
+                    {Pages.map(([path, index, edit]) => (
+                        <Route path={path} key={path}>
+                            <Route index element={index} />
+                            {!!edit && <Route path=':id' element={edit} />}
+                        </Route>
+                    ))}
+                    <Route path='*' element={<RequestsUI />} />
                 </Routes>
             </BrowserRouter>
             <Toaster />

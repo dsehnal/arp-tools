@@ -6,6 +6,8 @@ import { LuChevronDown } from 'react-icons/lu';
 import { useNavigate, Link } from 'react-router';
 import { BucketsBreadcrumb } from './buckets/common';
 import { CurvesBreadcrumb } from './curves/common';
+import { RequestsBreadcrumb } from './requests/common';
+import { ProductionBreadcrumb } from './production/common';
 
 export interface BreadcrumbItem {
     icon?: ReactNode;
@@ -19,7 +21,7 @@ export interface LayoutProps {
     buttons?: ReactNode;
 }
 
-const Pages = [CurvesBreadcrumb, BucketsBreadcrumb] as const;
+const Pages = [RequestsBreadcrumb, ProductionBreadcrumb, CurvesBreadcrumb, BucketsBreadcrumb];
 
 export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
     const navigate = useNavigate();
