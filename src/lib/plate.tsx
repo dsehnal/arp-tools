@@ -5,6 +5,7 @@ import { ReactiveModel } from './reactive-model';
 import { arrayEqual, resizeArray } from './util/array';
 
 export interface PlateState {
+    dimensions: PlateDimensions;
     labels: PlateLabels;
     colors: PlateColors;
     selection: PlateSelection;
@@ -13,6 +14,7 @@ export interface PlateState {
 
 export class PlateModel extends ReactiveModel {
     state = new BehaviorSubject<PlateState>({
+        dimensions: [1, 1],
         labels: [],
         colors: [],
         selection: [],
@@ -31,6 +33,10 @@ export class PlateModel extends ReactiveModel {
         return this.state.value.selection;
     }
 
+    get dimensions() {
+        return this.state.value.dimensions;
+    }
+
     layers: {
         grid: HTMLCanvasElement;
         wells: HTMLCanvasElement;
@@ -38,15 +44,24 @@ export class PlateModel extends ReactiveModel {
         highlight: HTMLCanvasElement;
     };
 
-    update(next: Partial<PlateState>, dimensions?: PlateDimensions) {
+    ctx: {
+        grid: CanvasRenderingContext2D;
+        wells: CanvasRenderingContext2D;
+        select: CanvasRenderingContext2D;
+        highlight: CanvasRenderingContext2D;
+    };
+
+    update(next: Partial<PlateState>) {
         const update = { ...this.state.value, ...next };
-        if (dimensions) {
-            const size = PlateUtils.size(dimensions);
-            this.dimensions = dimensions;
-            if (!next.selection) update.selection = resizeArray(this.state.value.selection, size, 0 as any);
-            if (!next.highlight) update.highlight = resizeArray(this.state.value.highlight, size, 0 as any);
-            if (!next.colors) update.colors = resizeArray(this.state.value.colors, size, undefined);
-            if (!next.labels) update.labels = resizeArray(this.state.value.labels, size, undefined);
+        if (next.dimensions) {
+            if (!arrayEqual(this.state.value.dimensions, next.dimensions)) {
+                const size = PlateUtils.size(next.dimensions);
+                this.metrics = getCanvasMetrics(this, next.dimensions);
+                if (!next.selection) update.selection = resizeArray(this.state.value.selection, size, 0 as any);
+                if (!next.highlight) update.highlight = resizeArray(this.state.value.highlight, size, 0 as any);
+                if (!next.colors) update.colors = resizeArray(this.state.value.colors, size, undefined);
+                if (!next.labels) update.labels = resizeArray(this.state.value.labels, size, undefined);
+            }
         }
 
         this.state.next(update);
@@ -160,6 +175,9 @@ export class PlateModel extends ReactiveModel {
 
         this.handleResize();
 
+        this.subscribe(this.state.pipe(distinctUntilChanged((a, b) => arrayEqual(a.dimensions, b.dimensions))), () => {
+            drawPlateGrid(this);
+        });
         this.subscribe(this.state.pipe(distinctUntilChanged((a, b) => arrayEqual(a.highlight, b.highlight))), () => {
             drawPlateSelection(this, this.layers.highlight, this.state.value.highlight, DefaultPlateColors.highlight);
         });
@@ -180,7 +198,7 @@ export class PlateModel extends ReactiveModel {
         this.parent = undefined;
     }
 
-    constructor(public dimensions: PlateDimensions) {
+    constructor(dimensions: PlateDimensions) {
         super();
 
         this.layers = {
@@ -190,7 +208,15 @@ export class PlateModel extends ReactiveModel {
             highlight: createCanvas(),
         };
 
+        this.ctx = {
+            grid: this.layers.grid.getContext('2d')!,
+            wells: this.layers.wells.getContext('2d')!,
+            select: this.layers.select.getContext('2d')!,
+            highlight: this.layers.highlight.getContext('2d')!,
+        };
+
         this.update({
+            dimensions,
             colors: PlateUtils.emptyColors(dimensions),
             labels: PlateUtils.emptyLabels(dimensions),
             selection: PlateUtils.emptySelection(dimensions),
@@ -223,13 +249,11 @@ function createCanvas() {
     return canvas;
 }
 
-function getCanvasMetrics(plate: PlateModel) {
-    const {
-        size,
-        dimensions: [rows, cols],
-    } = plate;
+function getCanvasMetrics(plate: PlateModel, nextDimensions?: PlateDimensions) {
+    const { size, dimensions } = plate;
     if (!size) return { dx: 0, dy: 0 };
 
+    const [rows, cols] = nextDimensions ?? dimensions;
     const dx = (size.width - PlateVisualConstants.leftOffset - 2) / cols;
     const dy = (size.height - PlateVisualConstants.topOffset - 2) / rows;
 
@@ -243,7 +267,7 @@ function drawPlateGrid(plate: PlateModel) {
         metrics: { dx, dy },
     } = plate;
     if (!size) return;
-    const ctx = plate.layers.grid.getContext('2d')!;
+    const ctx = plate.ctx.grid;
     ctx.clearRect(0, 0, size.width, size.height);
 
     ctx.setLineDash([2, 2]);
@@ -252,16 +276,20 @@ function drawPlateGrid(plate: PlateModel) {
 
     for (let row = 1; row < rows; row++) {
         const offset = PlateVisualConstants.topOffset + 0.5 + row * dy;
+        ctx.beginPath();
         ctx.moveTo(PlateVisualConstants.leftOffset, offset);
         ctx.lineTo(size.width, offset);
         ctx.stroke();
+        ctx.closePath();
     }
 
     for (let col = 1; col < cols; col++) {
         const offset = PlateVisualConstants.leftOffset + 0.5 + col * dx;
+        ctx.beginPath();
         ctx.moveTo(offset, PlateVisualConstants.topOffset);
         ctx.lineTo(offset, size.height);
         ctx.stroke();
+        ctx.closePath();
     }
 
     ctx.setLineDash([]);

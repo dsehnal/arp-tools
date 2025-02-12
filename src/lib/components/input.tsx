@@ -8,10 +8,16 @@ export interface SmartInputProps<T> {
     format?: (value: T) => string;
     parse?: (value: string) => T | null;
     onChange?: (value: T) => void;
-    sm?: boolean;
+    size?: 'xs' | 'sm';
     readOnly?: boolean;
     indexGroup?: string;
     index?: number;
+}
+
+function applyFormat(value: any, format?: (value: any) => string) {
+    if (format) return format(value);
+    if (value === null || value === undefined) return '';
+    return String(value);
 }
 
 export function SmartInput<T>({
@@ -20,7 +26,7 @@ export function SmartInput<T>({
     format,
     parse,
     onChange,
-    sm,
+    size,
     readOnly,
     index,
     indexGroup,
@@ -28,23 +34,23 @@ export function SmartInput<T>({
     const ref = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        ref.current!.value = format ? format(value) : String(value);
+        ref.current!.value = applyFormat(value, format);
     }, [value]);
 
     return (
         <Input
             ref={ref}
-            size={sm ? 'sm' : undefined}
+            size={size}
             readOnly={readOnly}
             placeholder={placeholder}
             data-index={`${indexGroup ?? ''}-${index}`}
             onBlur={() => {
                 const parsed = parse ? parse(ref.current!.value) : (ref.current!.value as unknown as T);
                 if (parsed === null) {
-                    ref.current!.value = format ? format(value) : String(value);
+                    ref.current!.value = applyFormat(value, format);
                     return;
                 }
-                ref.current!.value = format ? format(parsed) : String(parsed);
+                ref.current!.value = applyFormat(parsed, format);
                 if (parsed !== value) onChange?.(parsed);
             }}
             onKeyDown={(e) => {

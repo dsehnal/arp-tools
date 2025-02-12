@@ -1,7 +1,7 @@
 import { Field } from '@/components/ui/field';
 import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
-import { SmartInput } from '@/lib/components/input';
+import { SmartInput, SmartParsers } from '@/lib/components/input';
 import { SimpleSelect } from '@/lib/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
@@ -10,19 +10,29 @@ import { PlateModel, PlateVisual } from '@/lib/plate';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { arrayMapAdd, resizeArray } from '@/lib/util/array';
-import { Bucket, BucketTemplateWell, DefaultBucket, getBucketTemplateWellKey } from '@/model/bucket';
+import {
+    Bucket,
+    BucketLayouts,
+    BucketSampleInfo,
+    BucketTemplateWell,
+    DefaultBucket,
+    getBucketTemplateWellKey,
+} from '@/model/bucket';
 import { formatCurve } from '@/model/curve';
-import { PlateDimensions, PlateUtils } from '@/model/plate';
-import { Box, Button, Flex, HStack, Input, VStack } from '@chakra-ui/react';
+import { PlateDimensions, PlateLayouts, PlateUtils } from '@/model/plate';
+import { Box, Button, Flex, HStack, Input, VStack, Text } from '@chakra-ui/react';
 import * as d3c from 'd3-scale-chromatic';
 import { useRef } from 'react';
-import { HiUpload } from 'react-icons/hi';
 import { useParams } from 'react-router';
 import { BehaviorSubject, distinctUntilKeyChanged } from 'rxjs';
 import { CurvesApi } from '../curves/api';
 import { BucketsApi } from './api';
 import { Layout } from '../layout';
 import { bucketBreadcrumb, BucketsBreadcrumb } from './common';
+import { LuTrash, LuChartNoAxesCombined } from 'react-icons/lu';
+import { FaCopy, FaPaste } from 'react-icons/fa';
+import { MdOutlineBorderClear } from 'react-icons/md';
+import { Switch } from '@/components/ui/switch';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -55,28 +65,26 @@ class EditBucketModel extends ReactiveModel {
             }
         }
 
-        this.plate.update(
-            {
-                colors: template.wells.map((w) => {
-                    const key = getBucketTemplateWellKey(w);
-                    if (!key) return undefined;
-                    return d3c.interpolateWarm(keys.get(key)! / (keys.size - 1 || 1));
-                }),
-                labels: template.wells.map((w) => {
-                    if (!w) return undefined;
+        this.plate.update({
+            dimensions: template.dimensions,
+            colors: template.wells.map((w) => {
+                const key = getBucketTemplateWellKey(w);
+                if (!key) return undefined;
+                return d3c.interpolateWarm(keys.get(key)! / (keys.size - 1 || 1));
+            }),
+            labels: template.wells.map((w) => {
+                if (!w) return undefined;
 
-                    let ret = '';
-                    if (w.kind) ret += w.kind;
-                    if (typeof w.sample_index === 'number') ret += `${w.sample_index + 1}`;
-                    if (typeof w.point_index === 'number') {
-                        if (ret) ret += ':';
-                        ret += `${w.point_index + 1}`;
-                    }
-                    return ret || undefined;
-                }),
-            },
-            template.dimensions
-        );
+                let ret = '';
+                if (w.kind) ret += w.kind;
+                if (typeof w.sample_index === 'number') ret += `${w.sample_index + 1}`;
+                if (typeof w.point_index === 'number') {
+                    if (ret) ret += ':';
+                    ret += `${w.point_index + 1}`;
+                }
+                return ret || undefined;
+            }),
+        });
     }
 
     clearCurve(kind: string) {
@@ -85,27 +93,50 @@ class EditBucketModel extends ReactiveModel {
         });
     }
 
-    async selectCurve(kind: string) {
-        const curves = await CurvesApi.list();
-        const options = curves.map((c) => [c.id, formatCurve(c)]);
-        const state = new BehaviorSubject('');
-        DialogService.show({
-            title: 'Select Curve',
-            body: SelectCurveDialog,
-            state,
-            model: options,
-            onOk: (state) => {
-                const curve = curves.find((c) => c.id === state);
-                this.update({
-                    sample_info: { ...this.bucket.sample_info, [kind]: { ...this.bucket.sample_info[kind], curve } },
-                });
-            },
-        });
-    }
-
     private copyWells: (BucketTemplateWell | undefined | null)[] = [];
 
+    sampleInfo = {
+        update: (info: BucketSampleInfo, update: Partial<BucketSampleInfo>) => {
+            const index = this.bucket.sample_info.indexOf(info);
+            if (index < 0) return;
+            const next = [...this.bucket.sample_info];
+            next[index] = { ...next[index], ...update };
+            this.update({ sample_info: next });
+        },
+        add: (kind: string) => {
+            const next = [...this.bucket.sample_info, { kind }];
+            this.update({ sample_info: next });
+        },
+        remove: (info: BucketSampleInfo) => {
+            const next = [...this.bucket.sample_info.filter((i) => i !== info)];
+            this.update({ sample_info: next });
+        },
+        selectCurve: async (info: BucketSampleInfo) => {
+            const curves = await CurvesApi.list();
+            const options = curves.map((c) => [c.id, formatCurve(c)]);
+            const state = new BehaviorSubject('');
+            DialogService.show({
+                title: 'Select Curve',
+                body: SelectCurveDialog,
+                state,
+                model: options,
+                onOk: (state) => {
+                    const curve = curves.find((c) => c.id === state);
+                    this.sampleInfo.update(info, { curve });
+                },
+            });
+        },
+        clearCurve: (info: BucketSampleInfo) => {
+            this.sampleInfo.update(info, { curve: undefined });
+        },
+    };
+
     templateBuilder = {
+        updateLayout: (layout: string) => {
+            const dimensions = PlateLayouts[layout];
+            if (!dimensions) return;
+            this.templateBuilder.updateDimensions(dimensions);
+        },
         updateWell: (update: Partial<BucketTemplateWell>) => {
             const wells = [...this.template.wells];
             PlateUtils.forEachSelectionIndex(this.plate.selection, (idx) => {
@@ -299,8 +330,6 @@ function NavButtons({ model }: { model: EditBucketModel }) {
 
 function EditBucket({ model }: { model: EditBucketModel }) {
     const bucket = useBehavior(model.state.bucket);
-    const sampleIndex = useRef<HTMLInputElement>(null);
-    const pointIndex = useRef<HTMLInputElement>(null);
 
     return (
         <VStack gapY={2}>
@@ -310,6 +339,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     value={bucket.name}
                     onChange={(name) => model.update({ name })}
                     index={0}
+                    size='sm'
                 />
             </Field>
             <Field label='Description'>
@@ -318,6 +348,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     value={bucket.description}
                     onChange={(description) => model.update({ description })}
                     index={1}
+                    size='sm'
                 />
             </Field>
             <Field label='Project'>
@@ -326,6 +357,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     value={bucket.project}
                     onChange={(project) => model.update({ project })}
                     index={2}
+                    size='sm'
                 />
             </Field>
             <Field label='Source Labware'>
@@ -334,6 +366,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     value={bucket.source_labware}
                     onChange={(source_labware) => model.update({ source_labware })}
                     index={3}
+                    size='sm'
                 />
             </Field>
             <Field label='ARP Labware'>
@@ -342,6 +375,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     value={bucket.arp_labware}
                     onChange={(arp_labware) => model.update({ arp_labware })}
                     index={4}
+                    size='sm'
                 />
             </Field>
             <Field label='Normalize Solvent'>
@@ -349,100 +383,170 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     value={bucket.normalize_solvent}
                     onChange={(normalize_solvent) => model.update({ normalize_solvent })}
                     options={['per-curve', 'global', 'no']}
+                    size='sm'
                 />
             </Field>
 
             <Field label='Template' />
             <Flex alignItems='flex-start' w='100%' gap={4}>
-                <Box width={640} height={480} position='relative'>
+                <Box width={640} height={480} minW={640} maxW={640} position='relative'>
                     <PlateVisual model={model.plate} />
                 </Box>
-                <VStack gap={2} mt={4} w={600}>
-                    <SampleInfoButton model={model} kind='C' label='Compound' />
-                    <SampleInfoButton model={model} kind='+' label='Control +' />
-                    <SampleInfoButton model={model} kind='-' label='Control -' />
-                    <SampleInfoButton model={model} kind='R1' label='Ref1' />
-                    <SampleInfoButton model={model} kind='R2' label='Ref2' />
+                <VStack gap={1} flexGrow={1} alignItems='flex-start'>
+                    <Text fontSize='md' fontWeight='bold'>
+                        Layout
+                    </Text>
+
+                    <SimpleSelect
+                        value={String(PlateUtils.size(bucket.template.dimensions))}
+                        onChange={(layout) => model.templateBuilder.updateLayout(layout)}
+                        options={BucketLayouts}
+                        size='xs'
+                    />
+
+                    <Text fontSize='md' fontWeight='bold'>
+                        Well Kinds
+                    </Text>
+                    {bucket.sample_info.map((info, index) => (
+                        <SampleInfoControls key={index} model={model} info={info} />
+                    ))}
+
+                    <Text fontSize='md' fontWeight='bold'>
+                        Sample Indexing
+                    </Text>
+                    <SampleIndexing model={model} />
+
+                    <Text fontSize='md' fontWeight='bold'>
+                        Helpers
+                    </Text>
                     <HStack gap={2} alignItems='flex-start' w='100%'>
+                        <Button variant='subtle' size='xs' onClick={model.templateBuilder.copy}>
+                            <FaCopy /> Copy
+                        </Button>
+                        <Button variant='subtle' size='xs' onClick={model.templateBuilder.paste}>
+                            <FaPaste /> Paste Exact
+                        </Button>
                         <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => {
-                                model.templateBuilder.updateWell({
-                                    sample_index: +sampleIndex.current!.value - 1,
-                                });
-                                sampleIndex.current!.value = '';
-                            }}
+                            variant='subtle'
+                            size='xs'
+                            onClick={model.templateBuilder.pasteSmart}
+                            title='Automatically increment sample indices'
                         >
-                            Sample Index
+                            <FaPaste /> Paste Smart
                         </Button>
-                        <Input ref={sampleIndex} size='sm' placeholder='Enter smpl. index' />
-                    </HStack>
-
-                    <HStack gap={2} alignItems='flex-start' w='100%'>
-                        <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => {
-                                if (!pointIndex.current!.value.trim()) {
-                                    model.templateBuilder.pointIndex();
-                                } else {
-                                    model.templateBuilder.updateWell({
-                                        point_index: +pointIndex.current!.value - 1,
-                                    });
-                                }
-                                sampleIndex.current!.value = '';
-                            }}
-                        >
-                            Point Index
-                        </Button>
-
-                        <Input ref={pointIndex} size='sm' placeholder='Enter pt. index' />
-                    </HStack>
-
-                    <HStack gap={2} alignItems='flex-start' w='100%'>
-                        <Button variant='outline' size='sm' onClick={model.templateBuilder.copy}>
-                            Copy
-                        </Button>
-                        <Button variant='outline' size='sm' onClick={model.templateBuilder.paste}>
-                            Paste Exact
-                        </Button>
-                        <Button variant='outline' size='sm' onClick={model.templateBuilder.pasteSmart}>
-                            Paste Smart
+                        <Button variant='subtle' size='xs' onClick={model.templateBuilder.clear}>
+                            <MdOutlineBorderClear /> Clear Selected Wells
                         </Button>
                     </HStack>
-                    <Button variant='outline' size='sm' onClick={model.templateBuilder.clear} w='100%'>
-                        Clear
-                    </Button>
                 </VStack>
             </Flex>
         </VStack>
     );
 }
 
-function SampleInfoButton({ model, kind, label }: { model: EditBucketModel; kind: string; label: string }) {
-    const info = model.bucket.sample_info?.[kind];
+function SampleIndexing({ model }: { model: EditBucketModel }) {
+    const sampleIndex = useRef<HTMLInputElement>(null);
+    const pointIndex = useRef<HTMLInputElement>(null);
+
+    const applySampleIndex = () => {
+        const idx = SmartParsers.number(sampleIndex.current!.value);
+        model.templateBuilder.updateWell({
+            sample_index: idx === null ? undefined : idx - 1,
+        });
+        sampleIndex.current!.value = '';
+    };
+
+    const applyPointIndex = () => {
+        const idx = SmartParsers.number(sampleIndex.current!.value);
+        if (typeof idx !== 'number') {
+            model.templateBuilder.pointIndex();
+        } else {
+            model.templateBuilder.updateWell({
+                point_index: idx - 1,
+            });
+        }
+        sampleIndex.current!.value = '';
+    };
+
     return (
-        <HStack gap={2} w='100%'>
-            <Button
-                variant='outline'
-                size='sm'
-                onClick={() => model.templateBuilder.updateWell({ kind, sample_index: undefined })}
-                w='80px'
-            >
-                {label}
+        <>
+            <HStack gap={1} alignItems='flex-start' w='100%'>
+                <Input
+                    ref={sampleIndex}
+                    size='xs'
+                    placeholder='Sample Index'
+                    w='140px'
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            (e.target as HTMLElement).blur();
+                            applySampleIndex();
+                        }
+                    }}
+                />
+                <Button variant='subtle' colorPalette='blue' size='xs' onClick={applySampleIndex}>
+                    Apply
+                </Button>
+            </HStack>
+
+            <HStack gap={1} alignItems='flex-start' w='100%'>
+                <Input
+                    ref={pointIndex}
+                    size='xs'
+                    placeholder='Curve Point Index'
+                    w='140px'
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            (e.target as HTMLElement).blur();
+                            applyPointIndex();
+                        }
+                    }}
+                />
+
+                <Button variant='subtle' colorPalette='blue' size='xs' onClick={applyPointIndex}>
+                    Apply
+                </Button>
+            </HStack>
+        </>
+    );
+}
+
+function SampleInfoControls({ model, info }: { model: EditBucketModel; info: BucketSampleInfo }) {
+    return (
+        <HStack gap={1} w='100%'>
+            <Button variant='plain' size='xs' onClick={() => model.sampleInfo.remove(info)} px={0} colorPalette='red'>
+                <LuTrash />
             </Button>
-            <Input placeholder='Smpl. Id' w='100px' />
-            {!info?.curve && (
-                <Button variant='outline' size='sm' onClick={() => model.selectCurve(kind)}>
-                    <HiUpload /> Curve
-                </Button>
-            )}
-            {info?.curve && <i>{formatCurve(info.curve)}</i>}
-            {info?.curve && (
-                <Button variant='outline' size='sm' onClick={() => model.clearCurve(kind)}>
-                    X
-                </Button>
+            <Button
+                variant='subtle'
+                colorPalette='blue'
+                size='xs'
+                onClick={() => model.templateBuilder.updateWell({ kind: info.kind })}
+                w='80px'
+                title='Apply well kind'
+            >
+                {info.kind}
+            </Button>
+            <Button variant='outline' size='xs' onClick={() => model.sampleInfo.selectCurve(info)}>
+                <LuChartNoAxesCombined /> {info?.curve ? formatCurve(info.curve) : 'Select Curve'}
+            </Button>
+
+            <Switch
+                size='xs'
+                checked={!!info.is_control}
+                onCheckedChange={(e) => model.sampleInfo.update(info, { is_control: e.checked })}
+            >
+                Control
+            </Switch>
+
+            {info.is_control && (
+                <Box w='140px'>
+                    <SmartInput
+                        size='xs'
+                        placeholder='Control Sample Id'
+                        value={info.default_sample_id}
+                        onChange={(v) => model.sampleInfo.update(info, { default_sample_id: v?.trim() || undefined })}
+                    />
+                </Box>
             )}
         </HStack>
     );

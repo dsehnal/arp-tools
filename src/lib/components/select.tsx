@@ -7,7 +7,7 @@ export interface SimpleSelectProps<T extends string> {
     value: T | undefined;
     onChange: (value: T) => void;
     readOnly?: boolean;
-    size?: 'sm';
+    size?: 'xs' | 'sm';
     placeholder?: string;
     allowEmpty?: boolean;
 }

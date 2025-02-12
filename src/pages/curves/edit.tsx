@@ -133,7 +133,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
     return (
         <VStack gap={1}>
             <Field label='Name'>
-                <SmartInput value={name} onChange={(v) => model.state.name.next(v)} index={0} sm />
+                <SmartInput value={name} onChange={(v) => model.state.name.next(v)} index={0} size='sm' />
             </Field>
             <Field label='nARP Concentration (mM)'>
                 <SmartInput
@@ -142,7 +142,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.unit(1e-3)}
                     onChange={(v) => model.update({ nARP_concentration_M: v })}
                     index={1}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Intermediate Volume (uL)'>
@@ -152,7 +152,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.unit(1e-7)}
                     onChange={(v) => model.update({ intermediate_volume_l: v })}
                     index={2}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Assay Volume (uL)'>
@@ -162,7 +162,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.unit(1e-6)}
                     onChange={(v) => model.update({ assay_volume_l: v })}
                     index={3}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Max Intermediate Plates'>
@@ -171,7 +171,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ max_intermadiate_plates: v })}
                     index={4}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Max Points per Plate'>
@@ -180,7 +180,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ max_intermediate_points_per_plate: v })}
                     index={5}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Top Concentration (uM)'>
@@ -190,7 +190,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.unit(1e-6)}
                     onChange={(v) => model.update({ top_concentration_m: v })}
                     index={6}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Number of Points'>
@@ -199,7 +199,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ num_points: v })}
                     index={7}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Dilution Factor'>
@@ -209,7 +209,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ dilution_factor: v })}
                     index={8}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Tolerance (%)'>
@@ -219,7 +219,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.unit(1e-2)}
                     onChange={(v) => model.update({ tolerance: v })}
                     index={9}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Adjust Intermediate Volume'>
@@ -236,7 +236,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.unit(1e-9)}
                     onChange={(v) => model.update({ min_transfer_volume_l: v })}
                     index={10}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Max Transfer Volume (nL)'>
@@ -246,7 +246,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.unit(1e-9)}
                     onChange={(v) => model.update({ max_transfer_volume_l: v })}
                     index={11}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Max Intermediate Transfer Volume (nL)'>
@@ -256,7 +256,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.unit(1e-9)}
                     onChange={(v) => model.update({ max_intermediate_transfer_volume_l: v })}
                     index={12}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Droplet Size (nL)'>
@@ -266,7 +266,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.unit(1e-9)}
                     onChange={(v) => model.update({ droplet_size_l: v })}
                     index={13}
-                    sm
+                    size='sm'
                 />
             </Field>
             <Field label='Number of Intermediate Point Samples'>
@@ -275,7 +275,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ num_intermediate_point_samples: v })}
                     index={14}
-                    sm
+                    size='sm'
                 />
             </Field>
         </VStack>
