@@ -9,6 +9,8 @@ import { Box, Button, Table, VStack } from '@chakra-ui/react';
 import { useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { CurvesApi } from './api';
+import { Layout } from '../layout';
+import { curvePath, CurvesBreadcrumb } from './common';
 
 class CurvesModel extends ReactiveModel {
     state = {
@@ -34,11 +36,21 @@ async function createModel() {
 
 export function CurvesUI() {
     const { model, loading, error } = useAsyncModel(createModel);
+    const navigate = useNavigate();
 
     return (
-        <AsyncWrapper loading={!model || loading} error={error}>
-            <CurveList model={model!} />
-        </AsyncWrapper>
+        <Layout
+            breadcrumbs={[CurvesBreadcrumb]}
+            buttons={
+                <Button onClick={() => navigate(curvePath(uuid4()))} size='xs' colorPalette='blue'>
+                    New Curve
+                </Button>
+            }
+        >
+            <AsyncWrapper loading={!model || loading} error={error}>
+                <CurveList model={model!} />
+            </AsyncWrapper>
+        </Layout>
     );
 }
 
@@ -47,48 +59,45 @@ function CurveList({ model }: { model: CurvesModel }) {
     const navigate = useNavigate();
     return (
         <VStack gap={2} w='100%'>
-            <Box textAlign='right' w='100%'>
-                <Button onClick={() => navigate(`/curves/${uuid4()}`)} size='sm' colorPalette='blue'>
-                    New Curve
-                </Button>
-            </Box>
             <Box w='100%'>
                 <Table.ScrollArea borderWidth='1px' w='100%'>
                     <Table.Root size='sm' stickyHeader>
                         <Table.Header>
                             <Table.Row bg='bg.subtle'>
-                                <Table.ColumnHeader></Table.ColumnHeader>
                                 <Table.ColumnHeader>Name</Table.ColumnHeader>
                                 <Table.ColumnHeader># Points</Table.ColumnHeader>
                                 <Table.ColumnHeader>Top Concentration</Table.ColumnHeader>
+                                <Table.ColumnHeader></Table.ColumnHeader>
+                                <Table.ColumnHeader></Table.ColumnHeader>
                             </Table.Row>
                         </Table.Header>
 
                         <Table.Body>
                             {curves.map((curve) => (
                                 <Table.Row key={curve.id}>
-                                    <Table.Cell>
+                                    <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
+                                    <Table.Cell>{curve.points.length}</Table.Cell>
+                                    <Table.Cell>{formatConc(curve.points[0].target_concentration_m)}</Table.Cell>
+                                    <Table.Cell></Table.Cell>
+                                    <Table.Cell textAlign='right'>
                                         <Button
-                                            key={curve.id}
                                             size='xs'
                                             colorPalette='blue'
                                             onClick={() => navigate(`/curves/${curve.id}`)}
+                                            variant='subtle'
                                         >
                                             Edit
                                         </Button>
                                         <Button
-                                            key={curve.id}
                                             size='xs'
                                             colorPalette='red'
                                             ms={2}
                                             onClick={() => model.remove(curve.id!)}
+                                            variant='subtle'
                                         >
                                             Remove
                                         </Button>
                                     </Table.Cell>
-                                    <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
-                                    <Table.Cell>{curve.points.length}</Table.Cell>
-                                    <Table.Cell>{formatConc(curve.points[0].target_concentration_m)}</Table.Cell>
                                 </Table.Row>
                             ))}
                         </Table.Body>

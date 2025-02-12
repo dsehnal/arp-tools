@@ -21,6 +21,8 @@ import { useParams } from 'react-router';
 import { BehaviorSubject, distinctUntilKeyChanged } from 'rxjs';
 import { CurvesApi } from '../curves/api';
 import { BucketsApi } from './api';
+import { Layout } from '../layout';
+import { bucketBreadcrumb, BucketsBreadcrumb } from './common';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -243,6 +245,10 @@ class EditBucketModel extends ReactiveModel {
         });
     };
 
+    export = () => {
+        alert('TODO');
+    };
+
     async init() {
         const bucket = await BucketsApi.get(this.id);
         if (bucket) {
@@ -267,9 +273,27 @@ export function EditBucketUI() {
     useReactiveModel(model);
 
     return (
-        <AsyncWrapper loading={!model || loading} error={error}>
-            <EditBucket model={model!} />
-        </AsyncWrapper>
+        <Layout
+            breadcrumbs={[BucketsBreadcrumb, bucketBreadcrumb({ isLoading: loading, name: 'Edit', id: model?.id })]}
+            buttons={!!model && <NavButtons model={model} />}
+        >
+            <AsyncWrapper loading={!model || loading} error={error}>
+                <EditBucket model={model!} />
+            </AsyncWrapper>
+        </Layout>
+    );
+}
+
+function NavButtons({ model }: { model: EditBucketModel }) {
+    return (
+        <HStack gap={2}>
+            <Button onClick={model.save} size='xs' colorPalette='blue'>
+                Save
+            </Button>
+            <Button onClick={model.export} size='xs' colorPalette='blue'>
+                Export
+            </Button>
+        </HStack>
     );
 }
 
@@ -392,10 +416,6 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     </Button>
                 </VStack>
             </Flex>
-
-            <Button size='sm' w='100%' my={2} colorPalette='blue' onClick={model.save}>
-                Save
-            </Button>
         </VStack>
     );
 }

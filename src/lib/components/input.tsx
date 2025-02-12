@@ -51,7 +51,7 @@ export function SmartInput<T>({
                 if (e.key === 'Enter') {
                     ref.current!.blur();
                     if (typeof index === 'number') {
-                        const next = document.querySelector(`input[data-index="${indexGroup ?? ''}-${index}"]`);
+                        const next = document.querySelector(`input[data-index="${indexGroup ?? ''}-${index + 1}"]`);
                         if (next) {
                             (next as HTMLElement).focus();
                         }

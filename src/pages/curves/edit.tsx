@@ -4,7 +4,7 @@ import { BehaviorSubject } from 'rxjs';
 import { CurvesApi } from './api';
 import { useParams } from 'react-router';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
-import { Box, Button, HStack, Table, VStack } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, Table, VStack } from '@chakra-ui/react';
 import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
 import { Field } from '@/components/ui/field';
 import { useBehavior } from '@/lib/hooks/use-behavior';
@@ -14,6 +14,8 @@ import { formatConc, roundValue, toNano } from '@/utils';
 import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
+import { curveBreadcrumb, CurvesBreadcrumb } from './common';
+import { Layout } from '../layout';
 
 class EditCurveModel extends ReactiveModel {
     state = {
@@ -50,6 +52,10 @@ class EditCurveModel extends ReactiveModel {
         });
     };
 
+    export = () => {
+        alert('TODO');
+    };
+
     async init() {
         const curve = await CurvesApi.get(this.id);
         if (curve) {
@@ -77,30 +83,46 @@ export function EditCurveUI() {
     const { model, loading, error } = useAsyncModel(createModel, id);
 
     return (
-        <AsyncWrapper loading={!model || loading} error={error}>
-            <EditCurve model={model!} />
-        </AsyncWrapper>
+        <Layout
+            breadcrumbs={[CurvesBreadcrumb, curveBreadcrumb({ isLoading: loading, name: 'Edit', id: model?.id })]}
+            buttons={!!model && <NavButtons model={model} />}
+        >
+            <AsyncWrapper loading={!model || loading} error={error}>
+                <EditCurve model={model!} />
+            </AsyncWrapper>
+        </Layout>
+    );
+}
+
+function NavButtons({ model }: { model: EditCurveModel }) {
+    return (
+        <HStack gap={2}>
+            <Button onClick={model.save} size='xs' colorPalette='blue'>
+                Save
+            </Button>
+            <Button onClick={model.export} size='xs' colorPalette='blue'>
+                Export
+            </Button>
+        </HStack>
     );
 }
 
 function EditCurve({ model }: { model: EditCurveModel }) {
     useReactiveModel(model);
     return (
-        <HStack h='100%' position='relative'>
-            <Box
-                gap={1}
-                minW={400}
-                maxW={400}
-                w={400}
-                borderRightWidth={1}
-                pe={2}
-                h='100%'
-                overflow='hidden'
-                overflowY='auto'
-            >
-                <EditCurveOptions model={model} />
-            </Box>
+        <HStack h='100%' position='relative' gap={4}>
             <EditCurveTable model={model} />
+            <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%'>
+                <Button w='100%' onClick={model.build} size='sm' colorPalette='blue'>
+                    Build
+                </Button>
+
+                <Box flexGrow={1} position='relative'>
+                    <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll' pe={2}>
+                        <EditCurveOptions model={model} />
+                    </Box>
+                </Box>
+            </Flex>
         </HStack>
     );
 }
@@ -110,9 +132,6 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
     const name = useBehavior(model.state.name);
     return (
         <VStack gap={1}>
-            <Button w='100%' onClick={model.build} size='sm' colorPalette='blue'>
-                Build
-            </Button>
             <Field label='Name'>
                 <SmartInput value={name} onChange={(v) => model.state.name.next(v)} index={0} sm />
             </Field>
@@ -270,53 +289,57 @@ function EditCurveTable({ model }: { model: EditCurveModel }) {
         return <Box>No curve computed</Box>;
     }
 
-    const pt = (name: string, p: DilutionPoint) => (
-        <Table.Row key={name}>
-            <Table.Cell>{name}</Table.Cell>
-            <Table.Cell>{formatConc(p.target_concentration_m)}</Table.Cell>
-            <Table.Cell>{formatConc(p.actual_concentration_m)}</Table.Cell>
-            <Table.Cell>
-                {roundValue(
-                    100 * Math.abs((p.target_concentration_m - p.actual_concentration_m) / p.target_concentration_m),
-                    2
-                )}{' '}
-                %
-            </Table.Cell>
-            <Table.Cell>
-                {p.transfers.length > 0 &&
-                    p.transfers.map((t) => `[${toNano(t.volumeL)} nL@${formatConc(t.concentration_m)}]`).join(', ')}
-            </Table.Cell>
-        </Table.Row>
-    );
+    const pt = (name: string, p: DilutionPoint, dmso = false) => {
+        const xferVolume = p.transfers.reduce((acc, t) => acc + t.volumeL, 0);
+        const dmsoPercent = (100 * xferVolume) / model.options.assay_volume_l;
+        return (
+            <Table.Row key={name}>
+                <Table.Cell>{name}</Table.Cell>
+                <Table.Cell>{formatConc(p.target_concentration_m)}</Table.Cell>
+                <Table.Cell>{formatConc(p.actual_concentration_m)}</Table.Cell>
+                <Table.Cell>
+                    {roundValue(
+                        100 *
+                            Math.abs((p.target_concentration_m - p.actual_concentration_m) / p.target_concentration_m),
+                        2
+                    )}{' '}
+                    %
+                </Table.Cell>
+                <Table.Cell>{dmso && `${roundValue(dmsoPercent, 2)} %`}</Table.Cell>
+                <Table.Cell>
+                    {p.transfers.length > 0 &&
+                        p.transfers.map((t) => `[${toNano(t.volumeL)} nL@${formatConc(t.concentration_m)}]`).join(', ')}
+                </Table.Cell>
+            </Table.Row>
+        );
+    };
 
     return (
-        <Box w='100%' h='100%' overflow='hidden'>
-            <Table.ScrollArea borderWidth='1px' w='100%'>
-                <Table.Root size='sm' stickyHeader>
-                    <Table.Header>
-                        <Table.Row bg='bg.subtle'>
-                            <Table.ColumnHeader>Pt</Table.ColumnHeader>
-                            <Table.ColumnHeader>Target</Table.ColumnHeader>
-                            <Table.ColumnHeader>Actual</Table.ColumnHeader>
-                            <Table.ColumnHeader>Error</Table.ColumnHeader>
-                            <Table.ColumnHeader>Transfers</Table.ColumnHeader>
-                        </Table.Row>
-                    </Table.Header>
+        <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
+            <Table.Root size='sm' stickyHeader>
+                <Table.Header>
+                    <Table.Row bg='bg.subtle'>
+                        <Table.ColumnHeader>Pt</Table.ColumnHeader>
+                        <Table.ColumnHeader>Target</Table.ColumnHeader>
+                        <Table.ColumnHeader>Actual</Table.ColumnHeader>
+                        <Table.ColumnHeader>Error</Table.ColumnHeader>
+                        <Table.ColumnHeader>DMSO</Table.ColumnHeader>
+                        <Table.ColumnHeader>Transfers</Table.ColumnHeader>
+                    </Table.Row>
+                </Table.Header>
 
-                    <Table.Body>
-                        {pt('nARP', {
-                            actual_concentration_m: curve.nARP_concentration_m,
-                            target_concentration_m: curve.nARP_concentration_m,
-                            transfers: [],
-                        })}
-                        {curve.intermediate_points.flatMap((points, i) => points.map((p) => pt(`Int ${i + 1}`, p)))}
-                        {curve.points.map((p, i) => pt(`${i + 1}`, p))}
-                    </Table.Body>
-                </Table.Root>
-            </Table.ScrollArea>
-            <Button size='sm' w='100%' mt={2} colorPalette='blue' onClick={model.save}>
-                Save
-            </Button>
-        </Box>
+                <Table.Body>
+                    {pt('nARP', {
+                        actual_concentration_m: curve.nARP_concentration_m,
+                        target_concentration_m: curve.nARP_concentration_m,
+                        transfers: [],
+                    })}
+                    {curve.intermediate_points.flatMap((points, i) =>
+                        points.map((p, j) => pt(`Int ${i + 1}-${j + 1}`, p))
+                    )}
+                    {curve.points.map((p, i) => pt(`${i + 1}`, p, true))}
+                </Table.Body>
+            </Table.Root>
+        </Table.ScrollArea>
     );
 }
