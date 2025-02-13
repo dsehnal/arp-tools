@@ -1,16 +1,31 @@
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from '../hooks/use-behavior';
-import { DialogBody, DialogContent, DialogFooter, DialogHeader, DialogRoot, DialogTitle } from '@/components/ui/dialog';
-import { Button, DialogCloseTrigger } from '@chakra-ui/react';
-import { FC } from 'react';
+import {
+    DialogBody,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogRoot,
+    DialogTitle,
+    DialogCloseTrigger,
+} from '@/components/ui/dialog';
+import { Button } from '@chakra-ui/react';
+import { FC, ReactNode } from 'react';
 
 export interface DialogProps<T, S> {
     title: string;
-    body: FC<{ state: BehaviorSubject<S> | undefined; model: T | undefined }>;
+    body: FC<{ state?: BehaviorSubject<S>; model?: T }>;
     onOk?: (state?: S) => any;
 
+    options?: { cancelButton?: boolean };
     model?: T;
     state?: BehaviorSubject<S>;
+}
+
+export interface ConfirmDialogProps {
+    title: string;
+    message: ReactNode;
+    onOk: () => any;
 }
 
 class _DialogService {
@@ -24,6 +39,15 @@ class _DialogService {
         await current.onOk?.(current.state?.value);
         this.close();
     };
+
+    confirm(props: ConfirmDialogProps) {
+        this.show({
+            title: props.title,
+            body: () => <>{props.message}</>,
+            onOk: props.onOk,
+            options: { cancelButton: true },
+        });
+    }
 }
 
 export const DialogService = new _DialogService();
@@ -39,16 +63,21 @@ export function DialogProvider() {
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{current.title}</DialogTitle>
+                    <DialogCloseTrigger onClick={DialogService.close} />
                 </DialogHeader>
                 <DialogBody>
                     <Body state={current.state} model={current.model} />
                 </DialogBody>
                 <DialogFooter>
+                    {current.options?.cancelButton && (
+                        <Button variant='outline' onClick={DialogService.close}>
+                            Cancel
+                        </Button>
+                    )}
                     <Button colorPalette='blue' onClick={DialogService.onOk}>
                         OK
                     </Button>
                 </DialogFooter>
-                <DialogCloseTrigger onClick={DialogService.close} />
             </DialogContent>
         </DialogRoot>
     );

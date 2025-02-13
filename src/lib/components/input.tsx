@@ -71,6 +71,7 @@ export function SmartInput<T>({
 const unitParsers = new Map<number, (v: string) => number | null>();
 
 export const SmartParsers = {
+    trim: (value: string) => value.trim(),
     number: (value: string) => {
         if (value.trim() === '') return null;
         const parsed = +value;

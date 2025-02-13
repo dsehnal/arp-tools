@@ -11,6 +11,7 @@ import { BehaviorSubject } from 'rxjs';
 import { CurvesApi } from './api';
 import { Layout } from '../layout';
 import { curvePath, CurvesBreadcrumb } from './common';
+import { DialogService } from '@/lib/services/dialog';
 
 class CurvesModel extends ReactiveModel {
     state = {
@@ -23,8 +24,14 @@ class CurvesModel extends ReactiveModel {
     }
 
     remove = async (id: string) => {
-        await CurvesApi.remove(id);
-        await this.init();
+        DialogService.confirm({
+            title: 'Remove Bucket',
+            message: 'Are you sure you want to remove this curve?',
+            onOk: async () => {
+                await CurvesApi.remove(id);
+                await this.init();
+            },
+        });
     };
 }
 

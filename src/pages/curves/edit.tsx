@@ -133,7 +133,13 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
     return (
         <VStack gap={1}>
             <Field label='Name'>
-                <SmartInput value={name} onChange={(v) => model.state.name.next(v)} index={0} size='sm' />
+                <SmartInput
+                    value={name}
+                    parse={SmartParsers.trim}
+                    onChange={(v) => model.state.name.next(v)}
+                    index={0}
+                    size='sm'
+                />
             </Field>
             <Field label='nARP Concentration (mM)'>
                 <SmartInput

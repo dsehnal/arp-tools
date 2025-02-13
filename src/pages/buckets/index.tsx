@@ -10,6 +10,7 @@ import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { BucketsApi } from './api';
 import { bucketPath, BucketsBreadcrumb } from './common';
+import { DialogService } from '@/lib/services/dialog';
 
 class BucketsModel extends ReactiveModel {
     state = {
@@ -21,9 +22,15 @@ class BucketsModel extends ReactiveModel {
         this.state.buckets.next(buckets);
     }
 
-    remove = async (id: string) => {
-        await BucketsApi.remove(id);
-        await this.init();
+    remove = (id: string) => {
+        DialogService.confirm({
+            title: 'Remove Bucket',
+            message: 'Are you sure you want to remove this bucket?',
+            onOk: async () => {
+                await BucketsApi.remove(id);
+                await this.init();
+            },
+        });
     };
 }
 

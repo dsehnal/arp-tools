@@ -235,7 +235,7 @@ const DefaultPlateColors = {
 const PlateVisualConstants = {
     leftOffset: 40,
     topOffset: 30,
-    maxLabelSize: 20,
+    maxLabelSize: 12,
 };
 
 function createCanvas() {
@@ -274,23 +274,20 @@ function drawPlateGrid(plate: PlateModel) {
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(99, 99, 99, 0.33)';
 
+    ctx.beginPath();
     for (let row = 1; row < rows; row++) {
         const offset = PlateVisualConstants.topOffset + 0.5 + row * dy;
-        ctx.beginPath();
         ctx.moveTo(PlateVisualConstants.leftOffset, offset);
         ctx.lineTo(size.width, offset);
-        ctx.stroke();
-        ctx.closePath();
     }
 
     for (let col = 1; col < cols; col++) {
         const offset = PlateVisualConstants.leftOffset + 0.5 + col * dx;
-        ctx.beginPath();
         ctx.moveTo(offset, PlateVisualConstants.topOffset);
         ctx.lineTo(offset, size.height);
-        ctx.stroke();
-        ctx.closePath();
     }
+    ctx.stroke();
+    ctx.closePath();
 
     ctx.setLineDash([]);
     ctx.strokeStyle = 'rgba(155, 155, 155, 1.0)';

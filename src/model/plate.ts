@@ -68,6 +68,9 @@ export const PlateUtils = {
             }
         }
     },
+    emptyWells<T>(dimensions: PlateDimensions): (T | null | undefined)[] {
+        return Array(PlateUtils.size(dimensions)).fill(null);
+    },
     emptySelection(dimensions: PlateDimensions): PlateSelection {
         return Array(PlateUtils.size(dimensions)).fill(0);
     },

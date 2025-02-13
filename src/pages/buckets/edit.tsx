@@ -1,7 +1,7 @@
 import { Field } from '@/components/ui/field';
 import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
-import { SmartInput, SmartParsers } from '@/lib/components/input';
+import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
 import { SimpleSelect } from '@/lib/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
@@ -9,7 +9,7 @@ import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { PlateModel, PlateVisual } from '@/lib/plate';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
-import { arrayMapAdd, resizeArray } from '@/lib/util/array';
+import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
 import {
     Bucket,
     BucketLayouts,
@@ -20,17 +20,17 @@ import {
 } from '@/model/bucket';
 import { formatCurve } from '@/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/model/plate';
-import { Box, Button, Flex, HStack, Input, VStack, Text } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, Input, VStack, Text, Alert } from '@chakra-ui/react';
 import * as d3c from 'd3-scale-chromatic';
 import { useRef } from 'react';
 import { useParams } from 'react-router';
-import { BehaviorSubject, distinctUntilKeyChanged } from 'rxjs';
+import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyChanged } from 'rxjs';
 import { CurvesApi } from '../curves/api';
 import { BucketsApi } from './api';
 import { Layout } from '../layout';
 import { bucketBreadcrumb, BucketsBreadcrumb } from './common';
 import { LuTrash, LuChartNoAxesCombined } from 'react-icons/lu';
-import { FaCopy, FaPaste } from 'react-icons/fa';
+import { FaCopy, FaPaste, FaCirclePlus } from 'react-icons/fa6';
 import { MdOutlineBorderClear } from 'react-icons/md';
 import { Switch } from '@/components/ui/switch';
 
@@ -47,18 +47,20 @@ class EditBucketModel extends ReactiveModel {
         return this.state.bucket.value.template;
     }
 
-    plate = new PlateModel(DefaultBucket.template.dimensions);
+    plate = new PlateModel(DefaultBucket.arp_labware.dimensions);
 
     update(next: Partial<Bucket>) {
         this.state.bucket.next({ ...this.bucket, ...next });
     }
 
     private syncPlate() {
-        const { template } = this;
+        const {
+            bucket: { template, arp_labware },
+        } = this;
 
         const keys = new Map<string, number>();
 
-        for (const well of template.wells) {
+        for (const well of template) {
             const key = getBucketTemplateWellKey(well);
             if (!keys.has(key!)) {
                 keys.set(key!, keys.size);
@@ -66,13 +68,13 @@ class EditBucketModel extends ReactiveModel {
         }
 
         this.plate.update({
-            dimensions: template.dimensions,
-            colors: template.wells.map((w) => {
+            dimensions: arp_labware.dimensions,
+            colors: template.map((w) => {
                 const key = getBucketTemplateWellKey(w);
                 if (!key) return undefined;
                 return d3c.interpolateWarm(keys.get(key)! / (keys.size - 1 || 1));
             }),
-            labels: template.wells.map((w) => {
+            labels: template.map((w) => {
                 if (!w) return undefined;
 
                 let ret = '';
@@ -103,13 +105,33 @@ class EditBucketModel extends ReactiveModel {
             next[index] = { ...next[index], ...update };
             this.update({ sample_info: next });
         },
-        add: (kind: string) => {
-            const next = [...this.bucket.sample_info, { kind }];
-            this.update({ sample_info: next });
+        add: () => {
+            DialogService.show({
+                title: 'Add Well Kind',
+                body: AddWellKindDialog,
+                state: new BehaviorSubject(''),
+                onOk: (state) => {
+                    if (!state) return;
+                    const next = [...this.bucket.sample_info, { kind: state }];
+                    this.update({ sample_info: next });
+                },
+            });
         },
         remove: (info: BucketSampleInfo) => {
-            const next = [...this.bucket.sample_info.filter((i) => i !== info)];
-            this.update({ sample_info: next });
+            DialogService.confirm({
+                title: 'Remove Well Kind',
+                message: (
+                    <>
+                        Are you sure you want to remove the well kind <b>{info.kind}</b>? This will also remove any
+                        wells of this kind.
+                    </>
+                ),
+                onOk: () => {
+                    const next = [...this.bucket.sample_info.filter((i) => i !== info)];
+                    const wells = this.template.map((w) => (w?.kind === info.kind ? null : w));
+                    this.update({ sample_info: next, template: wells });
+                },
+            });
         },
         selectCurve: async (info: BucketSampleInfo) => {
             const curves = await CurvesApi.list();
@@ -138,37 +160,30 @@ class EditBucketModel extends ReactiveModel {
             this.templateBuilder.updateDimensions(dimensions);
         },
         updateWell: (update: Partial<BucketTemplateWell>) => {
-            const wells = [...this.template.wells];
+            const wells = [...this.template];
             PlateUtils.forEachSelectionIndex(this.plate.selection, (idx) => {
                 wells[idx] = { ...wells[idx], ...update };
             });
 
             this.update({
-                template: {
-                    ...this.bucket.template,
-                    wells,
-                },
+                template: wells,
             });
         },
         updateDimensions: (dimensions: PlateDimensions) => {
             this.update({
-                template: {
-                    ...this.bucket.template,
-                    dimensions,
-                    wells: resizeArray(this.bucket.template.wells, PlateUtils.size(dimensions), undefined),
-                },
+                template: resizeArray(this.bucket.template, PlateUtils.size(dimensions), undefined),
             });
         },
         pointIndex: () => {
             const byKind = new Map<string, number[]>();
             const { template } = this;
             PlateUtils.forEachSelectionIndex(this.plate.selection, (idx) => {
-                const key = getBucketTemplateWellKey(template.wells[idx]);
+                const key = getBucketTemplateWellKey(template[idx]);
                 if (!key) return;
                 arrayMapAdd(byKind, key, idx);
             });
 
-            const wells = [...this.template.wells];
+            const wells = [...this.template];
             byKind.forEach((xs) => {
                 for (let i = 0; i < xs.length; i++) {
                     wells[xs[i]] = { ...wells[xs[i]], point_index: i };
@@ -176,32 +191,26 @@ class EditBucketModel extends ReactiveModel {
             });
 
             this.update({
-                template: {
-                    ...this.bucket.template,
-                    wells,
-                },
+                template: wells,
             });
         },
         copy: () => {
             this.copyWells = [];
             PlateUtils.forEachSelectionIndex(this.plate.selection, (idx) => {
-                this.copyWells.push(this.template.wells[idx]);
+                this.copyWells.push(this.template[idx]);
             });
         },
         paste: () => {
             if (!this.copyWells.length) return;
 
-            const wells = [...this.template.wells];
+            const wells = [...this.template];
             let offset = 0;
             PlateUtils.forEachSelectionIndex(this.plate.selection, (idx) => {
                 wells[idx] = this.copyWells[offset++ % this.copyWells.length];
             });
 
             this.update({
-                template: {
-                    ...this.bucket.template,
-                    wells,
-                },
+                template: wells,
             });
         },
         pasteSmart: () => {
@@ -209,7 +218,7 @@ class EditBucketModel extends ReactiveModel {
 
             let maxSampleIndex = -1;
 
-            for (const w of this.template.wells) {
+            for (const w of this.template) {
                 if (typeof w?.sample_index === 'number') maxSampleIndex = Math.max(w.sample_index, maxSampleIndex);
             }
 
@@ -219,7 +228,7 @@ class EditBucketModel extends ReactiveModel {
                 copySampleIndexMap.set(w.sample_index, maxSampleIndex + copySampleIndexMap.size + 1);
             }
 
-            const wells = [...this.template.wells];
+            const wells = [...this.template];
             let offset = 0;
             PlateUtils.forEachSelectionIndex(this.plate.selection, (idx) => {
                 const well = this.copyWells[offset % this.copyWells.length];
@@ -236,34 +245,36 @@ class EditBucketModel extends ReactiveModel {
             });
 
             this.update({
-                template: {
-                    ...this.bucket.template,
-                    wells,
-                },
+                template: wells,
             });
         },
         linearizeSampleIndices: () => {
             // TODO
         },
         clear: () => {
-            const wells = [...this.template.wells];
+            const wells = [...this.template];
             PlateUtils.forEachSelectionIndex(this.plate.selection, (idx) => {
                 wells[idx] = undefined;
             });
 
             this.update({
-                template: {
-                    ...this.bucket.template,
-                    wells,
-                },
+                template: wells,
             });
         },
     };
 
     mount(): void {
-        this.subscribe(this.state.bucket.pipe(distinctUntilKeyChanged('template')), () => {
-            this.syncPlate();
-        });
+        this.subscribe(
+            combineLatest([
+                this.state.bucket.pipe(distinctUntilKeyChanged('template')),
+                this.state.bucket.pipe(
+                    distinctUntilChanged((a, b) => arrayEqual(a.arp_labware.dimensions, b.arp_labware.dimensions))
+                ),
+            ]),
+            () => {
+                this.syncPlate();
+            }
+        );
     }
 
     save = async () => {
@@ -337,6 +348,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                 <SmartInput
                     placeholder='Enter bucket name'
                     value={bucket.name}
+                    parse={SmartParsers.trim}
                     onChange={(name) => model.update({ name })}
                     index={0}
                     size='sm'
@@ -346,6 +358,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                 <SmartInput
                     placeholder='Enter optional description'
                     value={bucket.description}
+                    parse={SmartParsers.trim}
                     onChange={(description) => model.update({ description })}
                     index={1}
                     size='sm'
@@ -355,26 +368,9 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                 <SmartInput
                     placeholder='Enter optional project'
                     value={bucket.project}
+                    parse={SmartParsers.trim}
                     onChange={(project) => model.update({ project })}
                     index={2}
-                    size='sm'
-                />
-            </Field>
-            <Field label='Source Labware'>
-                <SmartInput
-                    placeholder='Enter optional source labware'
-                    value={bucket.source_labware}
-                    onChange={(source_labware) => model.update({ source_labware })}
-                    index={3}
-                    size='sm'
-                />
-            </Field>
-            <Field label='ARP Labware'>
-                <SmartInput
-                    placeholder='Enter optional ARP labware'
-                    value={bucket.arp_labware}
-                    onChange={(arp_labware) => model.update({ arp_labware })}
-                    index={4}
                     size='sm'
                 />
             </Field>
@@ -386,27 +382,22 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     size='sm'
                 />
             </Field>
+            <LabwareEditor model={model} kind='source_labware' />
+            <LabwareEditor model={model} kind='arp_labware' />
 
-            <Field label='Template' />
             <Flex alignItems='flex-start' w='100%' gap={4}>
                 <Box width={640} height={480} minW={640} maxW={640} position='relative'>
                     <PlateVisual model={model.plate} />
                 </Box>
                 <VStack gap={1} flexGrow={1} alignItems='flex-start'>
-                    <Text fontSize='md' fontWeight='bold'>
-                        Layout
-                    </Text>
-
-                    <SimpleSelect
-                        value={String(PlateUtils.size(bucket.template.dimensions))}
-                        onChange={(layout) => model.templateBuilder.updateLayout(layout)}
-                        options={BucketLayouts}
-                        size='xs'
-                    />
-
-                    <Text fontSize='md' fontWeight='bold'>
-                        Well Kinds
-                    </Text>
+                    <HStack gap={2}>
+                        <Text fontSize='md' fontWeight='bold'>
+                            Well Kinds
+                        </Text>
+                        <Button variant='subtle' size='xs' colorPalette='gray' onClick={model.sampleInfo.add}>
+                            Add
+                        </Button>
+                    </HStack>
                     {bucket.sample_info.map((info, index) => (
                         <SampleInfoControls key={index} model={model} info={info} />
                     ))}
@@ -441,6 +432,61 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                 </VStack>
             </Flex>
         </VStack>
+    );
+}
+
+function LabwareEditor({ model, kind }: { model: EditBucketModel; kind: 'source_labware' | 'arp_labware' }) {
+    const labware = model.bucket[kind];
+    const w = '150px';
+    return (
+        <HStack gap={2} w='100%'>
+            <Field label={kind === 'source_labware' ? 'Source Labware' : 'ARP Labware'} minW={w} maxW={w}>
+                <SimpleSelect
+                    value={String(PlateUtils.size(labware.dimensions))}
+                    onChange={(layout) => model.update({ [kind]: { ...labware, dimensions: PlateLayouts[layout] } })}
+                    options={BucketLayouts}
+                    size='sm'
+                />
+            </Field>
+            <Field label='Dead Volume (uL)' minW={w} maxW={w}>
+                <SmartInput
+                    value={labware.dead_volume_l}
+                    format={SmartFormatters.unit(1e6)}
+                    parse={SmartParsers.unit(1e-7)}
+                    onChange={(v) => model.update({ [kind]: { ...labware, dead_volume_l: v } })}
+                    index={2}
+                    size='sm'
+                />
+            </Field>
+            <Field label='Well Volume (uL)' minW={w} maxW={w}>
+                <SmartInput
+                    value={labware.well_volume_l}
+                    format={SmartFormatters.unit(1e6)}
+                    parse={SmartParsers.unit(1e-7)}
+                    onChange={(v) => model.update({ [kind]: { ...labware, well_volume_l: v } })}
+                    index={2}
+                    size='sm'
+                />
+            </Field>
+            <Field label='Shorthand' minW={w} maxW={w}>
+                <SmartInput
+                    placeholder='Shorthand'
+                    value={labware.shorthand}
+                    parse={SmartParsers.trim}
+                    onChange={(v) => model.update({ [kind]: { ...labware, shorthand: v } })}
+                    size='sm'
+                />
+            </Field>
+            <Field label='Name'>
+                <SmartInput
+                    placeholder='Labware Name'
+                    value={labware.name}
+                    parse={SmartParsers.trim}
+                    onChange={(v) => model.update({ [kind]: { ...labware, name: v } })}
+                    size='sm'
+                />
+            </Field>
+        </HStack>
     );
 }
 
@@ -526,18 +572,17 @@ function SampleInfoControls({ model, info }: { model: EditBucketModel; info: Buc
             >
                 {info.kind}
             </Button>
-            <Button variant='outline' size='xs' onClick={() => model.sampleInfo.selectCurve(info)}>
-                <LuChartNoAxesCombined /> {info?.curve ? formatCurve(info.curve) : 'Select Curve'}
-            </Button>
-
             <Switch
                 size='xs'
                 checked={!!info.is_control}
                 onCheckedChange={(e) => model.sampleInfo.update(info, { is_control: e.checked })}
+                mx={1}
             >
                 Control
             </Switch>
-
+            <Button variant='outline' size='xs' onClick={() => model.sampleInfo.selectCurve(info)}>
+                <LuChartNoAxesCombined /> {info?.curve ? formatCurve(info.curve) : 'Select Curve'}
+            </Button>
             {info.is_control && (
                 <Box w='140px'>
                     <SmartInput
@@ -552,7 +597,35 @@ function SampleInfoControls({ model, info }: { model: EditBucketModel; info: Buc
     );
 }
 
-function SelectCurveDialog({ model, state }: { model: any; state: BehaviorSubject<string | undefined> }) {
+function SelectCurveDialog({
+    model: options,
+    state,
+}: {
+    model: [string, string][];
+    state: BehaviorSubject<string | undefined>;
+}) {
     const current = useBehavior(state);
-    return <SimpleSelect value={current} allowEmpty onChange={(v) => state.next(v)} options={model} />;
+    return (
+        <VStack gap={2}>
+            <Alert.Root status='info'>
+                <Alert.Indicator />
+                <Alert.Title>
+                    Selecting a curve will create a local copy for this bucket. If you modify the curve, you will have
+                    to re-select it.
+                </Alert.Title>
+            </Alert.Root>
+            <SimpleSelect
+                placeholder='Select curve...'
+                value={current}
+                allowEmpty
+                onChange={(v) => state.next(v)}
+                options={options}
+            />
+        </VStack>
+    );
+}
+
+function AddWellKindDialog({ state }: { state: BehaviorSubject<string> }) {
+    const current = useBehavior(state);
+    return <SmartInput size='xs' placeholder='Enter kind...' value={current} onChange={(v) => state.next(v)} />;
 }
