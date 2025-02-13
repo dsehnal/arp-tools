@@ -56,7 +56,7 @@ export const DefaultCurveOptions: DilutionCurveOptions = {
     max_intermediate_points_per_plate: 2,
 
     top_concentration_m: 10e-6,
-    num_points: 9,
+    num_points: 9, // TODO: rename to n_points
     dilution_factor: Math.sqrt(10),
     tolerance: 0.1,
     adjust_intermediate_volume: true,

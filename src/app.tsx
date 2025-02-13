@@ -7,9 +7,10 @@ import { CurvesUI } from './pages/curves';
 import { EditCurveUI } from './pages/curves/edit';
 import { RequestsUI } from './pages/requests';
 import { ProductionsUI } from './pages/production';
+import { EditRequestUI } from './pages/requests/edit';
 
 const Pages = [
-    ['requests', <RequestsUI />],
+    ['requests', <RequestsUI />, <EditRequestUI />],
     ['production', <ProductionsUI />],
     ['curves', <CurvesUI />, <EditCurveUI />],
     ['buckets', <BucketsUI />, <EditBucketUI />],

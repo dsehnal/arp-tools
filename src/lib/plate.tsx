@@ -233,8 +233,8 @@ const DefaultPlateColors = {
 };
 
 const PlateVisualConstants = {
-    leftOffset: 40,
-    topOffset: 30,
+    leftOffset: 24,
+    topOffset: 24,
     maxLabelSize: 12,
 };
 
