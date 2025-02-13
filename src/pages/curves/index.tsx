@@ -84,56 +84,52 @@ function CurveList({ model }: { model: CurvesModel }) {
     const curves = useBehavior(model.state.curves);
     const navigate = useNavigate();
     return (
-        <VStack gap={2} w='100%'>
-            <Box w='100%'>
-                <Table.ScrollArea borderWidth='1px' w='100%'>
-                    <Table.Root size='sm' stickyHeader>
-                        <Table.Header>
-                            <Table.Row bg='bg.subtle'>
-                                <Table.ColumnHeader>Name</Table.ColumnHeader>
-                                <Table.ColumnHeader># Points</Table.ColumnHeader>
-                                <Table.ColumnHeader>Top Concentration</Table.ColumnHeader>
-                                <Table.ColumnHeader></Table.ColumnHeader>
-                                <Table.ColumnHeader></Table.ColumnHeader>
-                            </Table.Row>
-                        </Table.Header>
+        <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
+            <Table.Root size='sm' stickyHeader>
+                <Table.Header>
+                    <Table.Row bg='bg.subtle'>
+                        <Table.ColumnHeader>Name</Table.ColumnHeader>
+                        <Table.ColumnHeader># Points</Table.ColumnHeader>
+                        <Table.ColumnHeader>Top Concentration</Table.ColumnHeader>
+                        <Table.ColumnHeader></Table.ColumnHeader>
+                        <Table.ColumnHeader></Table.ColumnHeader>
+                    </Table.Row>
+                </Table.Header>
 
-                        <Table.Body>
-                            {curves.map((curve) => (
-                                <Table.Row key={curve.id}>
-                                    <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
-                                    <Table.Cell>{curve.points.length}</Table.Cell>
-                                    <Table.Cell>{formatConc(curve.points[0].target_concentration_m)}</Table.Cell>
-                                    <Table.Cell></Table.Cell>
-                                    <Table.Cell textAlign='right'>
-                                        <Button size='xs' colorPalette='blue' variant='subtle' asChild>
-                                            <Link to={resolveRoute(CurvesBreadcrumb.path!, curve.id!)}>Edit</Link>
-                                        </Button>
-                                        <Button
-                                            size='xs'
-                                            colorPalette='blue'
-                                            onClick={() => model.duplicate(curve, navigate)}
-                                            variant='subtle'
-                                            ms={2}
-                                        >
-                                            Duplicate
-                                        </Button>
-                                        <Button
-                                            size='xs'
-                                            colorPalette='red'
-                                            ms={2}
-                                            onClick={() => model.remove(curve.id!)}
-                                            variant='subtle'
-                                        >
-                                            Remove
-                                        </Button>
-                                    </Table.Cell>
-                                </Table.Row>
-                            ))}
-                        </Table.Body>
-                    </Table.Root>
-                </Table.ScrollArea>
-            </Box>
-        </VStack>
+                <Table.Body>
+                    {curves.map((curve) => (
+                        <Table.Row key={curve.id}>
+                            <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
+                            <Table.Cell>{curve.points.length}</Table.Cell>
+                            <Table.Cell>{formatConc(curve.points[0].target_concentration_m)}</Table.Cell>
+                            <Table.Cell></Table.Cell>
+                            <Table.Cell textAlign='right'>
+                                <Button size='xs' colorPalette='blue' variant='subtle' asChild>
+                                    <Link to={resolveRoute(CurvesBreadcrumb.path!, curve.id!)}>Edit</Link>
+                                </Button>
+                                <Button
+                                    size='xs'
+                                    colorPalette='blue'
+                                    onClick={() => model.duplicate(curve, navigate)}
+                                    variant='subtle'
+                                    ms={2}
+                                >
+                                    Duplicate
+                                </Button>
+                                <Button
+                                    size='xs'
+                                    colorPalette='red'
+                                    ms={2}
+                                    onClick={() => model.remove(curve.id!)}
+                                    variant='subtle'
+                                >
+                                    Remove
+                                </Button>
+                            </Table.Cell>
+                        </Table.Row>
+                    ))}
+                </Table.Body>
+            </Table.Root>
+        </Table.ScrollArea>
     );
 }

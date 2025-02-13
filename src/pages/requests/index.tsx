@@ -84,7 +84,6 @@ function NavButtons({ model }: { model: RequestsModel }) {
 
 function RequestList({ model }: { model: RequestsModel }) {
     const requests = useBehavior(model.state.requests);
-    const navigate = useNavigate();
     return (
         <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
             <Table.Root size='sm' stickyHeader>

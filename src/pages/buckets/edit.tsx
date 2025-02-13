@@ -11,6 +11,7 @@ import { PlateModel, PlateVisual } from '@/lib/plate';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
+import { uuid4 } from '@/lib/uuid';
 import {
     Bucket,
     BucketLayouts,
@@ -30,10 +31,9 @@ import { useParams } from 'react-router';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyChanged } from 'rxjs';
 import { CurvesApi } from '../curves/api';
 import { Layout } from '../layout';
+import { resolvePrefixedRoute } from '../routing';
 import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
-import { uuid4 } from '@/lib/uuid';
-import { resolvePrefixedRoute, resolveRoute } from '../routing';
 
 class EditBucketModel extends ReactiveModel {
     state = {

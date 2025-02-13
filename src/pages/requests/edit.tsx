@@ -1,25 +1,25 @@
-import Papa from 'papaparse';
 import { Field } from '@/components/ui/field';
 import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { SmartInput, SmartParsers } from '@/lib/components/input';
+import { SimpleSelect } from '@/lib/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
+import { PlateModel, PlateVisual } from '@/lib/plate';
 import { ReactiveModel } from '@/lib/reactive-model';
+import { DialogService } from '@/lib/services/dialog';
+import { formatCurve } from '@/model/curve';
+import { PlateLayouts } from '@/model/plate';
 import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions } from '@/model/request';
 import { Alert, Box, Button, Flex, HStack, Table, Textarea, VStack } from '@chakra-ui/react';
+import Papa from 'papaparse';
 import { useParams } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
+import { updateBucketTemplatePlate } from '../buckets/common';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
-import { PlateModel, PlateVisual } from '@/lib/plate';
-import { PlateLayouts } from '@/model/plate';
-import { updateBucketTemplatePlate } from '../buckets/common';
-import { SimpleSelect } from '@/lib/components/select';
-import { formatCurve } from '@/model/curve';
-import { DialogService } from '@/lib/services/dialog';
 
 class EditRequestModel extends ReactiveModel {
     state = {
