@@ -30,7 +30,7 @@ export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
 
     return (
         <Flex h='100%' w='full' flexDir='column'>
-            <Flex borderBottomWidth={1} alignItems='center'>
+            <Flex alignItems='center' bg='gray.800'>
                 <BreadcrumbRoot px={4} py={3}>
                     <MenuRoot onSelect={(e) => navigate(e.value)}>
                         <MenuTrigger asChild>
@@ -59,7 +59,7 @@ export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
                 {buttons}
                 <Box w={4} />
             </Flex>
-            <Box flexGrow={1} position='relative'>
+            <Box flexGrow={1} position='relative' bg='gray.950'>
                 <Box position='absolute' inset={0} p={4} overflow='hidden' overflowY='auto'>
                     {children}
                 </Box>
