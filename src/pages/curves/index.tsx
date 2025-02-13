@@ -6,11 +6,12 @@ import { DialogService } from '@/lib/services/dialog';
 import { DilutionCurve } from '@/model/curve';
 import { formatConc } from '@/utils';
 import { Box, Button, Table, VStack } from '@chakra-ui/react';
-import { useNavigate } from 'react-router';
+import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { CurvesApi } from './api';
 import { curvePath, CurvesBreadcrumb } from './common';
+import { uuid4 } from '@/lib/uuid';
 
 class CurvesModel extends ReactiveModel {
     state = {
@@ -32,6 +33,20 @@ class CurvesModel extends ReactiveModel {
             },
         });
     };
+
+    duplicate(bucket: DilutionCurve, navigate: NavigateFunction) {
+        DialogService.confirm({
+            title: 'Duplicate Bucket',
+            message: 'Do you want to duplicate this curve?',
+            onOk: () => this.applyDuplicate(bucket, navigate),
+        });
+    }
+
+    async applyDuplicate(curve: DilutionCurve, navigate: NavigateFunction) {
+        const newCurve = { ...curve, id: uuid4(), name: `Copy of ${curve.name}` };
+        await CurvesApi.save(newCurve);
+        navigate(curvePath(newCurve.id));
+    }
 }
 
 async function createModel() {
@@ -86,13 +101,17 @@ function CurveList({ model }: { model: CurvesModel }) {
                                     <Table.Cell>{formatConc(curve.points[0].target_concentration_m)}</Table.Cell>
                                     <Table.Cell></Table.Cell>
                                     <Table.Cell textAlign='right'>
+                                        <Button size='xs' colorPalette='blue' variant='subtle' asChild>
+                                            <Link to={curvePath(curve.id!)}>Edit</Link>
+                                        </Button>
                                         <Button
                                             size='xs'
                                             colorPalette='blue'
-                                            onClick={() => navigate(`/curves/${curve.id}`)}
+                                            onClick={() => model.duplicate(curve, navigate)}
                                             variant='subtle'
+                                            ms={2}
                                         >
-                                            Edit
+                                            Duplicate
                                         </Button>
                                         <Button
                                             size='xs'

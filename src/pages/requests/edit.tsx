@@ -1,3 +1,4 @@
+import Papa from 'papaparse';
 import { Field } from '@/components/ui/field';
 import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
@@ -6,8 +7,8 @@ import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
-import { ARPRequest, ARPRequestStatusOptions } from '@/model/request';
-import { Box, Button, Flex, HStack, Table, VStack } from '@chakra-ui/react';
+import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions } from '@/model/request';
+import { Alert, Box, Button, Flex, HStack, Table, Textarea, VStack } from '@chakra-ui/react';
 import { useParams } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
@@ -18,6 +19,7 @@ import { PlateLayouts } from '@/model/plate';
 import { updateBucketTemplatePlate } from '../buckets/common';
 import { SimpleSelect } from '@/lib/components/select';
 import { formatCurve } from '@/model/curve';
+import { DialogService } from '@/lib/services/dialog';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -53,8 +55,40 @@ class EditRequestModel extends ReactiveModel {
     };
 
     addSamples = () => {
-        alert('TODO');
+        DialogService.show({
+            title: 'Add Samples',
+            body: AddSamplesDialog,
+            state: new BehaviorSubject({ csv: '' }),
+            onOk: async (state: { csv: string }) => {
+                this.applyAddSamples(state.csv);
+            },
+        });
     };
+
+    private applyAddSamples(csv: string) {
+        const data = Papa.parse(csv.replace(/\t/g, ','), { header: true, delimiter: ',' });
+
+        const idField = data.meta.fields?.find((f) => f.toLowerCase() === 'sample id');
+        if (!idField) {
+            // TODO: throw error
+            return;
+        }
+
+        const defaultKind = this.request.bucket.sample_info.find((s) => !s.is_control)?.kind;
+        const kindField = data.meta.fields?.find((f) => f.toLowerCase() === 'kind');
+
+        const samples = data.data
+            .filter((row: any) => row[idField])
+            .map(
+                (row: any) =>
+                    ({
+                        id: row[idField],
+                        kind: row[kindField!]?.trim() || defaultKind,
+                    }) satisfies ARPRequestSample
+            );
+
+        this.update({ samples: [...this.request.samples, ...samples] });
+    }
 
     async init() {
         const req = await RequestsApi.get(this.id);
@@ -234,5 +268,20 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                 </Table.Body>
             </Table.Root>
         </Table.ScrollArea>
+    );
+}
+
+function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string }> }) {
+    const current = useBehavior(state);
+    return (
+        <VStack gap={2}>
+            <Alert.Root status='info'>
+                <Alert.Indicator />
+                <Alert.Title>
+                    Paste a CSV file with <code>Sample ID, Kind</code> columns.
+                </Alert.Title>
+            </Alert.Root>
+            <Textarea value={current.csv} onChange={(e) => state.next({ csv: e.target.value })} rows={7} />
+        </VStack>
     );
 }

@@ -5,7 +5,7 @@ import { ReactiveModel } from '@/lib/reactive-model';
 import { uuid4 } from '@/lib/uuid';
 import { Bucket } from '@/model/bucket';
 import { Button, Table } from '@chakra-ui/react';
-import { useNavigate } from 'react-router';
+import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { BucketsApi } from './api';
@@ -32,6 +32,20 @@ class BucketsModel extends ReactiveModel {
             },
         });
     };
+
+    duplicate(bucket: Bucket, navigate: NavigateFunction) {
+        DialogService.confirm({
+            title: 'Duplicate Bucket',
+            message: 'Do you want to duplicate this bucket?',
+            onOk: () => this.applyDuplicate(bucket, navigate),
+        });
+    }
+
+    async applyDuplicate(bucket: Bucket, navigate: NavigateFunction) {
+        const newBucket = { ...bucket, id: uuid4(), name: `Copy of ${bucket.name}` };
+        await BucketsApi.save(newBucket);
+        navigate(bucketPath(newBucket.id));
+    }
 }
 
 async function createModel() {
@@ -84,13 +98,17 @@ function BucketList({ model }: { model: BucketsModel }) {
                             <Table.Cell>{bucket.description}</Table.Cell>
                             <Table.Cell></Table.Cell>
                             <Table.Cell textAlign='right'>
+                                <Button size='xs' colorPalette='blue' variant='subtle' asChild>
+                                    <Link to={bucketPath(bucket.id!)}>Edit</Link>
+                                </Button>
                                 <Button
                                     size='xs'
                                     colorPalette='blue'
-                                    onClick={() => navigate(bucketPath(bucket.id!))}
+                                    onClick={() => model.duplicate(bucket, navigate)}
                                     variant='subtle'
+                                    ms={2}
                                 >
-                                    Edit
+                                    Duplicate
                                 </Button>
                                 <Button
                                     size='xs'

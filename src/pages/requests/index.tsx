@@ -5,7 +5,7 @@ import { ReactiveModel } from '@/lib/reactive-model';
 import { uuid4 } from '@/lib/uuid';
 import { ARPRequest, createARPRequest } from '@/model/request';
 import { Alert, Badge, Button, HStack, Table, VStack } from '@chakra-ui/react';
-import { NavigateFunction, useNavigate } from 'react-router';
+import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
@@ -110,13 +110,8 @@ function RequestList({ model }: { model: RequestsModel }) {
                             <Table.Cell>{req.description}</Table.Cell>
                             <Table.Cell></Table.Cell>
                             <Table.Cell textAlign='right'>
-                                <Button
-                                    size='xs'
-                                    colorPalette='blue'
-                                    onClick={() => navigate(requestPath(req.id!))}
-                                    variant='subtle'
-                                >
-                                    Edit
+                                <Button size='xs' colorPalette='blue' variant='subtle' asChild>
+                                    <Link to={requestPath(req.id)}>Edit</Link>
                                 </Button>
                                 <Button
                                     size='xs'
