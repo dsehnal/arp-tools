@@ -14,8 +14,9 @@ import { formatConc, roundValue, toNano } from '@/utils';
 import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
-import { curveBreadcrumb, CurvesBreadcrumb } from './common';
+import { curveBreadcrumb, curvePath, CurvesBreadcrumb } from './common';
 import { Layout } from '../layout';
+import { uuid4 } from '@/lib/uuid';
 
 class EditCurveModel extends ReactiveModel {
     state = {
@@ -46,10 +47,11 @@ class EditCurveModel extends ReactiveModel {
         const curve = { ...this.curve, name: this.state.name.value, id: this.id };
         await CurvesApi.save(curve);
         toaster.create({
-            title: 'Saved...',
+            title: 'Saved',
             duration: 2000,
             type: 'success',
         });
+        window.history.replaceState(null, '', curvePath(curve.id));
     };
 
     export = () => {
@@ -57,10 +59,17 @@ class EditCurveModel extends ReactiveModel {
     };
 
     async init() {
+        if (this.id === 'new') {
+            this.id = uuid4();
+            return;
+        }
+
         const curve = await CurvesApi.get(this.id);
         if (curve) {
             this.state.curve.next(curve);
             this.state.name.next(curve.name ?? '');
+        } else {
+            throw new Error('Curve not found');
         }
         if (curve?.options) {
             this.state.options.next(curve.options);
@@ -292,7 +301,11 @@ function EditCurveTable({ model }: { model: EditCurveModel }) {
     const curve = useBehavior(model.state.curve);
 
     if (!curve) {
-        return <Box w='full' h='full'>No curve built</Box>;
+        return (
+            <Box w='full' h='full'>
+                No curve built
+            </Box>
+        );
     }
 
     const pt = (name: string, p: DilutionPoint, dmso = false) => {

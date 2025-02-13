@@ -2,16 +2,15 @@ import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
-import { uuid4 } from '@/lib/uuid';
+import { DialogService } from '@/lib/services/dialog';
 import { DilutionCurve } from '@/model/curve';
 import { formatConc } from '@/utils';
 import { Box, Button, Table, VStack } from '@chakra-ui/react';
 import { useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
-import { CurvesApi } from './api';
 import { Layout } from '../layout';
+import { CurvesApi } from './api';
 import { curvePath, CurvesBreadcrumb } from './common';
-import { DialogService } from '@/lib/services/dialog';
 
 class CurvesModel extends ReactiveModel {
     state = {
@@ -49,7 +48,7 @@ export function CurvesUI() {
         <Layout
             breadcrumbs={[CurvesBreadcrumb]}
             buttons={
-                <Button onClick={() => navigate(curvePath(uuid4()))} size='xs' colorPalette='blue'>
+                <Button onClick={() => navigate(curvePath('new'))} size='xs' colorPalette='blue'>
                     New Curve
                 </Button>
             }

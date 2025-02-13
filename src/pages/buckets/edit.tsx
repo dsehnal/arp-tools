@@ -1,4 +1,5 @@
 import { Field } from '@/components/ui/field';
+import { Switch } from '@/components/ui/switch';
 import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
@@ -20,19 +21,19 @@ import {
 } from '@/model/bucket';
 import { formatCurve } from '@/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/model/plate';
-import { Box, Button, Flex, HStack, Input, VStack, Text, Alert } from '@chakra-ui/react';
+import { Alert, Box, Button, Flex, HStack, Input, Text, VStack } from '@chakra-ui/react';
 import * as d3c from 'd3-scale-chromatic';
 import { useRef } from 'react';
+import { FaCopy, FaPaste } from 'react-icons/fa6';
+import { LuChartNoAxesCombined, LuTrash } from 'react-icons/lu';
+import { MdOutlineBorderClear } from 'react-icons/md';
 import { useParams } from 'react-router';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyChanged } from 'rxjs';
 import { CurvesApi } from '../curves/api';
-import { BucketsApi } from './api';
 import { Layout } from '../layout';
-import { bucketBreadcrumb, BucketsBreadcrumb } from './common';
-import { LuTrash, LuChartNoAxesCombined } from 'react-icons/lu';
-import { FaCopy, FaPaste, FaCirclePlus } from 'react-icons/fa6';
-import { MdOutlineBorderClear } from 'react-icons/md';
-import { Switch } from '@/components/ui/switch';
+import { BucketsApi } from './api';
+import { bucketBreadcrumb, bucketPath, BucketsBreadcrumb } from './common';
+import { uuid4 } from '@/lib/uuid';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -281,10 +282,11 @@ class EditBucketModel extends ReactiveModel {
         const curve = { ...this.bucket, id: this.id };
         await BucketsApi.save(curve);
         toaster.create({
-            title: 'Saved...',
+            title: 'Saved',
             duration: 2000,
             type: 'success',
         });
+        window.history.replaceState(null, '', bucketPath(curve.id));
     };
 
     export = () => {
@@ -292,9 +294,16 @@ class EditBucketModel extends ReactiveModel {
     };
 
     async init() {
+        if (this.id === 'new') {
+            this.id = uuid4();
+            return;
+        }
+
         const bucket = await BucketsApi.get(this.id);
         if (bucket) {
             this.state.bucket.next(bucket);
+        } else {
+            throw new Error('Bucket not found');
         }
     }
 
