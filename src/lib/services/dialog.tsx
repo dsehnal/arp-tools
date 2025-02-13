@@ -10,7 +10,7 @@ import {
     DialogCloseTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@chakra-ui/react';
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useEffect } from 'react';
 
 export interface DialogProps<T, S> {
     title: string;
@@ -59,7 +59,7 @@ export function DialogProvider() {
     const Body = current.body;
 
     return (
-        <DialogRoot open>
+        <DialogRoot open onEscapeKeyDown={DialogService.close}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{current.title}</DialogTitle>

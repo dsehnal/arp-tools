@@ -9,12 +9,16 @@ import { RequestsUI } from './pages/requests';
 import { ProductionsUI } from './pages/production';
 import { EditRequestUI } from './pages/requests/edit';
 import { RoutingKind } from './pages/routing';
+import { SettingsUI } from './pages/settings';
+import { Layout } from './pages/layout';
+import { Box } from '@chakra-ui/react';
 
 const Pages = [
     ['requests', <RequestsUI />, <EditRequestUI />],
     ['production', <ProductionsUI />],
     ['curves', <CurvesUI />, <EditCurveUI />],
     ['buckets', <BucketsUI />, <EditBucketUI />],
+    ['settings', <SettingsUI />],
 ] as const;
 
 export function UIRoot() {
@@ -29,11 +33,19 @@ export function UIRoot() {
                             {!!edit && <Route path=':id' element={edit} />}
                         </Route>
                     ))}
-                    <Route path='*' element={<RequestsUI />} />
+                    <Route path='*' element={<NotFound />} />
                 </Routes>
             </Router>
             <Toaster />
             <DialogProvider />
         </>
+    );
+}
+
+function NotFound() {
+    return (
+        <Layout>
+            <Box>Not Found</Box>
+        </Layout>
     );
 }

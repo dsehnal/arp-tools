@@ -8,7 +8,7 @@ import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { ProductionBreadcrumb } from './common';
 
-class RequestsModel extends ReactiveModel {
+class ProductionsModel extends ReactiveModel {
     state = {
         productions: new BehaviorSubject<ARPProduction[]>([]),
     };
@@ -25,7 +25,7 @@ class RequestsModel extends ReactiveModel {
 }
 
 async function createModel() {
-    const model = new RequestsModel();
+    const model = new ProductionsModel();
     await model.init();
     return model;
 }
@@ -42,12 +42,12 @@ export function ProductionsUI() {
     );
 }
 
-function NavButtons({ model }: { model: RequestsModel }) {
+function NavButtons({ model }: { model: ProductionsModel }) {
     // const navigate = useNavigate();
     return null;
 }
 
-function RequestList({ model }: { model: RequestsModel }) {
+function RequestList({ model }: { model: ProductionsModel }) {
     const productions = useBehavior(model.state.productions);
     // const navigate = useNavigate();
     return (

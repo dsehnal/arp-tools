@@ -20,6 +20,10 @@ const db = new Dexie('lims') as Dexie & {
     [name: string]: EntityTable<Entry, 'id'>;
 };
 
+export function dropDB() {
+    return db.delete();
+}
+
 export class IndexedDBStore<T> implements SimpleStore<T> {
     get table() {
         return db[this.name];
