@@ -14,9 +14,10 @@ import { formatConc, roundValue, toNano } from '@/utils';
 import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
-import { curveBreadcrumb, curvePath, CurvesBreadcrumb } from './common';
+import { curveBreadcrumb, CurvesBreadcrumb } from './common';
 import { Layout } from '../layout';
 import { uuid4 } from '@/lib/uuid';
+import { resolvePrefixedRoute, resolveRoute } from '../routing';
 
 class EditCurveModel extends ReactiveModel {
     state = {
@@ -51,7 +52,7 @@ class EditCurveModel extends ReactiveModel {
             duration: 2000,
             type: 'success',
         });
-        window.history.replaceState(null, '', curvePath(curve.id));
+        window.history.replaceState(null, '', resolvePrefixedRoute(CurvesBreadcrumb.path!, curve.id));
     };
 
     export = () => {

@@ -2,17 +2,17 @@ import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
-import { uuid4 } from '@/lib/uuid';
 import { ARPRequest, createARPRequest } from '@/model/request';
 import { Alert, Badge, Button, HStack, Table, VStack } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
-import { RequestsBreadcrumb, requestPath } from './common';
+import { RequestsBreadcrumb } from './common';
 import { SimpleSelect } from '@/lib/components/select';
 import { BucketsApi } from '../buckets/api';
 import { DialogService } from '@/lib/services/dialog';
+import { resolveRoute } from '../routing';
 
 class RequestsModel extends ReactiveModel {
     state = {
@@ -39,7 +39,7 @@ class RequestsModel extends ReactiveModel {
 
                 const req = createARPRequest(bucket);
                 await RequestsApi.save(req);
-                navigate(requestPath(req.id));
+                navigate(resolveRoute(RequestsBreadcrumb.path!, req.id));
             },
         });
     }
@@ -111,7 +111,7 @@ function RequestList({ model }: { model: RequestsModel }) {
                             <Table.Cell></Table.Cell>
                             <Table.Cell textAlign='right'>
                                 <Button size='xs' colorPalette='blue' variant='subtle' asChild>
-                                    <Link to={requestPath(req.id)}>Edit</Link>
+                                    <Link to={resolveRoute(RequestsBreadcrumb.path!, req.id)}>Edit</Link>
                                 </Button>
                                 <Button
                                     size='xs'

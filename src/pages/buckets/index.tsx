@@ -9,8 +9,9 @@ import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { BucketsApi } from './api';
-import { bucketPath, BucketsBreadcrumb } from './common';
+import { BucketsBreadcrumb } from './common';
 import { DialogService } from '@/lib/services/dialog';
+import { resolveRoute } from '../routing';
 
 class BucketsModel extends ReactiveModel {
     state = {
@@ -44,7 +45,7 @@ class BucketsModel extends ReactiveModel {
     async applyDuplicate(bucket: Bucket, navigate: NavigateFunction) {
         const newBucket = { ...bucket, id: uuid4(), name: `Copy of ${bucket.name}` };
         await BucketsApi.save(newBucket);
-        navigate(bucketPath(newBucket.id));
+        navigate(resolveRoute(BucketsBreadcrumb.path!, newBucket.id));
     }
 }
 
@@ -62,7 +63,11 @@ export function BucketsUI() {
         <Layout
             breadcrumbs={[BucketsBreadcrumb]}
             buttons={
-                <Button onClick={() => navigate(bucketPath(uuid4()))} size='xs' colorPalette='blue'>
+                <Button
+                    onClick={() => navigate(resolveRoute(BucketsBreadcrumb.path!, 'new'))}
+                    size='xs'
+                    colorPalette='blue'
+                >
                     New Bucket
                 </Button>
             }
@@ -99,7 +104,7 @@ function BucketList({ model }: { model: BucketsModel }) {
                             <Table.Cell></Table.Cell>
                             <Table.Cell textAlign='right'>
                                 <Button size='xs' colorPalette='blue' variant='subtle' asChild>
-                                    <Link to={bucketPath(bucket.id!)}>Edit</Link>
+                                    <Link to={resolveRoute(BucketsBreadcrumb.path!, bucket.id!)}>Edit</Link>
                                 </Button>
                                 <Button
                                     size='xs'

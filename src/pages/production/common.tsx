@@ -1,15 +1,12 @@
 import { BreadcrumbItem } from '../layout';
 import { FaRobot } from 'react-icons/fa';
+import { resolveRoute } from '../routing';
 
 export const ProductionBreadcrumb: BreadcrumbItem = {
     icon: <FaRobot />,
     title: 'Production',
-    path: '/production',
+    path: 'production',
 };
-
-export function productionPath(id: string) {
-    return `/production/${id}`;
-}
 
 export function productionBreadcrumb({
     id,
@@ -24,6 +21,6 @@ export function productionBreadcrumb({
     if (!id) return undefined;
     return {
         title: name ?? id,
-        path: productionPath(id),
+        path: resolveRoute(ProductionBreadcrumb.path!, id),
     };
 }

@@ -10,8 +10,9 @@ import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { CurvesApi } from './api';
-import { curvePath, CurvesBreadcrumb } from './common';
+import { CurvesBreadcrumb } from './common';
 import { uuid4 } from '@/lib/uuid';
+import { resolveRoute } from '../routing';
 
 class CurvesModel extends ReactiveModel {
     state = {
@@ -45,7 +46,7 @@ class CurvesModel extends ReactiveModel {
     async applyDuplicate(curve: DilutionCurve, navigate: NavigateFunction) {
         const newCurve = { ...curve, id: uuid4(), name: `Copy of ${curve.name}` };
         await CurvesApi.save(newCurve);
-        navigate(curvePath(newCurve.id));
+        navigate(resolveRoute(CurvesBreadcrumb.path!, newCurve.id));
     }
 }
 
@@ -63,7 +64,11 @@ export function CurvesUI() {
         <Layout
             breadcrumbs={[CurvesBreadcrumb]}
             buttons={
-                <Button onClick={() => navigate(curvePath('new'))} size='xs' colorPalette='blue'>
+                <Button
+                    onClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, 'new'))}
+                    size='xs'
+                    colorPalette='blue'
+                >
                     New Curve
                 </Button>
             }
@@ -102,7 +107,7 @@ function CurveList({ model }: { model: CurvesModel }) {
                                     <Table.Cell></Table.Cell>
                                     <Table.Cell textAlign='right'>
                                         <Button size='xs' colorPalette='blue' variant='subtle' asChild>
-                                            <Link to={curvePath(curve.id!)}>Edit</Link>
+                                            <Link to={resolveRoute(CurvesBreadcrumb.path!, curve.id!)}>Edit</Link>
                                         </Button>
                                         <Button
                                             size='xs'

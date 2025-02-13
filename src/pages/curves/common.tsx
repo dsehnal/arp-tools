@@ -1,15 +1,12 @@
 import { BreadcrumbItem } from '../layout';
 import { LuChartNoAxesCombined } from 'react-icons/lu';
+import { resolveRoute } from '../routing';
 
 export const CurvesBreadcrumb: BreadcrumbItem = {
     icon: <LuChartNoAxesCombined />,
     title: 'Curves',
-    path: '/curves',
+    path: 'curves',
 };
-
-export function curvePath(id: string) {
-    return `/curves/${id}`;
-}
 
 export function curveBreadcrumb({
     id,
@@ -24,6 +21,6 @@ export function curveBreadcrumb({
     if (!id) return undefined;
     return {
         title: name ?? id,
-        path: curvePath(id),
+        path: resolveRoute(CurvesBreadcrumb.path!, id),
     };
 }

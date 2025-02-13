@@ -8,6 +8,7 @@ import { BucketsBreadcrumb } from './buckets/common';
 import { CurvesBreadcrumb } from './curves/common';
 import { RequestsBreadcrumb } from './requests/common';
 import { ProductionBreadcrumb } from './production/common';
+import { resolveRoute } from './routing';
 
 export interface BreadcrumbItem {
     icon?: ReactNode;
@@ -32,7 +33,7 @@ export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
         <Flex h='100%' w='full' flexDir='column'>
             <Flex alignItems='center' bg='gray.800'>
                 <BreadcrumbRoot px={4} py={3}>
-                    <MenuRoot onSelect={(e) => navigate(e.value)}>
+                    <MenuRoot onSelect={(e) => navigate(resolveRoute(e.value))}>
                         <MenuTrigger asChild>
                             <BreadcrumbLink as='button'>
                                 ARP Tools <LuChevronDown />
@@ -49,7 +50,7 @@ export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
 
                     {breadcrumbs?.map((b, i) =>
                         !b ? undefined : (
-                            <BL key={i} as={Link} to={b.path ?? ''}>
+                            <BL key={i} as={Link} to={b.path ? resolveRoute(b.path) : undefined}>
                                 {b.icon} {b.title}
                             </BL>
                         )

@@ -3,16 +3,13 @@ import * as d3c from 'd3-scale-chromatic';
 import { BreadcrumbItem } from '../layout';
 import { LuLayoutGrid } from 'react-icons/lu';
 import { Bucket, getBucketTemplateWellKey } from '@/model/bucket';
+import { resolveRoute } from '../routing';
 
 export const BucketsBreadcrumb: BreadcrumbItem = {
     icon: <LuLayoutGrid />,
     title: 'Buckets',
-    path: '/buckets',
+    path: 'buckets',
 };
-
-export function bucketPath(id: string) {
-    return `/buckets/${id}`;
-}
 
 export function bucketBreadcrumb({
     id,
@@ -27,7 +24,7 @@ export function bucketBreadcrumb({
     if (!id) return undefined;
     return {
         title: name ?? id,
-        path: bucketPath(id),
+        path: resolveRoute(BucketsBreadcrumb.path!, id),
     };
 }
 

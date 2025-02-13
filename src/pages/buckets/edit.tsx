@@ -22,7 +22,6 @@ import {
 import { formatCurve } from '@/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/model/plate';
 import { Alert, Box, Button, Flex, HStack, Input, Text, VStack } from '@chakra-ui/react';
-import * as d3c from 'd3-scale-chromatic';
 import { useRef } from 'react';
 import { FaCopy, FaPaste } from 'react-icons/fa6';
 import { LuChartNoAxesCombined, LuTrash } from 'react-icons/lu';
@@ -32,8 +31,9 @@ import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyC
 import { CurvesApi } from '../curves/api';
 import { Layout } from '../layout';
 import { BucketsApi } from './api';
-import { bucketBreadcrumb, bucketPath, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
+import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
 import { uuid4 } from '@/lib/uuid';
+import { resolvePrefixedRoute, resolveRoute } from '../routing';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -254,7 +254,7 @@ class EditBucketModel extends ReactiveModel {
             duration: 2000,
             type: 'success',
         });
-        window.history.replaceState(null, '', bucketPath(curve.id));
+        window.history.replaceState(null, '', resolvePrefixedRoute(BucketsBreadcrumb.path!, curve.id));
     };
 
     export = () => {

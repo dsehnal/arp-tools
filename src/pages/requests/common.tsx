@@ -1,15 +1,12 @@
 import { BreadcrumbItem } from '../layout';
 import { LuList } from 'react-icons/lu';
+import { resolveRoute } from '../routing';
 
 export const RequestsBreadcrumb: BreadcrumbItem = {
     icon: <LuList />,
     title: 'Requests',
-    path: '/requests',
+    path: 'requests',
 };
-
-export function requestPath(id: string) {
-    return `/requests/${id}`;
-}
 
 export function requestBreadcrumb({
     id,
@@ -24,6 +21,6 @@ export function requestBreadcrumb({
     if (!id) return undefined;
     return {
         title: name ?? id,
-        path: requestPath(id),
+        path: resolveRoute(RequestsBreadcrumb.path!, id),
     };
 }
