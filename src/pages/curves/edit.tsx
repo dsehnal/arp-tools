@@ -292,7 +292,7 @@ function EditCurveTable({ model }: { model: EditCurveModel }) {
     const curve = useBehavior(model.state.curve);
 
     if (!curve) {
-        return <Box>No curve computed</Box>;
+        return <Box w='full' h='full'>No curve built</Box>;
     }
 
     const pt = (name: string, p: DilutionPoint, dmso = false) => {
