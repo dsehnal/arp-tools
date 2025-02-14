@@ -123,7 +123,10 @@ function CurveList({ model }: { model: CurvesModel }) {
 
                 <Table.Body>
                     {curves.map((curve) => (
-                        <Table.Row key={curve.id}  onDoubleClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, curve.id!))}>
+                        <Table.Row
+                            key={curve.id}
+                            onDoubleClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, curve.id!))}
+                        >
                             <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
                             <Table.Cell>{curve.points.length}</Table.Cell>
                             <Table.Cell>{formatConc(curve.points[0].target_concentration_M)}</Table.Cell>

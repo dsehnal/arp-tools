@@ -24,10 +24,10 @@ import {
 } from '@/model/bucket';
 import { formatCurve } from '@/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/model/plate';
-import { Alert, Box, Button, Flex, HStack, Input, Text, VStack } from '@chakra-ui/react';
+import { Alert, AspectRatio, Box, Button, Flex, HStack, Input, Text, VStack } from '@chakra-ui/react';
 import { useRef } from 'react';
 import { FaCopy, FaPaste, FaFileExport } from 'react-icons/fa6';
-import { LuChartNoAxesCombined, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
+import { LuChartNoAxesCombined, LuCirclePlus, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
 import { MdOutlineBorderClear } from 'react-icons/md';
 import { useParams } from 'react-router';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyChanged } from 'rxjs';
@@ -415,16 +415,18 @@ function EditBucket({ model }: { model: EditBucketModel }) {
             <LabwareEditor model={model} kind='arp_labware' />
 
             <Flex alignItems='flex-start' w='100%' gap={4}>
-                <Box width={640} height={480} minW={640} maxW={640} position='relative'>
-                    <PlateVisual model={model.plate} />
+                <Box width='50%' minW='50%' maxW='50%' position='relative'>
+                    <AspectRatio ratio={1.33}>
+                        <PlateVisual model={model.plate} />
+                    </AspectRatio>
                 </Box>
                 <VStack gap={1} flexGrow={1} alignItems='flex-start'>
                     <HStack gap={2}>
                         <Text fontSize='md' fontWeight='bold'>
                             Well Kinds
                         </Text>
-                        <Button variant='subtle' size='xs' colorPalette='gray' onClick={model.sampleInfo.add}>
-                            Add
+                        <Button variant='ghost' size='xs' colorPalette='gray' onClick={model.sampleInfo.add}>
+                            <LuCirclePlus /> Add
                         </Button>
                     </HStack>
                     {bucket.sample_info.map((info, index) => (
@@ -661,11 +663,12 @@ function AddWellKindDialog({ state }: { state: BehaviorSubject<string> }) {
     const current = useBehavior(state);
     return (
         <SmartInput
-            size='xs'
+            size='sm'
             placeholder='Enter kind...'
             value={current}
             parse={SmartParsers.trim}
             onChange={(v) => state.next(v)}
+            autoFocus
         />
     );
 }

@@ -126,7 +126,10 @@ function BucketList({ model }: { model: BucketsModel }) {
 
                 <Table.Body>
                     {buckets.map((bucket) => (
-                        <Table.Row key={bucket.id}  onDoubleClick={() => navigate(resolveRoute(BucketsBreadcrumb.path!, bucket.id!))}>
+                        <Table.Row
+                            key={bucket.id}
+                            onDoubleClick={() => navigate(resolveRoute(BucketsBreadcrumb.path!, bucket.id!))}
+                        >
                             <Table.Cell>{bucket.name || 'unnamed'}</Table.Cell>
                             <Table.Cell>{bucket.project}</Table.Cell>
                             <Table.Cell>{bucket.description}</Table.Cell>

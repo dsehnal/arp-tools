@@ -12,12 +12,7 @@ export interface SmartInputProps<T> {
     readOnly?: boolean;
     indexGroup?: string;
     index?: number;
-}
-
-function applyFormat(value: any, format?: (value: any) => string) {
-    if (format) return format(value);
-    if (value === null || value === undefined) return '';
-    return String(value);
+    autoFocus?: boolean;
 }
 
 export function SmartInput<T>({
@@ -30,6 +25,7 @@ export function SmartInput<T>({
     readOnly,
     index,
     indexGroup,
+    autoFocus,
 }: SmartInputProps<T>) {
     const ref = useRef<HTMLInputElement>(null);
 
@@ -44,6 +40,7 @@ export function SmartInput<T>({
             readOnly={readOnly}
             placeholder={placeholder}
             data-index={`${indexGroup ?? ''}-${index}`}
+            autoFocus={autoFocus}
             onBlur={() => {
                 const parsed = parse ? parse(ref.current!.value) : (ref.current!.value as unknown as T);
                 if (parsed === null) {
@@ -72,6 +69,12 @@ export function SmartInput<T>({
 }
 
 const unitParsers = new Map<number, (v: string) => number | null>();
+
+function applyFormat(value: any, format?: (value: any) => string) {
+    if (format) return format(value);
+    if (value === null || value === undefined) return '';
+    return String(value);
+}
 
 export const SmartParsers = {
     trim: (value: string) => value.trim(),

@@ -287,7 +287,7 @@ function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string }> }
                     Paste a CSV file with <code>Sample ID, Kind</code> columns.
                 </Alert.Title>
             </Alert.Root>
-            <Textarea value={current.csv} onChange={(e) => state.next({ csv: e.target.value })} rows={7} />
+            <Textarea value={current.csv} onChange={(e) => state.next({ csv: e.target.value })} rows={7} autoFocus />
         </VStack>
     );
 }

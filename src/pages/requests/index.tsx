@@ -94,7 +94,7 @@ function NavButtons({ model }: { model: RequestsModel }) {
 function RequestList({ model }: { model: RequestsModel }) {
     const requests = useBehavior(model.state.requests);
     const navigate = useNavigate();
-    
+
     return (
         <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
             <Table.Root size='sm' stickyHeader showColumnBorder interactive>
@@ -111,7 +111,10 @@ function RequestList({ model }: { model: RequestsModel }) {
 
                 <Table.Body>
                     {requests.map((req) => (
-                        <Table.Row key={req.id} onDoubleClick={() => navigate(resolveRoute(RequestsBreadcrumb.path!, req.id))}>
+                        <Table.Row
+                            key={req.id}
+                            onDoubleClick={() => navigate(resolveRoute(RequestsBreadcrumb.path!, req.id))}
+                        >
                             <Table.Cell>{req.name || 'unnamed'}</Table.Cell>
                             <Table.Cell>
                                 <Badge>{req.status}</Badge>
