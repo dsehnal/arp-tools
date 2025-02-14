@@ -1,13 +1,13 @@
 import { formatConc } from '@/utils';
 
 export interface DilutionTransfer {
-    concentration_m: number;
-    volumeL: number;
+    concentration_M: number;
+    volume_l: number;
 }
 
 export interface DilutionPoint {
-    target_concentration_m: number;
-    actual_concentration_m: number;
+    target_concentration_M: number;
+    actual_concentration_M: number;
     transfers: DilutionTransfer[];
 }
 
@@ -17,7 +17,7 @@ export interface DilutionCurve {
     name?: string;
     options?: DilutionCurveOptions;
 
-    nARP_concentration_m: number;
+    nARP_concentration_M: number;
     intermediate_points: DilutionPoint[][];
     points: DilutionPoint[];
 }
@@ -69,5 +69,5 @@ export const DefaultCurveOptions: DilutionCurveOptions = {
 };
 
 export function formatCurve(conc: DilutionCurve) {
-    return `${conc.name ?? 'unnamed'}, ${conc.points.length}pt, ${formatConc(conc.points[0].target_concentration_m)}`;
+    return `${conc.name ?? 'unnamed'}, ${conc.points.length}pt, ${formatConc(conc.points[0].target_concentration_M)}`;
 }

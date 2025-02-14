@@ -310,17 +310,17 @@ function EditCurveTable({ model }: { model: EditCurveModel }) {
     }
 
     const pt = (name: string, p: DilutionPoint, dmso = false) => {
-        const xferVolume = p.transfers.reduce((acc, t) => acc + t.volumeL, 0);
+        const xferVolume = p.transfers.reduce((acc, t) => acc + t.volume_l, 0);
         const dmsoPercent = (100 * xferVolume) / model.options.assay_volume_l;
         return (
             <Table.Row key={name}>
                 <Table.Cell>{name}</Table.Cell>
-                <Table.Cell>{formatConc(p.target_concentration_m)}</Table.Cell>
-                <Table.Cell>{formatConc(p.actual_concentration_m)}</Table.Cell>
+                <Table.Cell>{formatConc(p.target_concentration_M)}</Table.Cell>
+                <Table.Cell>{formatConc(p.actual_concentration_M)}</Table.Cell>
                 <Table.Cell>
                     {roundValue(
                         100 *
-                            Math.abs((p.target_concentration_m - p.actual_concentration_m) / p.target_concentration_m),
+                            Math.abs((p.target_concentration_M - p.actual_concentration_M) / p.target_concentration_M),
                         2
                     )}{' '}
                     %
@@ -328,7 +328,9 @@ function EditCurveTable({ model }: { model: EditCurveModel }) {
                 <Table.Cell>{dmso && `${roundValue(dmsoPercent, 2)} %`}</Table.Cell>
                 <Table.Cell>
                     {p.transfers.length > 0 &&
-                        p.transfers.map((t) => `[${toNano(t.volumeL)} nL@${formatConc(t.concentration_m)}]`).join(', ')}
+                        p.transfers
+                            .map((t) => `[${toNano(t.volume_l)} nL@${formatConc(t.concentration_M)}]`)
+                            .join(', ')}
                 </Table.Cell>
             </Table.Row>
         );
@@ -350,8 +352,8 @@ function EditCurveTable({ model }: { model: EditCurveModel }) {
 
                 <Table.Body>
                     {pt('nARP', {
-                        actual_concentration_m: curve.nARP_concentration_m,
-                        target_concentration_m: curve.nARP_concentration_m,
+                        actual_concentration_M: curve.nARP_concentration_M,
+                        target_concentration_M: curve.nARP_concentration_M,
                         transfers: [],
                     })}
                     {curve.intermediate_points.flatMap((points, i) =>

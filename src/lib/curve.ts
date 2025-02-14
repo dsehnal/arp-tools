@@ -122,7 +122,7 @@ export function alias(
 
                 // console.log('xfer', formatConc(src), Math.round(1e9 * (minTransferVolumeL + nextT * dropletSizeL)), 'nL');
                 if (xfers) {
-                    xfers.push({ concentration_m: src, volumeL: minTransferVolumeL + nextT * dropletSizeL });
+                    xfers.push({ concentration_M: src, volume_l: minTransferVolumeL + nextT * dropletSizeL });
                 }
             }
 
@@ -247,12 +247,12 @@ function evaluateFinal(state: ExploreState): [_CurvePrintPoint[], DilutionCurve]
                 target: formatConc(conc),
                 actual: '-',
                 error: '-',
-                transfers: `${xfers.map(({ concentration_m: c, volumeL: v }) => `[${toNano(v)} nL@${formatConc(c)}]`).join(', ')}`,
+                transfers: `${xfers.map(({ concentration_M: c, volume_l: v }) => `[${toNano(v)} nL@${formatConc(c)}]`).join(', ')}`,
             });
 
             xs.push({
-                target_concentration_m: conc,
-                actual_concentration_m: conc,
+                target_concentration_M: conc,
+                actual_concentration_M: conc,
                 transfers: xfers,
             });
         }
@@ -268,19 +268,19 @@ function evaluateFinal(state: ExploreState): [_CurvePrintPoint[], DilutionCurve]
             target: formatConc(pt),
             actual: formatConc(aliased),
             error: `${Math.round(1000 * err) / 10} %`,
-            transfers: `${xfers.map(({ concentration_m: c, volumeL: v }) => `[${toNano(v)} nL@${formatConc(c)}]`).join(', ')}`,
+            transfers: `${xfers.map(({ concentration_M: c, volume_l: v }) => `[${toNano(v)} nL@${formatConc(c)}]`).join(', ')}`,
         });
 
         points.push({
-            target_concentration_m: pt,
-            actual_concentration_m: aliased,
+            target_concentration_M: pt,
+            actual_concentration_M: aliased,
             transfers: xfers,
         });
     }
 
     const result: DilutionCurve = {
         options,
-        nARP_concentration_m: options.nARP_concentration_M,
+        nARP_concentration_M: options.nARP_concentration_M,
         intermediate_points: intermediates,
         points,
     };

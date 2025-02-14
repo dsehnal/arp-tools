@@ -101,7 +101,7 @@ function CurveList({ model }: { model: CurvesModel }) {
                         <Table.Row key={curve.id}>
                             <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
                             <Table.Cell>{curve.points.length}</Table.Cell>
-                            <Table.Cell>{formatConc(curve.points[0].target_concentration_m)}</Table.Cell>
+                            <Table.Cell>{formatConc(curve.points[0].target_concentration_M)}</Table.Cell>
                             <Table.Cell></Table.Cell>
                             <Table.Cell textAlign='right'>
                                 <Button size='xs' colorPalette='blue' variant='subtle' asChild>

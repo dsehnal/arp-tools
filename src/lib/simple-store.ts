@@ -7,7 +7,7 @@ export interface SimpleStore<T> {
     update(v: T[]): Promise<void>;
     remove(id: string | string[]): Promise<void>;
     get(id: string): Promise<T>;
-    query(id: string | string[]): Promise<T[]>;
+    query(id?: string | string[]): Promise<T[]>;
     __clear(): Promise<void>;
 }
 
