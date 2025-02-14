@@ -62,6 +62,9 @@ export function SmartInput<T>({
                             (next as HTMLElement).focus();
                         }
                     }
+                } else if (e.key === 'Escape') {
+                    ref.current!.value = applyFormat(value, format);
+                    ref.current!.blur();
                 }
             }}
         />

@@ -52,12 +52,11 @@ function RequestList({ model }: { model: ProductionsModel }) {
     // const navigate = useNavigate();
     return (
         <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
-            <Table.Root size='sm' stickyHeader>
+            <Table.Root size='sm' stickyHeader showColumnBorder interactive>
                 <Table.Header>
                     <Table.Row bg='bg.subtle'>
                         <Table.ColumnHeader>Name</Table.ColumnHeader>
                         <Table.ColumnHeader>Description</Table.ColumnHeader>
-                        <Table.ColumnHeader></Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
                     </Table.Row>
                 </Table.Header>
@@ -67,8 +66,7 @@ function RequestList({ model }: { model: ProductionsModel }) {
                         <Table.Row key={prod.id}>
                             <Table.Cell>...</Table.Cell>
                             <Table.Cell>...</Table.Cell>
-                            <Table.Cell></Table.Cell>
-                            <Table.Cell textAlign='right'>
+                            <Table.Cell textAlign='right' padding={1}>
                                 <Button
                                     size='xs'
                                     colorPalette='blue'
@@ -80,7 +78,7 @@ function RequestList({ model }: { model: ProductionsModel }) {
                                 <Button
                                     size='xs'
                                     colorPalette='red'
-                                    ms={2}
+                                    ms={1}
                                     onClick={() => model.remove(prod.id!)}
                                     variant='subtle'
                                 >

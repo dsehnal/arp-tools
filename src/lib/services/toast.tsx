@@ -5,6 +5,7 @@ import { formatError } from '../error';
 class _ToastService {
     show(options: {
         title: ReactNode;
+        description?: ReactNode;
         duration?: number;
         type?: 'info' | 'success' | 'warning' | 'error';
         id?: string;
@@ -16,19 +17,25 @@ class _ToastService {
         toaster.remove(id);
     }
 
-    success(title: string, options?: { duration?: number; id?: string }) {
-        this.show({ duration: options?.duration ?? 3500, id: options?.id, title, type: 'success' });
+    success(title: string, options?: { description?: ReactNode; duration?: number; id?: string }) {
+        this.show({
+            description: options?.description,
+            duration: options?.duration ?? 3500,
+            id: options?.id,
+            title,
+            type: 'success',
+        });
     }
 
-    error(error: any, options?: { duration?: number; id?: string }) {
+    error(error: any, options?: { description?: ReactNode; duration?: number; id?: string }) {
         this.show({ ...options, title: formatError(error), type: 'error' });
     }
 
-    warning(title: string, options?: { duration?: number; id?: string }) {
+    warning(title: string, options?: { description?: ReactNode; duration?: number; id?: string }) {
         this.show({ ...options, title, type: 'warning' });
     }
 
-    info(title: string, options?: { duration?: number; id?: string }) {
+    info(title: string, options?: { description?: ReactNode; duration?: number; id?: string }) {
         this.show({ ...options, title, type: 'info' });
     }
 }

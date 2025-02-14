@@ -21,6 +21,7 @@ import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
 import { ToastService } from '@/lib/services/toast';
 import { AsyncActionButton } from '@/lib/components/button';
+import { LuCirclePlus, LuCombine, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -113,7 +114,10 @@ export function EditRequestUI() {
 
     return (
         <Layout
-            breadcrumbs={[RequestsBreadcrumb, requestBreadcrumb({ isLoading: loading, name: 'Edit', id: model?.id })]}
+            breadcrumbs={[
+                RequestsBreadcrumb,
+                requestBreadcrumb({ isLoading: loading, name: <Breadcrumb model={model} />, id: model?.id }),
+            ]}
             buttons={!!model && <NavButtons model={model} />}
         >
             <AsyncWrapper loading={!model || loading} error={error}>
@@ -123,20 +127,25 @@ export function EditRequestUI() {
     );
 }
 
+function Breadcrumb({ model }: { model?: EditRequestModel }) {
+    const req = useBehavior(model?.state.request);
+    return req?.name || 'Unnamed Request';
+}
+
 function NavButtons({ model }: { model: EditRequestModel }) {
     return (
         <HStack gap={2}>
             <Button onClick={model.addSamples} size='xs' colorPalette='green'>
-                Add Samples
+                <LuCirclePlus /> Add Samples
             </Button>
             <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
-                Save
+                <LuSave /> Save
             </AsyncActionButton>
             <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
-                Export
+                <LuDownload /> Export
             </AsyncActionButton>
-            <AsyncActionButton action={model.produce} size='xs' colorPalette='blue'>
-                Produce
+            <AsyncActionButton action={model.produce} size='xs' colorPalette='purple'>
+                <LuCombine /> Produce
             </AsyncActionButton>
         </HStack>
     );
@@ -145,7 +154,7 @@ function NavButtons({ model }: { model: EditRequestModel }) {
 function EditRequest({ model }: { model: EditRequestModel }) {
     useReactiveModel(model);
     return (
-        <HStack h='100%' position='relative' gap={4}>
+        <HStack h='100%' position='relative' gap={2}>
             <SampleTable model={model} />
             <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%'>
                 <Box flexGrow={1} position='relative'>
@@ -182,6 +191,8 @@ function BucketInfo({ model }: { model: EditRequestModel }) {
 
 function EditOptions({ model }: { model: EditRequestModel }) {
     const req = useBehavior(model.state.request);
+    let idx = 0;
+
     return (
         <VStack gap={1}>
             <Field label='Request Name'>
@@ -190,7 +201,7 @@ function EditOptions({ model }: { model: EditRequestModel }) {
                     value={req.name}
                     parse={SmartParsers.trim}
                     onChange={(v) => model.update({ name: v })}
-                    index={0}
+                    index={idx++}
                     size='sm'
                 />
             </Field>
@@ -200,7 +211,7 @@ function EditOptions({ model }: { model: EditRequestModel }) {
                     value={req.n_copies}
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ n_copies: v })}
-                    index={7}
+                    index={idx++}
                     size='sm'
                 />
             </Field>
@@ -211,7 +222,7 @@ function EditOptions({ model }: { model: EditRequestModel }) {
                     value={req.description}
                     parse={SmartParsers.trim}
                     onChange={(v) => model.update({ description: v })}
-                    index={0}
+                    index={idx++}
                     size='sm'
                 />
             </Field>
@@ -231,13 +242,12 @@ function SampleTable({ model }: { model: EditRequestModel }) {
 
     return (
         <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
-            <Table.Root size='sm' stickyHeader>
+            <Table.Root size='sm' stickyHeader showColumnBorder interactive>
                 <Table.Header>
                     <Table.Row bg='bg.subtle'>
                         <Table.ColumnHeader>Sample ID</Table.ColumnHeader>
                         <Table.ColumnHeader>Kind</Table.ColumnHeader>
                         <Table.ColumnHeader>Validation</Table.ColumnHeader>
-                        <Table.ColumnHeader></Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
                     </Table.Row>
                 </Table.Header>
@@ -248,15 +258,15 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                             <Table.Cell>{s.id}</Table.Cell>
                             <Table.Cell>{s.kind}</Table.Cell>
                             <Table.Cell></Table.Cell>
-                            <Table.Cell></Table.Cell>
-                            <Table.Cell textAlign='right'>
+                            <Table.Cell textAlign='right' padding={1}>
                                 <Button
                                     size='xs'
                                     colorPalette='red'
                                     onClick={() => model.update({ samples: req.samples.filter((p) => s !== p) })}
+                                    title='Remove'
                                     variant='subtle'
                                 >
-                                    Remove
+                                    <LuTrash />
                                 </Button>
                             </Table.Cell>
                         </Table.Row>

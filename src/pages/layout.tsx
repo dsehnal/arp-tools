@@ -13,7 +13,7 @@ import { SettingsBreadcrumb } from './settings/common';
 
 export interface BreadcrumbItem {
     icon?: ReactNode;
-    title: string;
+    title: ReactNode;
     path?: string;
 }
 
@@ -59,10 +59,10 @@ export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
                 </BreadcrumbRoot>
                 <Box margin='auto' />
                 {buttons}
-                <Box w={4} />
+                <Box w={2} />
             </Flex>
             <Box flexGrow={1} position='relative' bg='gray.950'>
-                <Box position='absolute' inset={0} p={4} overflow='hidden' overflowY='auto'>
+                <Box position='absolute' inset={0} px={2} py={2} overflow='hidden' overflowY='auto'>
                     {children}
                 </Box>
             </Box>

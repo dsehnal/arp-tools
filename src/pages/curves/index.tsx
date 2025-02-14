@@ -14,6 +14,8 @@ import { Layout } from '../layout';
 import { resolveRoute } from '../routing';
 import { CurvesApi } from './api';
 import { CurvesBreadcrumb } from './common';
+import { formatISODateString } from '@/lib/datetime';
+import { LuCirclePlus, LuCopy, LuImport, LuPencil, LuTrash } from 'react-icons/lu';
 
 class CurvesModel extends ReactiveModel {
     state = {
@@ -94,10 +96,10 @@ function NavButtons({ model }: { model: CurvesModel }) {
     return (
         <HStack gap={2}>
             <Button onClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, 'new'))} size='xs' colorPalette='blue'>
-                New Curve
+                <LuCirclePlus /> New Curve
             </Button>
             <Button onClick={() => model.import(navigate)} size='xs' colorPalette='blue'>
-                Import
+                <LuImport /> Import
             </Button>
         </HStack>
     );
@@ -108,7 +110,7 @@ function CurveList({ model }: { model: CurvesModel }) {
     const navigate = useNavigate();
     return (
         <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
-            <Table.Root size='sm' stickyHeader>
+            <Table.Root size='sm' stickyHeader showColumnBorder interactive>
                 <Table.Header>
                     <Table.Row bg='bg.subtle'>
                         <Table.ColumnHeader>Name</Table.ColumnHeader>
@@ -116,39 +118,41 @@ function CurveList({ model }: { model: CurvesModel }) {
                         <Table.ColumnHeader>Top Concentration</Table.ColumnHeader>
                         <Table.ColumnHeader>Modified On</Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
-                        <Table.ColumnHeader></Table.ColumnHeader>
                     </Table.Row>
                 </Table.Header>
 
                 <Table.Body>
                     {curves.map((curve) => (
-                        <Table.Row key={curve.id}>
+                        <Table.Row key={curve.id}  onDoubleClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, curve.id!))}>
                             <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
                             <Table.Cell>{curve.points.length}</Table.Cell>
                             <Table.Cell>{formatConc(curve.points[0].target_concentration_M)}</Table.Cell>
-                            <Table.Cell>{new Date(Date.parse(curve.modified_on!)).toLocaleString()}</Table.Cell>
-                            <Table.Cell></Table.Cell>
-                            <Table.Cell textAlign='right'>
-                                <Button size='xs' colorPalette='blue' variant='subtle' asChild>
-                                    <Link to={resolveRoute(CurvesBreadcrumb.path!, curve.id!)}>Edit</Link>
+                            <Table.Cell>{formatISODateString(curve.modified_on)}</Table.Cell>
+                            <Table.Cell textAlign='right' padding={1}>
+                                <Button size='xs' colorPalette='blue' variant='subtle' asChild title='Edit'>
+                                    <Link to={resolveRoute(CurvesBreadcrumb.path!, curve.id!)}>
+                                        <LuPencil />
+                                    </Link>
                                 </Button>
                                 <Button
                                     size='xs'
                                     colorPalette='blue'
                                     onClick={() => model.duplicate(curve, navigate)}
                                     variant='subtle'
-                                    ms={2}
+                                    title='Duplicate'
+                                    ms={1}
                                 >
-                                    Duplicate
+                                    <LuCopy />
                                 </Button>
                                 <Button
                                     size='xs'
                                     colorPalette='red'
-                                    ms={2}
+                                    ms={1}
                                     onClick={() => model.remove(curve.id!)}
+                                    title='Remove'
                                     variant='subtle'
                                 >
-                                    Remove
+                                    <LuTrash />
                                 </Button>
                             </Table.Cell>
                         </Table.Row>

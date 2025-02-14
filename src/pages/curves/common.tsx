@@ -1,6 +1,7 @@
 import { BreadcrumbItem } from '../layout';
 import { LuChartNoAxesCombined } from 'react-icons/lu';
 import { resolveRoute } from '../routing';
+import { ReactNode } from 'react';
 
 export const CurvesBreadcrumb: BreadcrumbItem = {
     icon: <LuChartNoAxesCombined />,
@@ -15,7 +16,7 @@ export function curveBreadcrumb({
 }: {
     isLoading?: boolean;
     id?: string;
-    name?: string;
+    name?: ReactNode;
 }): BreadcrumbItem | undefined {
     if (isLoading) return { title: 'Loading...' };
     if (!id) return undefined;

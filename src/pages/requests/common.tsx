@@ -1,6 +1,7 @@
 import { BreadcrumbItem } from '../layout';
 import { LuList } from 'react-icons/lu';
 import { resolveRoute } from '../routing';
+import { ReactNode } from 'react';
 
 export const RequestsBreadcrumb: BreadcrumbItem = {
     icon: <LuList />,
@@ -15,7 +16,7 @@ export function requestBreadcrumb({
 }: {
     isLoading?: boolean;
     id?: string;
-    name?: string;
+    name?: ReactNode;
 }): BreadcrumbItem | undefined {
     if (isLoading) return { title: 'Loading...' };
     if (!id) return undefined;

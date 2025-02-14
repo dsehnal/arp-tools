@@ -27,7 +27,7 @@ import { PlateDimensions, PlateLayouts, PlateUtils } from '@/model/plate';
 import { Alert, Box, Button, Flex, HStack, Input, Text, VStack } from '@chakra-ui/react';
 import { useRef } from 'react';
 import { FaCopy, FaPaste, FaFileExport } from 'react-icons/fa6';
-import { LuChartNoAxesCombined, LuTrash } from 'react-icons/lu';
+import { LuChartNoAxesCombined, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
 import { MdOutlineBorderClear } from 'react-icons/md';
 import { useParams } from 'react-router';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyChanged } from 'rxjs';
@@ -282,10 +282,11 @@ class EditBucketModel extends ReactiveModel {
     }
 
     save = async () => {
-        const curve = { ...this.bucket, id: this.id };
-        await BucketsApi.save(curve);
+        const bucket = { ...this.bucket, id: this.id };
+        await BucketsApi.save(bucket);
+        this.state.bucket.next(bucket);
         ToastService.success('Saved');
-        window.history.replaceState(null, '', resolvePrefixedRoute(BucketsBreadcrumb.path!, curve.id));
+        window.history.replaceState(null, '', resolvePrefixedRoute(BucketsBreadcrumb.path!, bucket.id));
     };
 
     export = async () => {
@@ -335,7 +336,10 @@ export function EditBucketUI() {
 
     return (
         <Layout
-            breadcrumbs={[BucketsBreadcrumb, bucketBreadcrumb({ isLoading: loading, name: 'Edit', id: model?.id })]}
+            breadcrumbs={[
+                BucketsBreadcrumb,
+                bucketBreadcrumb({ isLoading: loading, name: <Breadcrumb model={model} />, id: model?.id }),
+            ]}
             buttons={!!model && <NavButtons model={model} />}
         >
             <AsyncWrapper loading={!model || loading} error={error}>
@@ -345,14 +349,20 @@ export function EditBucketUI() {
     );
 }
 
+function Breadcrumb({ model }: { model?: EditBucketModel }) {
+    const bucket = useBehavior(model?.state.bucket);
+    if (!bucket?.id) return 'New Bucket';
+    return bucket.name || 'Unnamed Bucket';
+}
+
 function NavButtons({ model }: { model: EditBucketModel }) {
     return (
         <HStack gap={2}>
             <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
-                Save
+                <LuSave /> Save
             </AsyncActionButton>
             <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
-                Export
+                <LuDownload /> Export
             </AsyncActionButton>
         </HStack>
     );
@@ -552,7 +562,7 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
                     }}
                 />
                 <Button variant='subtle' colorPalette='blue' size='xs' onClick={applySampleIndex}>
-                    Apply
+                    Full Sample Index
                 </Button>
             </HStack>
 
@@ -571,7 +581,7 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
                 />
 
                 <Button variant='subtle' colorPalette='blue' size='xs' onClick={applyPointIndex}>
-                    Apply
+                    Fill Point Index
                 </Button>
             </HStack>
         </>
@@ -580,8 +590,8 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
 
 function SampleInfoControls({ model, info }: { model: EditBucketModel; info: BucketSampleInfo }) {
     return (
-        <HStack gap={1} w='100%'>
-            <Button variant='plain' size='xs' onClick={() => model.sampleInfo.remove(info)} px={0} colorPalette='red'>
+        <HStack gap={1} w='100%' wrap='wrap'>
+            <Button variant='plain' size='xs' onClick={() => model.sampleInfo.remove(info)} px={0}>
                 <LuTrash />
             </Button>
             <Button

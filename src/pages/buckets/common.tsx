@@ -4,6 +4,7 @@ import { BreadcrumbItem } from '../layout';
 import { LuLayoutGrid } from 'react-icons/lu';
 import { Bucket, getBucketTemplateWellKey } from '@/model/bucket';
 import { resolveRoute } from '../routing';
+import { ReactNode } from 'react';
 
 export const BucketsBreadcrumb: BreadcrumbItem = {
     icon: <LuLayoutGrid />,
@@ -18,7 +19,7 @@ export function bucketBreadcrumb({
 }: {
     isLoading?: boolean;
     id?: string;
-    name?: string;
+    name?: ReactNode;
 }): BreadcrumbItem | undefined {
     if (isLoading) return { title: 'Loading...' };
     if (!id) return undefined;

@@ -14,6 +14,8 @@ import { BucketsApi } from '../buckets/api';
 import { DialogService } from '@/lib/services/dialog';
 import { resolveRoute } from '../routing';
 import { AsyncActionButton } from '@/lib/components/button';
+import { formatISODateString } from '@/lib/datetime';
+import { LuCirclePlus, LuPencil, LuTrash } from 'react-icons/lu';
 
 class RequestsModel extends ReactiveModel {
     state = {
@@ -80,7 +82,7 @@ function NavButtons({ model }: { model: RequestsModel }) {
     return (
         <HStack gap={2}>
             <AsyncActionButton action={() => model.createNew(navigate)} size='xs' colorPalette='blue'>
-                New Request
+                <LuCirclePlus /> New Request
             </AsyncActionButton>
             {/* <Button onClick={() => alert('todo')} size='xs' colorPalette='blue'>
                 New Production
@@ -91,42 +93,47 @@ function NavButtons({ model }: { model: RequestsModel }) {
 
 function RequestList({ model }: { model: RequestsModel }) {
     const requests = useBehavior(model.state.requests);
+    const navigate = useNavigate();
+    
     return (
         <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
-            <Table.Root size='sm' stickyHeader>
+            <Table.Root size='sm' stickyHeader showColumnBorder interactive>
                 <Table.Header>
                     <Table.Row bg='bg.subtle'>
                         <Table.ColumnHeader>Name</Table.ColumnHeader>
                         <Table.ColumnHeader>Status</Table.ColumnHeader>
                         <Table.ColumnHeader>Bucket</Table.ColumnHeader>
                         <Table.ColumnHeader>Description</Table.ColumnHeader>
-                        <Table.ColumnHeader></Table.ColumnHeader>
+                        <Table.ColumnHeader>Modified On</Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
                     </Table.Row>
                 </Table.Header>
 
                 <Table.Body>
                     {requests.map((req) => (
-                        <Table.Row key={req.id}>
+                        <Table.Row key={req.id} onDoubleClick={() => navigate(resolveRoute(RequestsBreadcrumb.path!, req.id))}>
                             <Table.Cell>{req.name || 'unnamed'}</Table.Cell>
                             <Table.Cell>
                                 <Badge>{req.status}</Badge>
                             </Table.Cell>
                             <Table.Cell>{req.bucket.name}</Table.Cell>
                             <Table.Cell>{req.description}</Table.Cell>
-                            <Table.Cell></Table.Cell>
-                            <Table.Cell textAlign='right'>
-                                <Button size='xs' colorPalette='blue' variant='subtle' asChild>
-                                    <Link to={resolveRoute(RequestsBreadcrumb.path!, req.id)}>Edit</Link>
+                            <Table.Cell>{formatISODateString(req.modified_on)}</Table.Cell>
+                            <Table.Cell textAlign='right' padding={1}>
+                                <Button size='xs' colorPalette='blue' variant='subtle' title='Edit' asChild>
+                                    <Link to={resolveRoute(RequestsBreadcrumb.path!, req.id)}>
+                                        <LuPencil />
+                                    </Link>
                                 </Button>
                                 <Button
                                     size='xs'
                                     colorPalette='red'
-                                    ms={2}
+                                    ms={1}
                                     onClick={() => model.remove(req.id!)}
+                                    title='Remove'
                                     variant='subtle'
                                 >
-                                    Remove
+                                    <LuTrash />
                                 </Button>
                             </Table.Cell>
                         </Table.Row>

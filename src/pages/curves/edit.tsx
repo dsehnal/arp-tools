@@ -25,7 +25,10 @@ import { resolvePrefixedRoute } from '../routing';
 import { CurvesApi } from './api';
 import { curveBreadcrumb, CurvesBreadcrumb } from './common';
 import { AsyncActionButton } from '@/lib/components/button';
+import { InfoTip } from '@/components/ui/toggle-tip';
 import { download } from '@/lib/download';
+import { useState } from 'react';
+import { LuChartNoAxesColumn, LuDownload, LuSave } from 'react-icons/lu';
 
 class EditCurveModel extends ReactiveModel {
     state = {
@@ -59,6 +62,7 @@ class EditCurveModel extends ReactiveModel {
 
         const curve = { ...this.curve, name: this.state.name.value, id: this.id };
         await CurvesApi.save(curve);
+        this.state.curve.next(curve);
         ToastService.success('Saved');
         window.history.replaceState(null, '', resolvePrefixedRoute(CurvesBreadcrumb.path!, curve.id));
     };
@@ -118,7 +122,10 @@ export function EditCurveUI() {
 
     return (
         <Layout
-            breadcrumbs={[CurvesBreadcrumb, curveBreadcrumb({ isLoading: loading, name: 'Edit', id: model?.id })]}
+            breadcrumbs={[
+                CurvesBreadcrumb,
+                curveBreadcrumb({ isLoading: loading, name: <Breadcrumb model={model} />, id: model?.id }),
+            ]}
             buttons={!!model && <NavButtons model={model} />}
         >
             <AsyncWrapper loading={!model || loading} error={error}>
@@ -128,14 +135,21 @@ export function EditCurveUI() {
     );
 }
 
+function Breadcrumb({ model }: { model?: EditCurveModel }) {
+    const curve = useBehavior(model?.state.curve);
+    const name = useBehavior(model?.state.name);
+    if (!curve?.id) return 'New Curve';
+    return name ?? 'Unnamed Curve';
+}
+
 function NavButtons({ model }: { model: EditCurveModel }) {
     return (
         <HStack gap={2}>
             <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
-                Save
+                <LuSave /> Save
             </AsyncActionButton>
             <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
-                Export
+                <LuDownload /> Export
             </AsyncActionButton>
         </HStack>
     );
@@ -144,18 +158,17 @@ function NavButtons({ model }: { model: EditCurveModel }) {
 function EditCurve({ model }: { model: EditCurveModel }) {
     useReactiveModel(model);
     return (
-        <HStack h='100%' position='relative' gap={4}>
+        <HStack h='100%' position='relative' gap={2}>
             <EditCurveTable model={model} />
             <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%'>
-                <Button w='100%' onClick={model.build} size='sm' colorPalette='blue'>
-                    Build
-                </Button>
-
                 <Box flexGrow={1} position='relative'>
                     <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll' pe={2}>
                         <EditCurveOptions model={model} />
                     </Box>
                 </Box>
+                <Button w='100%' onClick={model.build} size='sm' colorPalette='blue'>
+                    <LuChartNoAxesColumn /> Build Curve
+                </Button>
             </Flex>
         </HStack>
     );
@@ -164,6 +177,9 @@ function EditCurve({ model }: { model: EditCurveModel }) {
 function EditCurveOptions({ model }: { model: EditCurveModel }) {
     const options = useBehavior(model.state.options);
     const name = useBehavior(model.state.name);
+    const [advanced, setAdvanced] = useState(false);
+    let idx = 0;
+
     return (
         <VStack gap={1}>
             <Field label='Name'>
@@ -171,7 +187,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     value={name}
                     parse={SmartParsers.trim}
                     onChange={(v) => model.state.name.next(v)}
-                    index={0}
+                    index={idx++}
                     size='sm'
                 />
             </Field>
@@ -181,7 +197,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e3)}
                     parse={SmartParsers.unit(1e-3)}
                     onChange={(v) => model.update({ nARP_concentration_M: v })}
-                    index={1}
+                    index={idx++}
                     size='sm'
                 />
             </Field>
@@ -191,7 +207,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e6)}
                     parse={SmartParsers.unit(1e-7)}
                     onChange={(v) => model.update({ intermediate_volume_l: v })}
-                    index={2}
+                    index={idx++}
                     size='sm'
                 />
             </Field>
@@ -201,123 +217,153 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     format={SmartFormatters.unit(1e6)}
                     parse={SmartParsers.unit(1e-6)}
                     onChange={(v) => model.update({ assay_volume_l: v })}
-                    index={3}
+                    index={idx++}
                     size='sm'
                 />
             </Field>
-            <Field label='Max Intermediate Plates'>
-                <SmartInput
-                    value={options.max_intermadiate_plates}
-                    parse={SmartParsers.number}
-                    onChange={(v) => model.update({ max_intermadiate_plates: v })}
-                    index={4}
-                    size='sm'
-                />
-            </Field>
-            <Field label='Max Points per Plate'>
-                <SmartInput
-                    value={options.max_intermediate_points_per_plate}
-                    parse={SmartParsers.number}
-                    onChange={(v) => model.update({ max_intermediate_points_per_plate: v })}
-                    index={5}
-                    size='sm'
-                />
-            </Field>
+
             <Field label='Top Concentration (uM)'>
                 <SmartInput
                     value={options.top_concentration_m}
                     format={SmartFormatters.unit(1e6)}
                     parse={SmartParsers.unit(1e-6)}
                     onChange={(v) => model.update({ top_concentration_m: v })}
-                    index={6}
+                    index={idx++}
                     size='sm'
                 />
+            </Field>
+            <Field label='Dilution Factor'>
+                <HStack gap={2} w='full'>
+                    <Box flexGrow={1}>
+                        <SmartInput
+                            value={options.dilution_factor}
+                            format={SmartFormatters.unit(1, 6)}
+                            parse={SmartParsers.number}
+                            onChange={(v) => model.update({ dilution_factor: v })}
+                            index={idx++}
+                            size='sm'
+                        />
+                    </Box>
+                    <Button variant='subtle' size='sm' onClick={() => model.update({ dilution_factor: Math.sqrt(10) })}>
+                        √10
+                    </Button>
+                    <Button variant='subtle' size='sm' onClick={() => model.update({ dilution_factor: 2 })}>
+                        2
+                    </Button>
+                </HStack>
             </Field>
             <Field label='Number of Points'>
                 <SmartInput
                     value={options.n_points}
                     parse={SmartParsers.number}
                     onChange={(v) => model.update({ n_points: v })}
-                    index={7}
+                    index={idx++}
                     size='sm'
                 />
             </Field>
-            <Field label='Dilution Factor'>
-                <SmartInput
-                    value={options.dilution_factor}
-                    format={SmartFormatters.unit(1, 6)}
-                    parse={SmartParsers.number}
-                    onChange={(v) => model.update({ dilution_factor: v })}
-                    index={8}
-                    size='sm'
-                />
-            </Field>
-            <Field label='Tolerance (%)'>
-                <SmartInput
-                    value={options.tolerance}
-                    format={SmartFormatters.unit(1e2)}
-                    parse={SmartParsers.unit(1e-2)}
-                    onChange={(v) => model.update({ tolerance: v })}
-                    index={9}
-                    size='sm'
-                />
-            </Field>
-            <Field label='Adjust Intermediate Volume'>
-                <Switch
-                    size='sm'
-                    checked={options.adjust_intermediate_volume}
-                    onCheckedChange={(e) => model.update({ adjust_intermediate_volume: e.checked })}
-                />
-            </Field>
-            <Field label='Min Transfer Volume (nL)'>
-                <SmartInput
-                    value={options.min_transfer_volume_l}
-                    format={SmartFormatters.unit(1e9)}
-                    parse={SmartParsers.unit(1e-9)}
-                    onChange={(v) => model.update({ min_transfer_volume_l: v })}
-                    index={10}
-                    size='sm'
-                />
-            </Field>
-            <Field label='Max Transfer Volume (nL)'>
-                <SmartInput
-                    value={options.max_transfer_volume_l}
-                    format={SmartFormatters.unit(1e9)}
-                    parse={SmartParsers.unit(1e-9)}
-                    onChange={(v) => model.update({ max_transfer_volume_l: v })}
-                    index={11}
-                    size='sm'
-                />
-            </Field>
-            <Field label='Max Intermediate Transfer Volume (nL)'>
-                <SmartInput
-                    value={options.max_intermediate_transfer_volume_l}
-                    format={SmartFormatters.unit(1e9)}
-                    parse={SmartParsers.unit(1e-9)}
-                    onChange={(v) => model.update({ max_intermediate_transfer_volume_l: v })}
-                    index={12}
-                    size='sm'
-                />
-            </Field>
-            <Field label='Droplet Size (nL)'>
-                <SmartInput
-                    value={options.droplet_size_l}
-                    format={SmartFormatters.unit(1e9)}
-                    parse={SmartParsers.unit(1e-9)}
-                    onChange={(v) => model.update({ droplet_size_l: v })}
-                    index={13}
-                    size='sm'
-                />
-            </Field>
-            <Field label='Number of Intermediate Point Samples'>
-                <SmartInput
-                    value={options.num_intermediate_point_samples}
-                    parse={SmartParsers.number}
-                    onChange={(v) => model.update({ num_intermediate_point_samples: v })}
-                    index={14}
-                    size='sm'
-                />
-            </Field>
+
+            <Button size='xs' onClick={() => setAdvanced(!advanced)} variant='ghost' w='full'>
+                {advanced ? 'Hide Advanced' : 'Show Advanced'}
+            </Button>
+
+            {advanced && (
+                <>
+                    <Field label='Max Intermediate Plates'>
+                        <SmartInput
+                            value={options.max_intermadiate_plates}
+                            parse={SmartParsers.number}
+                            onChange={(v) => model.update({ max_intermadiate_plates: v })}
+                            index={idx++}
+                            size='sm'
+                        />
+                    </Field>
+                    <Field label='Max Points per Plate'>
+                        <SmartInput
+                            value={options.max_intermediate_points_per_plate}
+                            parse={SmartParsers.number}
+                            onChange={(v) => model.update({ max_intermediate_points_per_plate: v })}
+                            index={idx++}
+                            size='sm'
+                        />
+                    </Field>
+                    <Field label='Tolerance (%)'>
+                        <SmartInput
+                            value={options.tolerance}
+                            format={SmartFormatters.unit(1e2)}
+                            parse={SmartParsers.unit(1e-2)}
+                            onChange={(v) => model.update({ tolerance: v })}
+                            index={idx++}
+                            size='sm'
+                        />
+                    </Field>
+                    <Field
+                        label={
+                            <>
+                                Adjust Intermediate Volume{' '}
+                                <InfoTip>
+                                    Add intermediate transfer volume to the total volume of the well. Results in a more
+                                    accurate concetration computation.
+                                </InfoTip>
+                            </>
+                        }
+                    >
+                        <Switch
+                            size='sm'
+                            checked={options.adjust_intermediate_volume}
+                            onCheckedChange={(e) => model.update({ adjust_intermediate_volume: e.checked })}
+                        />
+                    </Field>
+                    <Field label='Min Total Transfer Volume (nL)'>
+                        <SmartInput
+                            value={options.min_transfer_volume_l}
+                            format={SmartFormatters.unit(1e9)}
+                            parse={SmartParsers.unit(1e-9)}
+                            onChange={(v) => model.update({ min_transfer_volume_l: v })}
+                            index={idx++}
+                            size='sm'
+                        />
+                    </Field>
+                    <Field label='Max Total Transfer Volume (nL)'>
+                        <SmartInput
+                            value={options.max_transfer_volume_l}
+                            format={SmartFormatters.unit(1e9)}
+                            parse={SmartParsers.unit(1e-9)}
+                            onChange={(v) => model.update({ max_transfer_volume_l: v })}
+                            index={idx++}
+                            size='sm'
+                        />
+                    </Field>
+                    <Field label='Max Intermediate Transfer Volume (nL)'>
+                        <SmartInput
+                            value={options.max_intermediate_transfer_volume_l}
+                            format={SmartFormatters.unit(1e9)}
+                            parse={SmartParsers.unit(1e-9)}
+                            onChange={(v) => model.update({ max_intermediate_transfer_volume_l: v })}
+                            index={idx++}
+                            size='sm'
+                        />
+                    </Field>
+                    <Field label='Droplet Size (nL)'>
+                        <SmartInput
+                            value={options.droplet_size_l}
+                            format={SmartFormatters.unit(1e9)}
+                            parse={SmartParsers.unit(1e-9)}
+                            onChange={(v) => model.update({ droplet_size_l: v })}
+                            index={idx++}
+                            size='sm'
+                        />
+                    </Field>
+                    <Field label='Number of Intermediate Point Samples'>
+                        <SmartInput
+                            value={options.num_intermediate_point_samples}
+                            parse={SmartParsers.number}
+                            onChange={(v) => model.update({ num_intermediate_point_samples: v })}
+                            index={idx++}
+                            size='sm'
+                        />
+                    </Field>
+                </>
+            )}
         </VStack>
     );
 }
@@ -362,10 +408,10 @@ function EditCurveTable({ model }: { model: EditCurveModel }) {
 
     return (
         <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
-            <Table.Root size='sm' stickyHeader>
+            <Table.Root size='sm' stickyHeader showColumnBorder interactive>
                 <Table.Header>
                     <Table.Row bg='bg.subtle'>
-                        <Table.ColumnHeader>Pt</Table.ColumnHeader>
+                        <Table.ColumnHeader>Point</Table.ColumnHeader>
                         <Table.ColumnHeader>Target</Table.ColumnHeader>
                         <Table.ColumnHeader>Actual</Table.ColumnHeader>
                         <Table.ColumnHeader>Error</Table.ColumnHeader>

@@ -13,6 +13,8 @@ import { BucketsBreadcrumb } from './common';
 import { DialogService } from '@/lib/services/dialog';
 import { resolveRoute } from '../routing';
 import { FileDropArea } from '@/lib/components/file-upload';
+import { formatISODateString } from '@/lib/datetime';
+import { LuCirclePlus, LuCopy, LuImport, LuPencil, LuTrash } from 'react-icons/lu';
 
 class BucketsModel extends ReactiveModel {
     state = {
@@ -97,10 +99,10 @@ function NavButtons({ model }: { model: BucketsModel }) {
                 size='xs'
                 colorPalette='blue'
             >
-                New Bucket
+                <LuCirclePlus /> New Bucket
             </Button>
             <Button onClick={() => model.import(navigate)} size='xs' colorPalette='blue'>
-                Import
+                <LuImport /> Import
             </Button>
         </HStack>
     );
@@ -111,45 +113,49 @@ function BucketList({ model }: { model: BucketsModel }) {
     const navigate = useNavigate();
     return (
         <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
-            <Table.Root size='sm' stickyHeader>
+            <Table.Root size='sm' stickyHeader showColumnBorder interactive>
                 <Table.Header>
                     <Table.Row bg='bg.subtle'>
                         <Table.ColumnHeader>Name</Table.ColumnHeader>
                         <Table.ColumnHeader>Project</Table.ColumnHeader>
                         <Table.ColumnHeader>Description</Table.ColumnHeader>
-                        <Table.ColumnHeader></Table.ColumnHeader>
+                        <Table.ColumnHeader>Modified On</Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
                     </Table.Row>
                 </Table.Header>
 
                 <Table.Body>
                     {buckets.map((bucket) => (
-                        <Table.Row key={bucket.id}>
+                        <Table.Row key={bucket.id}  onDoubleClick={() => navigate(resolveRoute(BucketsBreadcrumb.path!, bucket.id!))}>
                             <Table.Cell>{bucket.name || 'unnamed'}</Table.Cell>
                             <Table.Cell>{bucket.project}</Table.Cell>
                             <Table.Cell>{bucket.description}</Table.Cell>
-                            <Table.Cell></Table.Cell>
-                            <Table.Cell textAlign='right'>
-                                <Button size='xs' colorPalette='blue' variant='subtle' asChild>
-                                    <Link to={resolveRoute(BucketsBreadcrumb.path!, bucket.id!)}>Edit</Link>
+                            <Table.Cell>{formatISODateString(bucket.modified_on)}</Table.Cell>
+                            <Table.Cell textAlign='right' padding={1}>
+                                <Button size='xs' colorPalette='blue' variant='subtle' asChild title='Edit'>
+                                    <Link to={resolveRoute(BucketsBreadcrumb.path!, bucket.id!)}>
+                                        <LuPencil />
+                                    </Link>
                                 </Button>
                                 <Button
                                     size='xs'
                                     colorPalette='blue'
                                     onClick={() => model.duplicate(bucket, navigate)}
                                     variant='subtle'
-                                    ms={2}
+                                    title='Duplicate'
+                                    ms={1}
                                 >
-                                    Duplicate
+                                    <LuCopy />
                                 </Button>
                                 <Button
                                     size='xs'
                                     colorPalette='red'
-                                    ms={2}
+                                    ms={1}
                                     onClick={() => model.remove(bucket.id!)}
+                                    title='Remove'
                                     variant='subtle'
                                 >
-                                    Remove
+                                    <LuTrash />
                                 </Button>
                             </Table.Cell>
                         </Table.Row>
