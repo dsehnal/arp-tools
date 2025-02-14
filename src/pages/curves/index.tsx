@@ -1,18 +1,19 @@
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
+import { FileDropArea } from '@/lib/components/file-upload';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
-import { DilutionCurve } from '@/model/curve';
+import { uuid4 } from '@/lib/uuid';
+import { DilutionCurve, readCurve } from '@/model/curve';
 import { formatConc } from '@/utils';
-import { Box, Button, Table, VStack } from '@chakra-ui/react';
+import { Button, HStack, Table } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
+import { resolveRoute } from '../routing';
 import { CurvesApi } from './api';
 import { CurvesBreadcrumb } from './common';
-import { uuid4 } from '@/lib/uuid';
-import { resolveRoute } from '../routing';
 
 class CurvesModel extends ReactiveModel {
     state = {
@@ -48,6 +49,25 @@ class CurvesModel extends ReactiveModel {
         await CurvesApi.save(newCurve);
         navigate(resolveRoute(CurvesBreadcrumb.path!, newCurve.id));
     }
+
+    import(navigate: NavigateFunction) {
+        DialogService.show({
+            title: 'Create Request',
+            body: ImportCurveDialog,
+            state: new BehaviorSubject({ files: [] }),
+            onOk: async ({ files }: { files: File[] }) => {
+                if (!files[0]) {
+                    throw new Error('No file selected');
+                }
+
+                const file = files[0];
+                const data = await file.text();
+                const curve = { ...readCurve(JSON.parse(data)), id: uuid4() };
+                await CurvesApi.save(curve);
+                navigate(resolveRoute(CurvesBreadcrumb.path!, curve.id));
+            },
+        });
+    }
 }
 
 async function createModel() {
@@ -58,25 +78,28 @@ async function createModel() {
 
 export function CurvesUI() {
     const { model, loading, error } = useAsyncModel(createModel);
-    const navigate = useNavigate();
 
     return (
-        <Layout
-            breadcrumbs={[CurvesBreadcrumb]}
-            buttons={
-                <Button
-                    onClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, 'new'))}
-                    size='xs'
-                    colorPalette='blue'
-                >
-                    New Curve
-                </Button>
-            }
-        >
+        <Layout breadcrumbs={[CurvesBreadcrumb]} buttons={!!model && <NavButtons model={model} />}>
             <AsyncWrapper loading={!model || loading} error={error}>
                 <CurveList model={model!} />
             </AsyncWrapper>
         </Layout>
+    );
+}
+
+function NavButtons({ model }: { model: CurvesModel }) {
+    const navigate = useNavigate();
+
+    return (
+        <HStack gap={2}>
+            <Button onClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, 'new'))} size='xs' colorPalette='blue'>
+                New Curve
+            </Button>
+            <Button onClick={() => model.import(navigate)} size='xs' colorPalette='blue'>
+                Import
+            </Button>
+        </HStack>
     );
 }
 
@@ -132,4 +155,8 @@ function CurveList({ model }: { model: CurvesModel }) {
             </Table.Root>
         </Table.ScrollArea>
     );
+}
+
+function ImportCurveDialog({ state }: { state: BehaviorSubject<{ files: File[] }> }) {
+    return <FileDropArea onChange={(files) => state.next({ files })} extensions={['.json']} />;
 }

@@ -5,7 +5,7 @@ import { SimpleSelect } from '@/lib/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
-import { PlateModel, PlateVisual } from '@/lib/plate';
+import { PlateModel, PlateVisual } from '@/lib/components/plate';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { formatCurve } from '@/model/curve';

@@ -145,6 +145,9 @@ export const PlateUtils = {
             }
         }
     },
+    wellLabel(row: number, col: number) {
+        return `${rowLabel(row)}${col + 1}`;
+    },
 };
 
 function rowLabel(row: number) {

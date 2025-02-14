@@ -1,8 +1,8 @@
 import { PlateColors, PlateDimensions, PlateLabels, PlateSelection, PlateUtils, WellCoords } from '@/model/plate';
 import { useEffect, useRef } from 'react';
 import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
-import { ReactiveModel } from './reactive-model';
-import { arrayEqual, resizeArray } from './util/array';
+import { ReactiveModel } from '../reactive-model';
+import { arrayEqual, resizeArray } from '../util/array';
 
 export interface PlateState {
     dimensions: PlateDimensions;

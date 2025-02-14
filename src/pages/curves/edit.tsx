@@ -9,7 +9,13 @@ import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { ToastService } from '@/lib/services/toast';
 import { uuid4 } from '@/lib/uuid';
-import { DefaultCurveOptions, DilutionCurve, DilutionCurveOptions, DilutionPoint } from '@/model/curve';
+import {
+    DefaultCurveOptions,
+    DilutionCurve,
+    DilutionCurveData,
+    DilutionCurveOptions,
+    DilutionPoint,
+} from '@/model/curve';
 import { formatConc, roundValue, toNano } from '@/utils';
 import { Box, Button, Flex, HStack, Table, VStack } from '@chakra-ui/react';
 import { useParams } from 'react-router';
@@ -19,6 +25,7 @@ import { resolvePrefixedRoute } from '../routing';
 import { CurvesApi } from './api';
 import { curveBreadcrumb, CurvesBreadcrumb } from './common';
 import { AsyncActionButton } from '@/lib/components/button';
+import { download } from '@/lib/download';
 
 class EditCurveModel extends ReactiveModel {
     state = {
@@ -45,7 +52,11 @@ class EditCurveModel extends ReactiveModel {
     };
 
     save = async () => {
-        if (!this.curve) return;
+        if (!this.curve) {
+            ToastService.info('Nothing to save');
+            return;
+        }
+
         const curve = { ...this.curve, name: this.state.name.value, id: this.id };
         await CurvesApi.save(curve);
         ToastService.success('Saved');
@@ -53,8 +64,23 @@ class EditCurveModel extends ReactiveModel {
     };
 
     export = async () => {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        throw new Error('Not implemented');
+        if (!this.curve) {
+            ToastService.info('Nothing to export');
+            return;
+        }
+
+        const curve = { ...this.curve };
+        delete curve.id;
+        const data: DilutionCurveData = {
+            kind: 'dilution-curve',
+            version: 1,
+            curve,
+        };
+
+        download(
+            new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+            `curve-${this.state.name.value}.json`
+        );
     };
 
     async init() {

@@ -1,3 +1,4 @@
+import Papa from 'papaparse';
 import { Field } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
@@ -6,7 +7,7 @@ import { SimpleSelect } from '@/lib/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
-import { PlateModel, PlateVisual } from '@/lib/plate';
+import { PlateModel, PlateVisual } from '@/lib/components/plate';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { ToastService } from '@/lib/services/toast';
@@ -14,6 +15,7 @@ import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
 import { uuid4 } from '@/lib/uuid';
 import {
     Bucket,
+    BucketData,
     BucketLayouts,
     BucketSampleInfo,
     BucketTemplateWell,
@@ -24,7 +26,7 @@ import { formatCurve } from '@/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/model/plate';
 import { Alert, Box, Button, Flex, HStack, Input, Text, VStack } from '@chakra-ui/react';
 import { useRef } from 'react';
-import { FaCopy, FaPaste } from 'react-icons/fa6';
+import { FaCopy, FaPaste, FaFileExport } from 'react-icons/fa6';
 import { LuChartNoAxesCombined, LuTrash } from 'react-icons/lu';
 import { MdOutlineBorderClear } from 'react-icons/md';
 import { useParams } from 'react-router';
@@ -35,6 +37,8 @@ import { resolvePrefixedRoute } from '../routing';
 import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
 import { AsyncActionButton } from '@/lib/components/button';
+import { download } from '@/lib/download';
+import { formatConc } from '@/utils';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -231,6 +235,30 @@ class EditBucketModel extends ReactiveModel {
                 template: wells,
             });
         },
+        export: () => {
+            const rows: string[][] = [
+                ['Well', 'Row', 'Col', 'Kind', 'Sample Index', 'Point Index', 'Is Control', 'Concentration'],
+            ];
+            const { template } = this;
+
+            PlateUtils.forEachColMajorIndex(this.bucket.arp_labware.dimensions, (idx, row, col) => {
+                const well = template[idx];
+                const info = well ? this.bucket.sample_info.find((i) => i.kind === well.kind) : undefined;
+                rows.push([
+                    PlateUtils.wellLabel(row, col),
+                    String(row + 1),
+                    String(col + 1),
+                    well?.kind || '',
+                    typeof well?.sample_index === 'number' ? String(well.sample_index + 1) : '',
+                    typeof well?.point_index === 'number' ? String(well.point_index + 1) : '',
+                    info?.is_control ? 'Yes' : 'No',
+                    formatConc(info?.curve?.points[well?.point_index ?? -1]?.target_concentration_M),
+                ]);
+            });
+
+            const csv = Papa.unparse(rows, { header: true, delimiter: ',' });
+            download(new Blob([csv], { type: 'text/csv' }), `bucket-template-${this.bucket.name}.csv`);
+        },
     };
 
     mount(): void {
@@ -255,7 +283,18 @@ class EditBucketModel extends ReactiveModel {
     };
 
     export = async () => {
-        alert('TODO');
+        const bucket = { ...this.bucket };
+        delete bucket.id;
+        const data: BucketData = {
+            kind: 'bucket',
+            version: 1,
+            bucket,
+        };
+
+        download(
+            new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+            `bucket-${this.bucket.name}.json`
+        );
     };
 
     async init() {
@@ -401,6 +440,9 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                         </Button>
                         <Button variant='subtle' size='xs' onClick={model.templateBuilder.clear}>
                             <MdOutlineBorderClear /> Clear Selected Wells
+                        </Button>
+                        <Button variant='subtle' size='xs' onClick={model.templateBuilder.export}>
+                            <FaFileExport /> Export CSV
                         </Button>
                     </HStack>
                 </VStack>
@@ -554,9 +596,9 @@ function SampleInfoControls({ model, info }: { model: EditBucketModel; info: Buc
             >
                 Control
             </Switch>
-            <Button variant='outline' size='xs' onClick={() => model.sampleInfo.selectCurve(info)}>
+            <AsyncActionButton variant='outline' size='xs' action={() => model.sampleInfo.selectCurve(info)}>
                 <LuChartNoAxesCombined /> {info?.curve ? formatCurve(info.curve) : 'Select Curve'}
-            </Button>
+            </AsyncActionButton>
             {info.is_control && (
                 <Box w='140px'>
                     <SmartInput

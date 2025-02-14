@@ -19,7 +19,8 @@ export function toNano(value: number) {
     return Math.round(1e10 * value) / 10;
 }
 
-export function formatConc(value: number) {
+export function formatConc(value: number | undefined) {
+    if (typeof value !== 'number') return '';
     if (value > 1e-3) return `${Math.round(1e5 * value) / 1e2} mM`;
     if (value > 1e-6) return `${Math.round(1e8 * value) / 1e2} uM`;
     return `${Math.round(1e9 * value)} nM`;

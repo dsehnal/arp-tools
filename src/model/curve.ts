@@ -1,5 +1,11 @@
 import { formatConc } from '@/utils';
 
+export interface DilutionCurveData {
+    kind: 'dilution-curve';
+    version: 1;
+    curve: DilutionCurve;
+}
+
 export interface DilutionTransfer {
     concentration_M: number;
     volume_l: number;
@@ -70,4 +76,11 @@ export const DefaultCurveOptions: DilutionCurveOptions = {
 
 export function formatCurve(conc: DilutionCurve) {
     return `${conc.name ?? 'unnamed'}, ${conc.points.length}pt, ${formatConc(conc.points[0].target_concentration_M)}`;
+}
+
+export function readCurve(data: DilutionCurveData): DilutionCurve {
+    if (data.kind !== 'dilution-curve' || data.version !== 1) {
+        throw new Error('Invalid curve data');
+    }
+    return data.curve;
 }

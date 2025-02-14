@@ -1,6 +1,12 @@
 import { DilutionCurve } from '@/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from './plate';
 
+export interface BucketData {
+    kind: 'bucket';
+    version: 1;
+    bucket: Bucket;
+}
+
 export interface BucketSampleInfo {
     kind: string;
     default_sample_id?: string;
@@ -78,3 +84,10 @@ export const BucketLayouts = [
     ['384', '384 Well'],
     ['1536', '1536 Well'],
 ] as [string, string][];
+
+export function readBucket(data: BucketData): Bucket {
+    if (data.kind !== 'bucket' || data.version !== 1) {
+        throw new Error('Invalid bucket data');
+    }
+    return data.bucket;
+}

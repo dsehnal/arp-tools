@@ -13,6 +13,7 @@ import { SimpleSelect } from '@/lib/components/select';
 import { BucketsApi } from '../buckets/api';
 import { DialogService } from '@/lib/services/dialog';
 import { resolveRoute } from '../routing';
+import { AsyncActionButton } from '@/lib/components/button';
 
 class RequestsModel extends ReactiveModel {
     state = {
@@ -26,7 +27,7 @@ class RequestsModel extends ReactiveModel {
 
     async createNew(navigate: NavigateFunction) {
         const buckets = await BucketsApi.list();
-        const options = buckets.map((b) => [b.id, b.name]);
+        const options = buckets.map((b) => [b.id, b.name || 'unnamed']);
         const state = new BehaviorSubject('');
         DialogService.show({
             title: 'Create Request',
@@ -78,9 +79,9 @@ function NavButtons({ model }: { model: RequestsModel }) {
     const navigate = useNavigate();
     return (
         <HStack gap={2}>
-            <Button onClick={() => model.createNew(navigate)} size='xs' colorPalette='blue'>
+            <AsyncActionButton action={() => model.createNew(navigate)} size='xs' colorPalette='blue'>
                 New Request
-            </Button>
+            </AsyncActionButton>
             {/* <Button onClick={() => alert('todo')} size='xs' colorPalette='blue'>
                 New Production
             </Button> */}

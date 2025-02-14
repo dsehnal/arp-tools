@@ -3,8 +3,8 @@ import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { uuid4 } from '@/lib/uuid';
-import { Bucket } from '@/model/bucket';
-import { Button, Table } from '@chakra-ui/react';
+import { Bucket, readBucket } from '@/model/bucket';
+import { Button, HStack, Table } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
@@ -12,6 +12,7 @@ import { BucketsApi } from './api';
 import { BucketsBreadcrumb } from './common';
 import { DialogService } from '@/lib/services/dialog';
 import { resolveRoute } from '../routing';
+import { FileDropArea } from '@/lib/components/file-upload';
 
 class BucketsModel extends ReactiveModel {
     state = {
@@ -47,6 +48,25 @@ class BucketsModel extends ReactiveModel {
         await BucketsApi.save(newBucket);
         navigate(resolveRoute(BucketsBreadcrumb.path!, newBucket.id));
     }
+
+    import(navigate: NavigateFunction) {
+        DialogService.show({
+            title: 'Create Request',
+            body: ImportBucketDialog,
+            state: new BehaviorSubject({ files: [] }),
+            onOk: async ({ files }: { files: File[] }) => {
+                if (!files[0]) {
+                    throw new Error('No file selected');
+                }
+
+                const file = files[0];
+                const data = await file.text();
+                const curve = { ...readBucket(JSON.parse(data)), id: uuid4() };
+                await BucketsApi.save(curve);
+                navigate(resolveRoute(BucketsBreadcrumb.path!, curve.id));
+            },
+        });
+    }
 }
 
 async function createModel() {
@@ -57,25 +77,32 @@ async function createModel() {
 
 export function BucketsUI() {
     const { model, loading, error } = useAsyncModel(createModel);
-    const navigate = useNavigate();
 
     return (
-        <Layout
-            breadcrumbs={[BucketsBreadcrumb]}
-            buttons={
-                <Button
-                    onClick={() => navigate(resolveRoute(BucketsBreadcrumb.path!, 'new'))}
-                    size='xs'
-                    colorPalette='blue'
-                >
-                    New Bucket
-                </Button>
-            }
-        >
+        <Layout breadcrumbs={[BucketsBreadcrumb]} buttons={!!model && <NavButtons model={model} />}>
             <AsyncWrapper loading={!model || loading} error={error}>
                 <BucketList model={model!} />
             </AsyncWrapper>
         </Layout>
+    );
+}
+
+function NavButtons({ model }: { model: BucketsModel }) {
+    const navigate = useNavigate();
+
+    return (
+        <HStack gap={2}>
+            <Button
+                onClick={() => navigate(resolveRoute(BucketsBreadcrumb.path!, 'new'))}
+                size='xs'
+                colorPalette='blue'
+            >
+                New Bucket
+            </Button>
+            <Button onClick={() => model.import(navigate)} size='xs' colorPalette='blue'>
+                Import
+            </Button>
+        </HStack>
     );
 }
 
@@ -131,4 +158,8 @@ function BucketList({ model }: { model: BucketsModel }) {
             </Table.Root>
         </Table.ScrollArea>
     );
+}
+
+function ImportBucketDialog({ state }: { state: BehaviorSubject<{ files: File[] }> }) {
+    return <FileDropArea onChange={(files) => state.next({ files })} extensions={['.json']} />;
 }

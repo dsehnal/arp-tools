@@ -1,4 +1,4 @@
-import { PlateModel } from '@/lib/plate';
+import { PlateModel } from '@/lib/components/plate';
 import * as d3c from 'd3-scale-chromatic';
 import { BreadcrumbItem } from '../layout';
 import { LuLayoutGrid } from 'react-icons/lu';
