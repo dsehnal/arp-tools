@@ -211,9 +211,9 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
             </Field>
             <Field label='Number of Points'>
                 <SmartInput
-                    value={options.num_points}
+                    value={options.n_points}
                     parse={SmartParsers.number}
-                    onChange={(v) => model.update({ num_points: v })}
+                    onChange={(v) => model.update({ n_points: v })}
                     index={7}
                     size='sm'
                 />

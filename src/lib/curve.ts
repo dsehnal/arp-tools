@@ -9,14 +9,14 @@ import {
 import { formatConc, roundNano, toNano } from '../utils';
 
 function getCurvePoints(options: DilutionCurveOptions): CurvePoints {
-    const ret = new Array(options.num_points);
+    const ret = new Array(options.n_points);
     ret[0] = options.top_concentration_m;
 
-    for (let i = 1; i < options.num_points; i++) {
+    for (let i = 1; i < options.n_points; i++) {
         ret[i] = ret[i - 1] / options.dilution_factor;
     }
 
-    for (let i = 0; i < options.num_points; i++) {
+    for (let i = 0; i < options.n_points; i++) {
         ret[i] = Math.round(1e9 * ret[i]) / 1e9;
     }
 

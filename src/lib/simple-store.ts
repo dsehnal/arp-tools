@@ -5,7 +5,7 @@ export interface SimpleStore<T> {
     name: string;
     add(v: T[]): Promise<string | string[]>;
     update(v: T[]): Promise<void>;
-    remove(id: string): Promise<void>;
+    remove(id: string | string[]): Promise<void>;
     get(id: string): Promise<T>;
     query(id: string | string[]): Promise<T[]>;
     __clear(): Promise<void>;
@@ -13,15 +13,16 @@ export interface SimpleStore<T> {
 
 interface Entry {
     id: string;
-    value: string;
+    value: any;
 }
 
 function createDB() {
     return new Dexie('lims') as Dexie & {
         [name: string]: EntityTable<Entry, 'id'>;
-    }
+    };
 }
 
+const DB_VERSION = 1;
 let db = createDB();
 
 export async function dropDB() {
@@ -38,7 +39,7 @@ export class IndexedDBStore<T> implements SimpleStore<T> {
         public name: string,
         public idColumn = 'id'
     ) {
-        db.version(1).stores({ [name]: 'id,value' });
+        db.version(DB_VERSION).stores({ [name]: 'id,value' });
     }
 
     async add(v: T[]) {
@@ -53,9 +54,7 @@ export class IndexedDBStore<T> implements SimpleStore<T> {
     }
 
     update(v: T[]): Promise<void> {
-        return db[this.name].bulkPut(
-            v.map((value) => ({ id: value[this.idColumn], value: JSON.stringify(value) }))
-        ) as any;
+        return db[this.name].bulkPut(v.map((value) => ({ id: value[this.idColumn], value }))) as any;
     }
 
     remove(id: string | string[]): Promise<void> {
@@ -64,13 +63,13 @@ export class IndexedDBStore<T> implements SimpleStore<T> {
 
     async get(id: string): Promise<T> {
         const value = await db[this.name].get(id);
-        if (value) return JSON.parse(value.value);
+        if (value) return value.value;
         throw new Error('Not found');
     }
 
     async query(id?: string | string[]): Promise<T[]> {
         const values = !id ? await db[this.name].toArray() : await db[this.name].bulkGet(Array.isArray(id) ? id : [id]);
-        return values.filter((x) => !!x).map((x) => JSON.parse(x.value));
+        return values.filter((x) => !!x).map((x) => x.value);
     }
 
     __clear(): Promise<void> {
@@ -80,7 +79,7 @@ export class IndexedDBStore<T> implements SimpleStore<T> {
 
 const stores = new Map<string, IndexedDBStore<any>>();
 
-export function indexedStore<T>(name: string) {
+export function indexedStore<T>(name: string): SimpleStore<T> {
     if (stores.has(name)) return stores.get(name)!;
     stores.set(name, new IndexedDBStore<T>(name));
     return stores.get(name)!;
