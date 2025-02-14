@@ -1,7 +1,7 @@
 export type PlateDimensions = [rows: number, cols: number];
 export type PlateSelection = boolean[];
 export type PlateColors = (string | undefined | null)[];
-export type PlateLabels = (string | undefined | null)[];
+export type PlateLabels = (string | undefined | null | { header: string | undefined; main: string | undefined })[];
 export type WellCoords = [row: number, col: number];
 
 export const PlateLayouts = {

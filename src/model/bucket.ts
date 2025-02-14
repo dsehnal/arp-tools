@@ -30,6 +30,8 @@ export interface BucketLabware {
 
 export interface Bucket {
     id?: string;
+    created_on?: string;
+    modified_on?: string;
 
     name: string;
     description: string;

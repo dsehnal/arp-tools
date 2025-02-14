@@ -1,5 +1,6 @@
 import { PlateColors, PlateDimensions, PlateLabels, PlateSelection, PlateUtils, WellCoords } from '@/model/plate';
 import { useEffect, useRef } from 'react';
+import * as d3c from 'd3-color';
 import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
 import { ReactiveModel } from '../reactive-model';
 import { arrayEqual, resizeArray } from '../util/array';
@@ -228,8 +229,6 @@ export class PlateModel extends ReactiveModel {
 const DefaultPlateColors = {
     highlight: 'rgba(173, 216, 230, 0.66)',
     select: 'rgba(255, 219, 187, 0.66)',
-    label: '#DDD',
-    labelOutline: '#333',
 };
 
 const PlateVisualConstants = {
@@ -366,12 +365,7 @@ function drawPlateWells(plate: PlateModel) {
 
     ctx.clearRect(0, 0, size.width, size.height);
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     ctx.font = `${PlateVisualConstants.maxLabelSize}px monospace`;
-
-    ctx.strokeStyle = DefaultPlateColors.labelOutline;
-    ctx.miterLimit = 2;
-    ctx.lineJoin = 'round';
 
     let index = 0;
     for (let row = 0; row < rows; row++) {
@@ -389,28 +383,55 @@ function drawPlateWells(plate: PlateModel) {
                 );
             }
 
-            // TODO: handle labels as svg?
             if (label) {
-                ctx.fillStyle = DefaultPlateColors.label;
-                const dims = ctx.measureText(label);
-                const scale = Math.min(1, (dx - 6) / dims.width);
+                ctx.fillStyle = labelColor(color ?? 'black');
+            }
 
-                const x = (1 / scale) * (PlateVisualConstants.leftOffset + col * dx + dx / 2);
-                const y = (1 / scale) * (PlateVisualConstants.topOffset + row * dy + dy / 2);
+            const header = typeof label === 'string' ? undefined : label?.header;
+            const main = typeof label === 'string' ? label : label?.main;
 
-                ctx.lineWidth = 2;
+            if (header && main) {
+                const x = PlateVisualConstants.leftOffset + col * dx + dx / 2;
 
-                ctx.scale(scale, scale);
-                ctx.strokeText(label, x, y);
-                ctx.fillText(label, x, y);
-                ctx.scale(1 / scale, 1 / scale);
+                // TODO: better spacing
+                ctx.textBaseline = 'top';
+                let y = PlateVisualConstants.topOffset + row * dy + 2;
+                drawText(ctx, header, x, y, dx);
+
+                ctx.textBaseline = 'bottom';
+                y = PlateVisualConstants.topOffset + row * dy + dy - 2;
+                drawText(ctx, main, x, y, dx);
+            } else if (header || main) {
+                ctx.textBaseline = 'middle';
+                const x = PlateVisualConstants.leftOffset + col * dx + dx / 2;
+                const y = PlateVisualConstants.topOffset + row * dy + dy / 2;
+                drawText(ctx, (header || main)!, x, y, dx);
             }
         }
     }
+}
 
-    const labelSize = Math.min(PlateVisualConstants.maxLabelSize, (3 * dx) / 5);
-    ctx.font = `${labelSize}px monospace`;
-    ctx.fillStyle = DefaultPlateColors.label;
+function drawText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number) {
+    const dims = ctx.measureText(text);
+    const scale = Math.min(1, (maxWidth - 6) / dims.width);
+    const f = 1 / scale;
+
+    ctx.scale(scale, scale);
+    ctx.fillText(text, f * x, f * y);
+    ctx.scale(f, f);
+
+    return dims;
+}
+
+const labelColorCache = new Map<string, string>();
+function labelColor(color: string) {
+    let ret = labelColorCache.get(color);
+    if (!ret) {
+        const hsl = d3c.hsl(color);
+        ret = hsl.l > 0.5 ? 'black' : 'white';
+        labelColorCache.set(color, ret);
+    }
+    return ret;
 }
 
 export function PlateVisual({ model }: { model: PlateModel }) {

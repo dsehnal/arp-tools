@@ -114,6 +114,7 @@ function CurveList({ model }: { model: CurvesModel }) {
                         <Table.ColumnHeader>Name</Table.ColumnHeader>
                         <Table.ColumnHeader># Points</Table.ColumnHeader>
                         <Table.ColumnHeader>Top Concentration</Table.ColumnHeader>
+                        <Table.ColumnHeader>Modified On</Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
                     </Table.Row>
@@ -125,6 +126,7 @@ function CurveList({ model }: { model: CurvesModel }) {
                             <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
                             <Table.Cell>{curve.points.length}</Table.Cell>
                             <Table.Cell>{formatConc(curve.points[0].target_concentration_M)}</Table.Cell>
+                            <Table.Cell>{new Date(Date.parse(curve.modified_on!)).toLocaleString()}</Table.Cell>
                             <Table.Cell></Table.Cell>
                             <Table.Cell textAlign='right'>
                                 <Button size='xs' colorPalette='blue' variant='subtle' asChild>

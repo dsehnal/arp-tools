@@ -17,6 +17,9 @@ export interface ARPRequestSample {
 
 export interface ARPRequest {
     id: string;
+    created_on?: string;
+    modified_on?: string;
+
     name: string;
     description: string;
     n_copies: number;

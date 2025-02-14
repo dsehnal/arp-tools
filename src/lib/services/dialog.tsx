@@ -11,6 +11,7 @@ import { Box, Button } from '@chakra-ui/react';
 import { FC, ReactNode } from 'react';
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from '../hooks/use-behavior';
+import { formatError } from '../error';
 
 export interface DialogProps<T, S> {
     title: string;
@@ -58,7 +59,7 @@ class _DialogService {
             await current.onOk?.(current.state?.value);
             this.close();
         } catch (error) {
-            this.state.next({ error: String(error) });
+            this.state.next({ error: formatError(error) });
         }
     };
 

@@ -18,6 +18,7 @@ class SettingsModel extends ReactiveModel {
             onOk: async () => {
                 await dropDB();
                 ToastService.info('DB Reset', { duration: 3000 });
+                window.location.reload();
             },
         });
     };

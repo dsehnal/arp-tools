@@ -29,7 +29,7 @@ export function useAsyncAction<T>(options?: {
         } catch (error) {
             if (id === runId.current) {
                 if (options?.onError === 'toast') {
-                    ToastService.error(String(error), { duration: 5000 });
+                    ToastService.error(error, { duration: 5000 });
                     setState({});
                 } else if (options?.onError === 'state') {
                     setState({ error });

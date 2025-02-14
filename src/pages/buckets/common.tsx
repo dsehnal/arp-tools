@@ -50,14 +50,15 @@ export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket) {
         labels: template.map((w) => {
             if (!w) return undefined;
 
-            let ret = '';
-            if (w.kind) ret += w.kind;
-            if (typeof w.sample_index === 'number') ret += `${w.sample_index + 1}`;
+            let index = '';
+            if (typeof w.sample_index === 'number') index += `${w.sample_index + 1}`;
             if (typeof w.point_index === 'number') {
-                if (ret) ret += ':';
-                ret += `${w.point_index + 1}`;
+                index += `:${w.point_index + 1}`;
             }
-            return ret || undefined;
+
+            if (!index && !w.kind) return undefined;
+            if (index && w.kind) return { header: w.kind, main: index };
+            return index || w.kind;
         }),
     });
 }

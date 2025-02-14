@@ -86,6 +86,12 @@ class EditBucketModel extends ReactiveModel {
                 state: new BehaviorSubject(''),
                 onOk: (state) => {
                     if (!state) return;
+
+                    const existing = this.bucket.sample_info.find((i) => i.kind.toLowerCase() === state.toLowerCase());
+                    if (existing) {
+                        throw new Error(`Kind ${state} already exists`);
+                    }
+
                     const next = [...this.bucket.sample_info, { kind: state }];
                     this.update({ sample_info: next });
                 },
@@ -643,5 +649,13 @@ function SelectCurveDialog({
 
 function AddWellKindDialog({ state }: { state: BehaviorSubject<string> }) {
     const current = useBehavior(state);
-    return <SmartInput size='xs' placeholder='Enter kind...' value={current} onChange={(v) => state.next(v)} />;
+    return (
+        <SmartInput
+            size='xs'
+            placeholder='Enter kind...'
+            value={current}
+            parse={SmartParsers.trim}
+            onChange={(v) => state.next(v)}
+        />
+    );
 }

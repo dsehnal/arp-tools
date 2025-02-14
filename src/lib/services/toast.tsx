@@ -1,5 +1,6 @@
 import { toaster } from '@/components/ui/toaster';
 import { ReactNode } from 'react';
+import { formatError } from '../error';
 
 class _ToastService {
     show(options: {
@@ -19,8 +20,8 @@ class _ToastService {
         this.show({ duration: options?.duration ?? 3500, id: options?.id, title, type: 'success' });
     }
 
-    error(title: string, options?: { duration?: number; id?: string }) {
-        this.show({ ...options, title, type: 'error' });
+    error(error: any, options?: { duration?: number; id?: string }) {
+        this.show({ ...options, title: formatError(error), type: 'error' });
     }
 
     warning(title: string, options?: { duration?: number; id?: string }) {
