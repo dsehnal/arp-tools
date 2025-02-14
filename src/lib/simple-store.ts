@@ -16,12 +16,17 @@ interface Entry {
     value: string;
 }
 
-const db = new Dexie('lims') as Dexie & {
-    [name: string]: EntityTable<Entry, 'id'>;
-};
+function createDB() {
+    return new Dexie('lims') as Dexie & {
+        [name: string]: EntityTable<Entry, 'id'>;
+    }
+}
 
-export function dropDB() {
-    return db.delete();
+let db = createDB();
+
+export async function dropDB() {
+    await db.delete();
+    db = createDB();
 }
 
 export class IndexedDBStore<T> implements SimpleStore<T> {
