@@ -44,9 +44,15 @@ class RequestsModel extends ReactiveModel {
         });
     }
 
-    remove = async (id: string) => {
-        await RequestsApi.remove(id);
-        await this.init();
+    remove = (id: string) => {
+        DialogService.confirm({
+            title: 'Remove Request',
+            message: 'Are you sure you want to remove this request?',
+            onOk: async () => {
+                await RequestsApi.remove(id);
+                await this.init();
+            },
+        });
     };
 }
 

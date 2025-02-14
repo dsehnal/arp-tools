@@ -24,9 +24,9 @@ class CurvesModel extends ReactiveModel {
         this.state.curves.next(curves);
     }
 
-    remove = async (id: string) => {
+    remove = (id: string) => {
         DialogService.confirm({
-            title: 'Remove Bucket',
+            title: 'Remove Curve',
             message: 'Are you sure you want to remove this curve?',
             onOk: async () => {
                 await CurvesApi.remove(id);
@@ -37,7 +37,7 @@ class CurvesModel extends ReactiveModel {
 
     duplicate(bucket: DilutionCurve, navigate: NavigateFunction) {
         DialogService.confirm({
-            title: 'Duplicate Bucket',
+            title: 'Duplicate Curve',
             message: 'Do you want to duplicate this curve?',
             onOk: () => this.applyDuplicate(bucket, navigate),
         });

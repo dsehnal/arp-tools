@@ -1,6 +1,5 @@
 import { Field } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
-import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
 import { findCurve } from '@/lib/curve';
@@ -8,6 +7,7 @@ import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
+import { ToastService } from '@/lib/services/toast';
 import { uuid4 } from '@/lib/uuid';
 import { DefaultCurveOptions, DilutionCurve, DilutionCurveOptions, DilutionPoint } from '@/model/curve';
 import { formatConc, roundValue, toNano } from '@/utils';
@@ -18,6 +18,7 @@ import { Layout } from '../layout';
 import { resolvePrefixedRoute } from '../routing';
 import { CurvesApi } from './api';
 import { curveBreadcrumb, CurvesBreadcrumb } from './common';
+import { AsyncActionButton } from '@/lib/components/button';
 
 class EditCurveModel extends ReactiveModel {
     state = {
@@ -47,16 +48,13 @@ class EditCurveModel extends ReactiveModel {
         if (!this.curve) return;
         const curve = { ...this.curve, name: this.state.name.value, id: this.id };
         await CurvesApi.save(curve);
-        toaster.create({
-            title: 'Saved',
-            duration: 2000,
-            type: 'success',
-        });
+        ToastService.success('Saved');
         window.history.replaceState(null, '', resolvePrefixedRoute(CurvesBreadcrumb.path!, curve.id));
     };
 
-    export = () => {
-        alert('TODO');
+    export = async () => {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        throw new Error('Not implemented');
     };
 
     async init() {
@@ -107,12 +105,12 @@ export function EditCurveUI() {
 function NavButtons({ model }: { model: EditCurveModel }) {
     return (
         <HStack gap={2}>
-            <Button onClick={model.save} size='xs' colorPalette='blue'>
+            <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
                 Save
-            </Button>
-            <Button onClick={model.export} size='xs' colorPalette='blue'>
+            </AsyncActionButton>
+            <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
                 Export
-            </Button>
+            </AsyncActionButton>
         </HStack>
     );
 }

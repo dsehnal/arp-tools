@@ -1,6 +1,5 @@
 import { Field } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
-import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
 import { SimpleSelect } from '@/lib/components/select';
@@ -10,6 +9,7 @@ import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { PlateModel, PlateVisual } from '@/lib/plate';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
+import { ToastService } from '@/lib/services/toast';
 import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
 import { uuid4 } from '@/lib/uuid';
 import {
@@ -34,6 +34,7 @@ import { Layout } from '../layout';
 import { resolvePrefixedRoute } from '../routing';
 import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
+import { AsyncActionButton } from '@/lib/components/button';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -249,15 +250,11 @@ class EditBucketModel extends ReactiveModel {
     save = async () => {
         const curve = { ...this.bucket, id: this.id };
         await BucketsApi.save(curve);
-        toaster.create({
-            title: 'Saved',
-            duration: 2000,
-            type: 'success',
-        });
+        ToastService.success('Saved');
         window.history.replaceState(null, '', resolvePrefixedRoute(BucketsBreadcrumb.path!, curve.id));
     };
 
-    export = () => {
+    export = async () => {
         alert('TODO');
     };
 
@@ -306,12 +303,12 @@ export function EditBucketUI() {
 function NavButtons({ model }: { model: EditBucketModel }) {
     return (
         <HStack gap={2}>
-            <Button onClick={model.save} size='xs' colorPalette='blue'>
+            <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
                 Save
-            </Button>
-            <Button onClick={model.export} size='xs' colorPalette='blue'>
+            </AsyncActionButton>
+            <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
                 Export
-            </Button>
+            </AsyncActionButton>
         </HStack>
     );
 }

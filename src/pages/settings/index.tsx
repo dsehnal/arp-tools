@@ -1,8 +1,8 @@
-import { toaster } from '@/components/ui/toaster';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
+import { ToastService } from '@/lib/services/toast';
 import { dropDB } from '@/lib/simple-store';
 import { Button, VStack } from '@chakra-ui/react';
 import { Layout } from '../layout';
@@ -17,29 +17,17 @@ class SettingsModel extends ReactiveModel {
             message: 'Are you sure you want to reset the database?',
             onOk: async () => {
                 await dropDB();
-                toaster.create({
-                    title: 'DB Reset',
-                    duration: 2000,
-                    type: 'info',
-                });
+                ToastService.info('DB Reset', { duration: 3000 });
             },
         });
     };
 
     exportDB = async () => {
-        toaster.create({
-            title: 'TODO',
-            duration: 2000,
-            type: 'info',
-        });
+        ToastService.info('TODO', { duration: 3000 });
     };
 
     importDB = async () => {
-        toaster.create({
-            title: 'TODO',
-            duration: 2000,
-            type: 'info',
-        });
+        ToastService.info('TODO', { duration: 3000 });
     };
 }
 

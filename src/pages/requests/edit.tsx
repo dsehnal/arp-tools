@@ -20,6 +20,8 @@ import { updateBucketTemplatePlate } from '../buckets/common';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
+import { ToastService } from '@/lib/services/toast';
+import { AsyncActionButton } from '@/lib/components/button';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -39,18 +41,14 @@ class EditRequestModel extends ReactiveModel {
     save = async () => {
         if (!this.request) return;
         await RequestsApi.save(this.request);
-        toaster.create({
-            title: 'Saved',
-            duration: 2000,
-            type: 'success',
-        });
+        ToastService.success('Saved');
     };
 
-    export = () => {
+    export = async () => {
         alert('TODO');
     };
 
-    produce = () => {
+    produce = async () => {
         alert('TODO');
     };
 
@@ -70,8 +68,7 @@ class EditRequestModel extends ReactiveModel {
 
         const idField = data.meta.fields?.find((f) => f.toLowerCase() === 'sample id');
         if (!idField) {
-            // TODO: throw error
-            return;
+            throw new Error('Missing Sample ID column');
         }
 
         const defaultKind = this.request.bucket.sample_info.find((s) => !s.is_control)?.kind;
@@ -133,15 +130,15 @@ function NavButtons({ model }: { model: EditRequestModel }) {
             <Button onClick={model.addSamples} size='xs' colorPalette='green'>
                 Add Samples
             </Button>
-            <Button onClick={model.save} size='xs' colorPalette='blue'>
+            <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
                 Save
-            </Button>
-            <Button onClick={model.export} size='xs' colorPalette='blue'>
+            </AsyncActionButton>
+            <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
                 Export
-            </Button>
-            <Button onClick={model.produce} size='xs' colorPalette='blue'>
+            </AsyncActionButton>
+            <AsyncActionButton action={model.produce} size='xs' colorPalette='blue'>
                 Produce
-            </Button>
+            </AsyncActionButton>
         </HStack>
     );
 }
