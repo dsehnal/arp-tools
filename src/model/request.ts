@@ -1,4 +1,4 @@
-import { uuid4 } from '@/lib/uuid';
+import { uuid4 } from '@/lib/util/uuid';
 import { Bucket } from './bucket';
 
 export type ARPRequestStatus = 'new' | 'in-progress' | 'completed' | 'closed';

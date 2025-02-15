@@ -2,7 +2,7 @@ import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
-import { uuid4 } from '@/lib/uuid';
+import { uuid4 } from '@/lib/util/uuid';
 import { Bucket, readBucket } from '@/model/bucket';
 import { Button, HStack, Table } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
@@ -13,7 +13,7 @@ import { BucketsBreadcrumb } from './common';
 import { DialogService } from '@/lib/services/dialog';
 import { resolveRoute } from '../routing';
 import { FileDropArea } from '@/lib/components/file-upload';
-import { formatISODateString } from '@/lib/datetime';
+import { formatISODateString } from '@/lib/util/datetime';
 import { LuCirclePlus, LuCopy, LuImport, LuPencil, LuTrash } from 'react-icons/lu';
 
 class BucketsModel extends ReactiveModel {

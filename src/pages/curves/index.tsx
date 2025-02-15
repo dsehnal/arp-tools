@@ -4,7 +4,7 @@ import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
-import { uuid4 } from '@/lib/uuid';
+import { uuid4 } from '@/lib/util/uuid';
 import { DilutionCurve, readCurve } from '@/model/curve';
 import { formatConc } from '@/utils';
 import { Button, HStack, Table } from '@chakra-ui/react';
@@ -14,7 +14,7 @@ import { Layout } from '../layout';
 import { resolveRoute } from '../routing';
 import { CurvesApi } from './api';
 import { CurvesBreadcrumb } from './common';
-import { formatISODateString } from '@/lib/datetime';
+import { formatISODateString } from '@/lib/util/datetime';
 import { LuCirclePlus, LuCopy, LuImport, LuPencil, LuTrash } from 'react-icons/lu';
 
 class CurvesModel extends ReactiveModel {
@@ -94,7 +94,7 @@ function NavButtons({ model }: { model: CurvesModel }) {
     const navigate = useNavigate();
 
     return (
-        <HStack gap={2}>
+        <HStack gap={1}>
             <Button onClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, 'new'))} size='xs' colorPalette='blue'>
                 <LuCirclePlus /> New Curve
             </Button>

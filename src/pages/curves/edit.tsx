@@ -8,13 +8,14 @@ import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { ToastService } from '@/lib/services/toast';
-import { uuid4 } from '@/lib/uuid';
+import { uuid4 } from '@/lib/util/uuid';
 import {
     DefaultCurveOptions,
     DilutionCurve,
     DilutionCurveData,
     DilutionCurveOptions,
     DilutionPoint,
+    writeCurve,
 } from '@/model/curve';
 import { formatConc, roundValue, toNano } from '@/utils';
 import { Box, Button, Flex, HStack, Table, VStack } from '@chakra-ui/react';
@@ -26,7 +27,7 @@ import { CurvesApi } from './api';
 import { curveBreadcrumb, CurvesBreadcrumb } from './common';
 import { AsyncActionButton } from '@/lib/components/button';
 import { InfoTip } from '@/components/ui/toggle-tip';
-import { download } from '@/lib/download';
+import { download } from '@/lib/util/download';
 import { useState } from 'react';
 import { LuChartNoAxesColumn, LuDownload, LuSave } from 'react-icons/lu';
 
@@ -73,14 +74,7 @@ class EditCurveModel extends ReactiveModel {
             return;
         }
 
-        const curve = { ...this.curve };
-        delete curve.id;
-        const data: DilutionCurveData = {
-            kind: 'dilution-curve',
-            version: 1,
-            curve,
-        };
-
+        const data = writeCurve(this.curve);
         download(
             new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
             `curve-${this.state.name.value}.json`

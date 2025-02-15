@@ -4,7 +4,7 @@ import { PlateDimensions, PlateLayouts, PlateUtils } from './plate';
 export interface BucketData {
     kind: 'bucket';
     version: 1;
-    bucket: Bucket;
+    data: Bucket;
 }
 
 export interface BucketSampleInfo {
@@ -87,9 +87,17 @@ export const BucketLayouts = [
     ['1536', '1536 Well'],
 ] as [string, string][];
 
+export function writeBucket(bucket: Bucket): BucketData {
+    const data = { ...bucket };
+    delete data.id;
+    delete data.created_on;
+    delete data.modified_on;
+    return { kind: 'bucket', version: 1, data };
+}
+
 export function readBucket(data: BucketData): Bucket {
     if (data.kind !== 'bucket' || data.version !== 1) {
         throw new Error('Invalid bucket data');
     }
-    return data.bucket;
+    return data.data;
 }

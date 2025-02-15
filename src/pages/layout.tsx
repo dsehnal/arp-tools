@@ -2,7 +2,7 @@ import { Box, Flex } from '@chakra-ui/react';
 import { ReactNode } from 'react';
 import { BreadcrumbLink, BreadcrumbRoot } from '@/components/ui/breadcrumb';
 import { MenuContent, MenuItem, MenuRoot, MenuTrigger } from '@/components/ui/menu';
-import { LuChevronDown } from 'react-icons/lu';
+import { LuChevronDown, LuTableRowsSplit } from 'react-icons/lu';
 import { useNavigate, Link } from 'react-router';
 import { BucketsBreadcrumb } from './buckets/common';
 import { CurvesBreadcrumb } from './curves/common';
@@ -37,7 +37,7 @@ export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
                     <MenuRoot onSelect={(e) => navigate(resolveRoute(e.value))}>
                         <MenuTrigger asChild>
                             <BreadcrumbLink as='button'>
-                                ARP Tools <LuChevronDown />
+                                <LuTableRowsSplit /> ARP Tools <LuChevronDown />
                             </BreadcrumbLink>
                         </MenuTrigger>
                         <MenuContent>

@@ -14,7 +14,7 @@ import { BucketsApi } from '../buckets/api';
 import { DialogService } from '@/lib/services/dialog';
 import { resolveRoute } from '../routing';
 import { AsyncActionButton } from '@/lib/components/button';
-import { formatISODateString } from '@/lib/datetime';
+import { formatISODateString } from '@/lib/util/datetime';
 import { LuCirclePlus, LuPencil, LuTrash } from 'react-icons/lu';
 
 class RequestsModel extends ReactiveModel {
@@ -80,7 +80,7 @@ export function RequestsUI() {
 function NavButtons({ model }: { model: RequestsModel }) {
     const navigate = useNavigate();
     return (
-        <HStack gap={2}>
+        <HStack gap={1}>
             <AsyncActionButton action={() => model.createNew(navigate)} size='xs' colorPalette='blue'>
                 <LuCirclePlus /> New Request
             </AsyncActionButton>

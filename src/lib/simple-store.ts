@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie';
-import { uuid4 } from './uuid';
+import { uuid4 } from './util/uuid';
 
 export type SimpleStoreEntryBase = { id?: string; created_on?: string; modified_on?: string };
 

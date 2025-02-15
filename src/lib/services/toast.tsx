@@ -1,6 +1,6 @@
 import { toaster } from '@/components/ui/toaster';
 import { ReactNode } from 'react';
-import { formatError } from '../error';
+import { formatError } from '../util/error';
 
 class _ToastService {
     show(options: {

@@ -12,7 +12,7 @@ import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { ToastService } from '@/lib/services/toast';
 import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
-import { uuid4 } from '@/lib/uuid';
+import { uuid4 } from '@/lib/util/uuid';
 import {
     Bucket,
     BucketData,
@@ -21,6 +21,7 @@ import {
     BucketTemplateWell,
     DefaultBucket,
     getBucketTemplateWellKey,
+    writeBucket,
 } from '@/model/bucket';
 import { formatCurve } from '@/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/model/plate';
@@ -37,7 +38,7 @@ import { resolvePrefixedRoute } from '../routing';
 import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
 import { AsyncActionButton } from '@/lib/components/button';
-import { download } from '@/lib/download';
+import { download } from '@/lib/util/download';
 import { formatConc } from '@/utils';
 
 class EditBucketModel extends ReactiveModel {
@@ -290,14 +291,7 @@ class EditBucketModel extends ReactiveModel {
     };
 
     export = async () => {
-        const bucket = { ...this.bucket };
-        delete bucket.id;
-        const data: BucketData = {
-            kind: 'bucket',
-            version: 1,
-            bucket,
-        };
-
+        const data = writeBucket(this.bucket);
         download(
             new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
             `bucket-${this.bucket.name}.json`

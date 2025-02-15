@@ -3,7 +3,7 @@ import { formatConc } from '@/utils';
 export interface DilutionCurveData {
     kind: 'dilution-curve';
     version: 1;
-    curve: DilutionCurve;
+    data: DilutionCurve;
 }
 
 export interface DilutionTransfer {
@@ -41,7 +41,10 @@ export interface DilutionCurveOptions {
     n_points: number;
     dilution_factor: number;
     tolerance: number;
+
     adjust_intermediate_volume: boolean;
+    // TODO
+    // single_source_transfers: boolean; // only allow sampling from a single plate when building points
 
     min_transfer_volume_l: number;
     max_transfer_volume_l: number;
@@ -80,9 +83,17 @@ export function formatCurve(conc: DilutionCurve) {
     return `${conc.name ?? 'unnamed'}, ${conc.points.length}pt, ${formatConc(conc.points[0].target_concentration_M)}`;
 }
 
+export function writeCurve(curve: DilutionCurve): DilutionCurveData {
+    const data = { ...curve };
+    delete data.id;
+    delete data.created_on;
+    delete data.modified_on;
+    return { kind: 'dilution-curve', version: 1, data };
+}
+
 export function readCurve(data: DilutionCurveData): DilutionCurve {
     if (data.kind !== 'dilution-curve' || data.version !== 1) {
         throw new Error('Invalid curve data');
     }
-    return data.curve;
+    return data.data;
 }

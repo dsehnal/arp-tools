@@ -11,7 +11,7 @@ import { Box, Button } from '@chakra-ui/react';
 import { FC, ReactNode } from 'react';
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from '../hooks/use-behavior';
-import { formatError } from '../error';
+import { formatError } from '../util/error';
 
 export interface DialogProps<T, S> {
     title: string;
