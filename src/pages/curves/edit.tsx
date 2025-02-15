@@ -144,7 +144,7 @@ function Breadcrumb({ model }: { model?: EditCurveModel }) {
 
 function NavButtons({ model }: { model: EditCurveModel }) {
     return (
-        <HStack gap={2}>
+        <HStack gap={1}>
             <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
                 <LuSave /> Save
             </AsyncActionButton>

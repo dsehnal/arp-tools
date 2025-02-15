@@ -134,18 +134,18 @@ function Breadcrumb({ model }: { model?: EditRequestModel }) {
 
 function NavButtons({ model }: { model: EditRequestModel }) {
     return (
-        <HStack gap={2}>
+        <HStack gap={1}>
             <Button onClick={model.addSamples} size='xs' colorPalette='green'>
                 <LuCirclePlus /> Add Samples
             </Button>
+            <AsyncActionButton action={model.produce} size='xs' colorPalette='purple'>
+                <LuCombine /> Produce
+            </AsyncActionButton>
             <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
                 <LuSave /> Save
             </AsyncActionButton>
             <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
                 <LuDownload /> Export
-            </AsyncActionButton>
-            <AsyncActionButton action={model.produce} size='xs' colorPalette='purple'>
-                <LuCombine /> Produce
             </AsyncActionButton>
         </HStack>
     );

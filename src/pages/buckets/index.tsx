@@ -93,7 +93,7 @@ function NavButtons({ model }: { model: BucketsModel }) {
     const navigate = useNavigate();
 
     return (
-        <HStack gap={2}>
+        <HStack gap={1}>
             <Button
                 onClick={() => navigate(resolveRoute(BucketsBreadcrumb.path!, 'new'))}
                 size='xs'

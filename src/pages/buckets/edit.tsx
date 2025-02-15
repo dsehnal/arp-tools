@@ -357,7 +357,7 @@ function Breadcrumb({ model }: { model?: EditBucketModel }) {
 
 function NavButtons({ model }: { model: EditBucketModel }) {
     return (
-        <HStack gap={2}>
+        <HStack gap={1}>
             <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
                 <LuSave /> Save
             </AsyncActionButton>
@@ -537,7 +537,7 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
     };
 
     const applyPointIndex = () => {
-        const idx = SmartParsers.number(sampleIndex.current!.value);
+        const idx = SmartParsers.number(pointIndex.current!.value);
         if (typeof idx !== 'number') {
             model.templateBuilder.pointIndex();
         } else {
@@ -545,7 +545,7 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
                 point_index: idx - 1,
             });
         }
-        sampleIndex.current!.value = '';
+        pointIndex.current!.value = '';
     };
 
     return (

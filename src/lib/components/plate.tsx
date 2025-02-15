@@ -227,8 +227,8 @@ export class PlateModel extends ReactiveModel {
 }
 
 const DefaultPlateColors = {
-    highlight: 'rgba(173, 216, 230, 0.66)',
-    select: 'rgba(255, 219, 187, 0.66)',
+    highlight: 'rgba(163, 207, 255, 0.66)',
+    select: 'rgba(23, 61, 166, 0.66)',
 };
 
 const PlateVisualConstants = {
@@ -365,7 +365,11 @@ function drawPlateWells(plate: PlateModel) {
 
     ctx.clearRect(0, 0, size.width, size.height);
     ctx.textAlign = 'center';
-    ctx.font = `${PlateVisualConstants.maxLabelSize}px monospace`;
+    ctx.textBaseline = 'middle';
+
+    const defaultFont = `${PlateVisualConstants.maxLabelSize}px monospace`;
+    const headerFont = `${Math.min((1 / 3) * dy - 2, PlateVisualConstants.maxLabelSize)}px monospace`;
+    const mainFont = `${Math.min((2 / 3) * dy - 2, PlateVisualConstants.maxLabelSize)}px monospace`;
 
     let index = 0;
     for (let row = 0; row < rows; row++) {
@@ -393,16 +397,15 @@ function drawPlateWells(plate: PlateModel) {
             if (header && main) {
                 const x = PlateVisualConstants.leftOffset + col * dx + dx / 2;
 
-                // TODO: better spacing
-                ctx.textBaseline = 'top';
-                let y = PlateVisualConstants.topOffset + row * dy + 2;
+                ctx.font = headerFont;
+                let y = PlateVisualConstants.topOffset + row * dy + dy / 6 + 2;
                 drawText(ctx, header, x, y, dx);
 
-                ctx.textBaseline = 'bottom';
-                y = PlateVisualConstants.topOffset + row * dy + dy - 2;
+                ctx.font = mainFont;
+                y = PlateVisualConstants.topOffset + row * dy + (2 * dy) / 3;
                 drawText(ctx, main, x, y, dx);
             } else if (header || main) {
-                ctx.textBaseline = 'middle';
+                ctx.font = defaultFont;
                 const x = PlateVisualConstants.leftOffset + col * dx + dx / 2;
                 const y = PlateVisualConstants.topOffset + row * dy + dy / 2;
                 drawText(ctx, (header || main)!, x, y, dx);
@@ -413,7 +416,7 @@ function drawPlateWells(plate: PlateModel) {
 
 function drawText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number) {
     const dims = ctx.measureText(text);
-    const scale = Math.min(1, (maxWidth - 6) / dims.width);
+    const scale = Math.min(1, (0.8 * maxWidth) / dims.width);
     const f = 1 / scale;
 
     ctx.scale(scale, scale);
@@ -428,7 +431,7 @@ function labelColor(color: string) {
     let ret = labelColorCache.get(color);
     if (!ret) {
         const hsl = d3c.hsl(color);
-        ret = hsl.l > 0.5 ? 'black' : 'white';
+        ret = hsl.l >= 0.5 ? 'black' : 'white';
         labelColorCache.set(color, ret);
     }
     return ret;

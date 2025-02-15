@@ -76,7 +76,7 @@ export const DefaultBucket: Bucket = {
 };
 
 export function getBucketTemplateWellKey(well?: BucketTemplateWell | null) {
-    if (well?.kind || typeof well?.sample_index === 'number') return `${well.kind ?? '?'}-${well.sample_index}`;
+    if (well?.kind || typeof well?.sample_index === 'number') return `${well.kind ?? '?'}-${well.sample_index ?? '?'}`;
     return undefined;
 }
 
