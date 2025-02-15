@@ -2,7 +2,7 @@ import { Field } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
-import { findCurve } from '@/lib/curve';
+import { findCurve } from '@/api/curve';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
@@ -16,7 +16,7 @@ import {
     DilutionCurveOptions,
     DilutionPoint,
     writeCurve,
-} from '@/model/curve';
+} from '@/api/model/curve';
 import { formatConc, roundValue, toNano } from '@/utils';
 import { Box, Button, Flex, HStack, Table, VStack } from '@chakra-ui/react';
 import { useParams } from 'react-router';

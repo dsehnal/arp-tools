@@ -1,5 +1,5 @@
 import { indexedStore } from '@/lib/simple-store';
-import { DilutionCurve } from '@/model/curve';
+import { DilutionCurve } from '@/api/model/curve';
 
 const store = indexedStore<DilutionCurve>('curves');
 

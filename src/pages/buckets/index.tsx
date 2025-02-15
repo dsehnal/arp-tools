@@ -3,7 +3,7 @@ import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { uuid4 } from '@/lib/util/uuid';
-import { Bucket, readBucket } from '@/model/bucket';
+import { Bucket, readBucket } from '@/api/model/bucket';
 import { Button, HStack, Table } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';

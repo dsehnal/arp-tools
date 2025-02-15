@@ -1,5 +1,5 @@
 import { indexedStore } from '@/lib/simple-store';
-import { Bucket } from '@/model/bucket';
+import { Bucket } from '@/api/model/bucket';
 
 const store = indexedStore<Bucket>('buckets');
 

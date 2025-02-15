@@ -5,7 +5,7 @@ import {
     DilutionTransfer,
     DilutionCurve,
     DilutionPoint,
-} from '@/model/curve';
+} from './model/curve';
 import { formatConc, roundNano, toNano } from '../utils';
 
 function getCurvePoints(options: DilutionCurveOptions): CurvePoints {

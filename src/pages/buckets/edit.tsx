@@ -22,9 +22,9 @@ import {
     DefaultBucket,
     getBucketTemplateWellKey,
     writeBucket,
-} from '@/model/bucket';
-import { formatCurve } from '@/model/curve';
-import { PlateDimensions, PlateLayouts, PlateUtils } from '@/model/plate';
+} from '@/api/model/bucket';
+import { formatCurve } from '@/api/model/curve';
+import { PlateDimensions, PlateLayouts, PlateUtils } from '@/api/model/plate';
 import { Alert, AspectRatio, Box, Button, Flex, HStack, Input, Text, VStack } from '@chakra-ui/react';
 import { useRef } from 'react';
 import { FaCopy, FaPaste, FaFileExport } from 'react-icons/fa6';

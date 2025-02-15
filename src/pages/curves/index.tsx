@@ -5,7 +5,7 @@ import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { uuid4 } from '@/lib/util/uuid';
-import { DilutionCurve, readCurve } from '@/model/curve';
+import { DilutionCurve, readCurve } from '@/api/model/curve';
 import { formatConc } from '@/utils';
 import { Button, HStack, Table } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';

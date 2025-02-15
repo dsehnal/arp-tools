@@ -2,7 +2,7 @@ import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
-import { ARPRequest, createARPRequest } from '@/model/request';
+import { ARPRequest, createARPRequest } from '@/api/model/request';
 import { Alert, Badge, Button, HStack, Table, VStack } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';

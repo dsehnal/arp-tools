@@ -2,7 +2,7 @@ import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
-import { ARPProduction } from '@/model/production';
+import { ARPProduction } from '@/api/model/production';
 import { Button, Table } from '@chakra-ui/react';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';

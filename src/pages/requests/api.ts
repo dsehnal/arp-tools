@@ -1,5 +1,5 @@
 import { indexedStore } from '@/lib/simple-store';
-import { ARPRequest } from '@/model/request';
+import { ARPRequest } from '@/api/model/request';
 
 const store = indexedStore<ARPRequest>('arp-requests');
 
