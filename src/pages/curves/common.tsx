@@ -33,20 +33,15 @@ export function DilutionCurveTable({ curve }: { curve: DilutionCurve }) {
     const pt = (name: string, p: DilutionPoint, dmso = false, error = true) => {
         const xferVolume = p.transfers.reduce((acc, t) => acc + t.volume_l, 0);
         const dmsoPercent = (100 * xferVolume) / curve.options.assay_volume_l;
+
+        const errorValue = Math.abs((p.target_concentration_m - p.actual_concentration_m) / p.target_concentration_m);
         return (
             <Table.Row key={name}>
                 <Table.Cell>{name}</Table.Cell>
                 <Table.Cell>{formatUnit(p.target_concentration_m, 'M')}</Table.Cell>
                 <Table.Cell>{formatUnit(p.actual_concentration_m, 'M')}</Table.Cell>
-                <Table.Cell>
-                    {error &&
-                        `${roundValue(
-                            100 *
-                                Math.abs(
-                                    (p.target_concentration_m - p.actual_concentration_m) / p.target_concentration_m
-                                ),
-                            2
-                        )} %`}
+                <Table.Cell color={errorValue > curve.options.tolerance ? 'red' : undefined}>
+                    {error && `${roundValue(100 * errorValue, 2)} %`}
                 </Table.Cell>
                 <Table.Cell>{dmso && `${roundValue(dmsoPercent, 2)} %`}</Table.Cell>
                 <Table.Cell>

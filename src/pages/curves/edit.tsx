@@ -299,6 +299,22 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                             onCheckedChange={(e) => model.update({ adjust_intermediate_volume: e.checked })}
                         />
                     </Field>
+                    <Field
+                        label={
+                            <>
+                                Single Source Transfers{' '}
+                                <InfoTip>
+                                    If enabled, each point can only building using samples from a single source plate.
+                                </InfoTip>
+                            </>
+                        }
+                    >
+                        <Switch
+                            size='sm'
+                            checked={options.single_source_transfers}
+                            onCheckedChange={(e) => model.update({ single_source_transfers: e.checked })}
+                        />
+                    </Field>
                     <Field label='Min Total Transfer Volume (nL)'>
                         <SmartInput
                             value={options.min_transfer_volume_l}

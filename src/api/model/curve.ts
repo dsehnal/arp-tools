@@ -43,8 +43,7 @@ export interface DilutionCurveOptions {
     tolerance: number;
 
     adjust_intermediate_volume: boolean;
-    // TODO
-    // single_source_transfers: boolean; // only allow sampling from a single plate when building points
+    single_source_transfers: boolean;
 
     min_transfer_volume_l: number;
     max_transfer_volume_l: number;
@@ -71,6 +70,7 @@ export const DefaultCurveOptions: DilutionCurveOptions = {
     dilution_factor: Math.sqrt(10),
     tolerance: 0.1,
     adjust_intermediate_volume: true,
+    single_source_transfers: false,
 
     min_transfer_volume_l: 2.5e-9,
     max_transfer_volume_l: 60e-9,

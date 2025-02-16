@@ -39,7 +39,8 @@ export function alias(
     value: number,
     xfers: DilutionTransfer[] | undefined
 ) {
-    const { adjust_intermediate_volume, min_transfer_volume_l, droplet_size_l, tolerance } = options;
+    const { adjust_intermediate_volume, min_transfer_volume_l, droplet_size_l, tolerance, single_source_transfers } =
+        options;
 
     const targetVolumeL = isIntermediate ? options.intermediate_volume_l : options.assay_volume_l;
     const maxTransferVolumeL = isIntermediate
@@ -117,6 +118,7 @@ export function alias(
             }
         }
 
+        if (single_source_transfers && currentVolume > 0) break;
         if (done) break;
     }
 
