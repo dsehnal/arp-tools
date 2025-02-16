@@ -30,7 +30,7 @@ interface ExploreState {
     bestIntermediates: IntermediateConcentrations;
 }
 
-export function alias(
+function alias(
     options: DilutionCurveOptions,
     isIntermediate: boolean,
     minDepth: number,
