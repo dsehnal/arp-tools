@@ -58,8 +58,8 @@ export class PlateModel extends ReactiveModel {
             if (!arrayEqual(this.state.value.dimensions, next.dimensions)) {
                 const size = PlateUtils.size(next.dimensions);
                 this.metrics = getCanvasMetrics(this, next.dimensions);
-                if (!next.selection) update.selection = resizeArray(this.state.value.selection, size, 0 as any);
-                if (!next.highlight) update.highlight = resizeArray(this.state.value.highlight, size, 0 as any);
+                if (!next.selection) update.selection = PlateUtils.emptySelection(next.dimensions);
+                if (!next.highlight) update.highlight = PlateUtils.emptySelection(next.dimensions);
                 if (!next.colors) update.colors = resizeArray(this.state.value.colors, size, undefined);
                 if (!next.labels) update.labels = resizeArray(this.state.value.labels, size, undefined);
             }
@@ -294,8 +294,8 @@ function drawPlateGrid(plate: PlateModel) {
     ctx.strokeRect(
         PlateVisualConstants.leftOffset,
         PlateVisualConstants.topOffset,
-        size.width - PlateVisualConstants.leftOffset - 0.5,
-        size.height - PlateVisualConstants.topOffset - 0.5
+        size.width - PlateVisualConstants.leftOffset - 1,
+        size.height - PlateVisualConstants.topOffset - 1
     );
 
     const labelSize = Math.min(PlateVisualConstants.maxLabelSize, (3 * dx) / 5);
