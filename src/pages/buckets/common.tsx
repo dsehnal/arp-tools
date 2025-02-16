@@ -6,6 +6,7 @@ import { LuLayoutGrid } from 'react-icons/lu';
 import { Bucket, getBucketTemplateWellKey } from '@/api/model/bucket';
 import { resolveRoute } from '../routing';
 import { ReactNode } from 'react';
+import { PlateUtils } from '@/api/model/plate';
 
 export const BucketsBreadcrumb: BreadcrumbItem = {
     icon: <LuLayoutGrid />,
@@ -38,9 +39,11 @@ export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket) {
     const sampleKeys = new Map<string, number>();
     const maxPointIndex = new Map<string, number>();
 
-    for (const well of template) {
-        if (!well) continue;
+    PlateUtils.forEachColMajorIndex(arp_labware.dimensions, (idx) => {
+        const well = template[idx];
+        if (!well) return;
 
+        // TODO: order by sample index??
         const key = getBucketTemplateWellKey(well);
 
         const isControl = infos.get(well.kind!)?.is_control;
@@ -54,7 +57,7 @@ export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket) {
             const max = maxPointIndex.get(key!) ?? -1;
             maxPointIndex.set(key!, Math.max(max, well.point_index));
         }
-    }
+    });
 
     plate.update({
         dimensions: arp_labware.dimensions,

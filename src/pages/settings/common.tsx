@@ -1,8 +1,8 @@
+import { LuSettings } from 'react-icons/lu';
 import { BreadcrumbItem } from '../layout';
-import { FaGears } from 'react-icons/fa6';
 
 export const SettingsBreadcrumb: BreadcrumbItem = {
-    icon: <FaGears />,
+    icon: <LuSettings />,
     title: 'Settings',
     path: 'settings',
 };

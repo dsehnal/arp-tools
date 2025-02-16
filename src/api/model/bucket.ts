@@ -39,6 +39,7 @@ export interface Bucket {
 
     normalize_solvent: 'per-curve' | 'global' | 'no';
 
+    curve?: DilutionCurve;
     sample_info: BucketSampleInfo[];
 
     source_labware: BucketLabware;

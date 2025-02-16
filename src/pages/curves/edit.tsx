@@ -9,14 +9,7 @@ import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { ToastService } from '@/lib/services/toast';
 import { uuid4 } from '@/lib/util/uuid';
-import {
-    DefaultCurveOptions,
-    DilutionCurve,
-    DilutionCurveData,
-    DilutionCurveOptions,
-    DilutionPoint,
-    writeCurve,
-} from '@/api/model/curve';
+import { DefaultCurveOptions, DilutionCurve, DilutionCurveOptions, DilutionPoint, writeCurve } from '@/api/model/curve';
 import { formatConc, roundValue, toNano } from '@/utils';
 import { Box, Button, Flex, HStack, Table, VStack } from '@chakra-ui/react';
 import { useParams } from 'react-router';

@@ -1,21 +1,5 @@
-import Papa from 'papaparse';
-import { Field } from '@/components/ui/field';
-import { Switch } from '@/components/ui/switch';
-import { AsyncWrapper } from '@/lib/components/async-wrapper';
-import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
-import { SimpleSelect } from '@/lib/components/select';
-import { useAsyncModel } from '@/lib/hooks/use-async-model';
-import { useBehavior } from '@/lib/hooks/use-behavior';
-import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
-import { PlateModel, PlateVisual } from '@/lib/components/plate';
-import { ReactiveModel } from '@/lib/reactive-model';
-import { DialogService } from '@/lib/services/dialog';
-import { ToastService } from '@/lib/services/toast';
-import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
-import { uuid4 } from '@/lib/util/uuid';
 import {
     Bucket,
-    BucketData,
     BucketLayouts,
     BucketSampleInfo,
     BucketTemplateWell,
@@ -25,10 +9,38 @@ import {
 } from '@/api/model/bucket';
 import { formatCurve } from '@/api/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/api/model/plate';
-import { Alert, AspectRatio, Box, Button, Flex, HStack, Input, Text, VStack } from '@chakra-ui/react';
+import { Field } from '@/components/ui/field';
+import { Switch } from '@/components/ui/switch';
+import { InfoTip } from '@/components/ui/toggle-tip';
+import { AsyncWrapper } from '@/lib/components/async-wrapper';
+import { AsyncActionButton } from '@/lib/components/button';
+import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
+import { PlateModel, PlateVisual } from '@/lib/components/plate';
+import { SimpleSelect } from '@/lib/components/select';
+import { useAsyncModel } from '@/lib/hooks/use-async-model';
+import { useBehavior } from '@/lib/hooks/use-behavior';
+import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
+import { ReactiveModel } from '@/lib/reactive-model';
+import { DialogService } from '@/lib/services/dialog';
+import { ToastService } from '@/lib/services/toast';
+import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
+import { download } from '@/lib/util/download';
+import { uuid4 } from '@/lib/util/uuid';
+import { formatConc } from '@/utils';
+import { Alert, AspectRatio, Badge, Box, Button, Flex, HStack, Input, Table, Text, VStack } from '@chakra-ui/react';
+import Papa from 'papaparse';
 import { useRef } from 'react';
-import { FaCopy, FaPaste, FaFileExport } from 'react-icons/fa6';
-import { LuChartNoAxesCombined, LuCirclePlus, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
+import { FaCopy, FaFileExport, FaPaste } from 'react-icons/fa6';
+import {
+    LuArrowLeft,
+    LuChartNoAxesCombined,
+    LuCheck,
+    LuCirclePlus,
+    LuDownload,
+    LuSave,
+    LuSignal,
+    LuTrash,
+} from 'react-icons/lu';
 import { MdOutlineBorderClear } from 'react-icons/md';
 import { useParams } from 'react-router';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyChanged } from 'rxjs';
@@ -37,9 +49,7 @@ import { Layout } from '../layout';
 import { resolvePrefixedRoute } from '../routing';
 import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
-import { AsyncActionButton } from '@/lib/components/button';
-import { download } from '@/lib/util/download';
-import { formatConc } from '@/utils';
+import { BiLeftArrow } from 'react-icons/bi';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -114,7 +124,7 @@ class EditBucketModel extends ReactiveModel {
                 },
             });
         },
-        selectCurve: async (info: BucketSampleInfo) => {
+        selectCurve: async (info?: BucketSampleInfo) => {
             const curves = await CurvesApi.list();
             const options = curves.map((c) => [c.id, formatCurve(c)]);
             const state = new BehaviorSubject('');
@@ -125,7 +135,11 @@ class EditBucketModel extends ReactiveModel {
                 model: options,
                 onOk: (state) => {
                     const curve = curves.find((c) => c.id === state);
-                    this.sampleInfo.update(info, { curve });
+                    if (!info) {
+                        this.update({ curve });
+                    } else {
+                        this.sampleInfo.update(info, { curve });
+                    }
                 },
             });
         },
@@ -408,32 +422,15 @@ function EditBucket({ model }: { model: EditBucketModel }) {
             <LabwareEditor model={model} kind='source_labware' />
             <LabwareEditor model={model} kind='arp_labware' />
 
-            <Flex alignItems='flex-start' w='100%' gap={4}>
+            <Flex alignItems='flex-start' w='100%' gap={2}>
                 <Box width='50%' minW='50%' maxW='50%' position='relative'>
                     <AspectRatio ratio={1.33}>
                         <PlateVisual model={model.plate} />
                     </AspectRatio>
                 </Box>
                 <VStack gap={1} flexGrow={1} alignItems='flex-start'>
-                    <HStack gap={2}>
-                        <Text fontSize='md' fontWeight='bold'>
-                            Well Kinds
-                        </Text>
-                        <Button variant='ghost' size='xs' colorPalette='gray' onClick={model.sampleInfo.add}>
-                            <LuCirclePlus /> Add
-                        </Button>
-                    </HStack>
-                    {bucket.sample_info.map((info, index) => (
-                        <SampleInfoControls key={index} model={model} info={info} />
-                    ))}
-
                     <Text fontSize='md' fontWeight='bold'>
-                        Sample Indexing
-                    </Text>
-                    <SampleIndexing model={model} />
-
-                    <Text fontSize='md' fontWeight='bold'>
-                        Helpers
+                        Actions
                     </Text>
                     <HStack gap={2} alignItems='flex-start' w='100%'>
                         <Button variant='subtle' size='xs' onClick={model.templateBuilder.copy}>
@@ -457,6 +454,42 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                             <FaFileExport /> Export CSV
                         </Button>
                     </HStack>
+
+                    <Text fontSize='md' fontWeight='bold'>
+                        Indexing
+                    </Text>
+                    <SampleIndexing model={model} />
+
+                    <Text fontSize='md' fontWeight='bold'>
+                        Default Curve{' '}
+                        <InfoTip>Curve applied to all sample kinds, can be overridden on per kind basis.</InfoTip>
+                    </Text>
+
+                    <AsyncActionButton
+                        variant='subtle'
+                        size='xs'
+                        colorPalette={bucket.curve ? 'purple' : undefined}
+                        action={() => model.sampleInfo.selectCurve()}
+                    >
+                        <LuChartNoAxesCombined /> {bucket.curve ? formatCurve(bucket.curve) : 'Select Curve'}
+                    </AsyncActionButton>
+
+                    <HStack gap={2}>
+                        <Text fontSize='md' fontWeight='bold'>
+                            Well Kinds
+                        </Text>
+                        <Button variant='ghost' size='xs' colorPalette='gray' onClick={model.sampleInfo.add}>
+                            <LuCirclePlus /> Add
+                        </Button>
+                    </HStack>
+
+                    <Table.Root size='sm' interactive>
+                        <Table.Body>
+                            {bucket.sample_info.map((info, index) => (
+                                <SampleInfoControlsRow key={index} model={model} info={info} />
+                            ))}
+                        </Table.Body>
+                    </Table.Root>
                 </VStack>
             </Flex>
         </VStack>
@@ -532,13 +565,9 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
 
     const applyPointIndex = () => {
         const idx = SmartParsers.number(pointIndex.current!.value);
-        if (typeof idx !== 'number') {
-            model.templateBuilder.pointIndex();
-        } else {
-            model.templateBuilder.updateWell({
-                point_index: idx - 1,
-            });
-        }
+        model.templateBuilder.updateWell({
+            point_index: idx === null ? undefined : idx - 1,
+        });
         pointIndex.current!.value = '';
     };
 
@@ -558,11 +587,11 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
                     }}
                 />
                 <Button variant='subtle' colorPalette='blue' size='xs' onClick={applySampleIndex}>
-                    Full Sample Index
+                    <LuCheck /> Apply Sample Index
                 </Button>
             </HStack>
 
-            <HStack gap={1} alignItems='flex-start' w='100%'>
+            <HStack gap={1} alignItems='flex-start'>
                 <Input
                     ref={pointIndex}
                     size='xs'
@@ -576,52 +605,83 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
                     }}
                 />
 
-                <Button variant='subtle' colorPalette='blue' size='xs' onClick={applyPointIndex}>
-                    Fill Point Index
+                <Button
+                    variant='subtle'
+                    colorPalette='blue'
+                    size='xs'
+                    onClick={applyPointIndex}
+                    alignContent='flex-start'
+                >
+                    <LuCheck /> Apply Point Index
+                </Button>
+
+                <Button variant='subtle' colorPalette='blue' size='xs' onClick={model.templateBuilder.pointIndex}>
+                    <LuSignal /> Linear Point Index
                 </Button>
             </HStack>
         </>
     );
 }
 
-function SampleInfoControls({ model, info }: { model: EditBucketModel; info: BucketSampleInfo }) {
+function SampleInfoControlsRow({ model, info }: { model: EditBucketModel; info: BucketSampleInfo }) {
     return (
-        <HStack gap={1} w='100%' wrap='wrap'>
-            <Button variant='plain' size='xs' onClick={() => model.sampleInfo.remove(info)} px={0}>
-                <LuTrash />
-            </Button>
-            <Button
-                variant='subtle'
-                colorPalette='blue'
-                size='xs'
-                onClick={() => model.templateBuilder.updateWell({ kind: info.kind })}
-                w='80px'
-                title='Apply well kind'
-            >
-                {info.kind}
-            </Button>
-            <Switch
-                size='xs'
-                checked={!!info.is_control}
-                onCheckedChange={(e) => model.sampleInfo.update(info, { is_control: e.checked })}
-                mx={1}
-            >
-                Control
-            </Switch>
-            <AsyncActionButton variant='outline' size='xs' action={() => model.sampleInfo.selectCurve(info)}>
-                <LuChartNoAxesCombined /> {info?.curve ? formatCurve(info.curve) : 'Select Curve'}
-            </AsyncActionButton>
-            {info.is_control && (
-                <Box w='140px'>
-                    <SmartInput
+        <Table.Row>
+            <Table.Cell p={1} w={6}>
+                <Button
+                    colorPalette='blue'
+                    variant='subtle'
+                    size='xs'
+                    onClick={() => model.templateBuilder.updateWell({ kind: info.kind })}
+                >
+                    <LuArrowLeft /> Apply
+                </Button>
+            </Table.Cell>
+            <Table.Cell>
+                <Badge colorPalette='purple' variant='outline'>
+                    {info.kind}
+                </Badge>
+            </Table.Cell>
+            <Table.Cell p={1}>
+                <HStack>
+                    <Switch
                         size='xs'
-                        placeholder='Control Sample Id'
-                        value={info.default_sample_id}
-                        onChange={(v) => model.sampleInfo.update(info, { default_sample_id: v?.trim() || undefined })}
-                    />
-                </Box>
-            )}
-        </HStack>
+                        checked={!!info.is_control}
+                        onCheckedChange={(e) => model.sampleInfo.update(info, { is_control: e.checked })}
+                        mx={1}
+                    >
+                        Control
+                    </Switch>
+                    {info.is_control && (
+                        <Box maxW='140px'>
+                            <SmartInput
+                                size='xs'
+                                placeholder='Default Sample Id'
+                                value={info.default_sample_id}
+                                onChange={(v) =>
+                                    model.sampleInfo.update(info, { default_sample_id: v?.trim() || undefined })
+                                }
+                            />
+                        </Box>
+                    )}
+                </HStack>
+            </Table.Cell>
+
+            <Table.Cell p={1}>
+                <AsyncActionButton
+                    variant='subtle'
+                    colorPalette={info.curve ? 'purple' : undefined}
+                    size='xs'
+                    action={() => model.sampleInfo.selectCurve(info)}
+                >
+                    <LuChartNoAxesCombined /> {info?.curve ? formatCurve(info.curve) : 'Select Curve'}
+                </AsyncActionButton>
+            </Table.Cell>
+            <Table.Cell textAlign='end' p={1}>
+                <Button variant='plain' colorPalette='red' size='xs' onClick={() => model.sampleInfo.remove(info)}>
+                    <LuTrash />
+                </Button>
+            </Table.Cell>
+        </Table.Row>
     );
 }
 
