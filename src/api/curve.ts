@@ -1,12 +1,12 @@
+import { roundFactor } from '../utils';
 import {
-    DilutionCurveOptions,
     CurvePoints,
-    IntermediateConcentrations,
-    DilutionTransfer,
     DilutionCurve,
+    DilutionCurveOptions,
     DilutionPoint,
+    DilutionTransfer,
+    IntermediateConcentrations,
 } from './model/curve';
-import { formatConc, roundNano, toNano } from '../utils';
 
 function getCurvePoints(options: DilutionCurveOptions): CurvePoints {
     const ret = new Array(options.n_points);
@@ -39,12 +39,7 @@ export function alias(
     value: number,
     xfers: DilutionTransfer[] | undefined
 ) {
-    const {
-        adjust_intermediate_volume: adjustIntermediateVolume,
-        min_transfer_volume_l: minTransferVolumeL,
-        droplet_size_l: dropletSizeL,
-        tolerance,
-    } = options;
+    const { adjust_intermediate_volume, min_transfer_volume_l, droplet_size_l, tolerance } = options;
 
     const targetVolumeL = isIntermediate ? options.intermediate_volume_l : options.assay_volume_l;
     const maxTransferVolumeL = isIntermediate
@@ -60,31 +55,25 @@ export function alias(
 
     let done = false;
 
-    // console.log('[target]', toNM(value), 'nM');
-
     for (let o = minDepth; o <= maxDepth; o++) {
         for (const src of concentrations[o]) {
-            // TODO: support "adjust intermediate volume: false"
-
             let t: number;
 
-            if (adjustIntermediateVolume) {
-                // console.log('adjusting');
+            if (adjust_intermediate_volume) {
                 t =
                     (value * targetVolumeL +
-                        value * minTransferVolumeL +
+                        value * min_transfer_volume_l +
                         value * currentVolume -
                         running -
-                        src * minTransferVolumeL) /
-                    (src * dropletSizeL - value * dropletSizeL);
+                        src * min_transfer_volume_l) /
+                    (src * droplet_size_l - value * droplet_size_l);
             } else {
-                // console.log('not adjusting');
                 t =
-                    (value * targetVolumeL - running - src * minTransferVolumeL) /
-                    (src * dropletSizeL - value * dropletSizeL);
+                    (value * targetVolumeL - running - src * min_transfer_volume_l) /
+                    (src * droplet_size_l - value * droplet_size_l);
             }
 
-            const maxDrops = Math.ceil((maxTransferVolumeL - minTransferVolumeL - currentVolume) / dropletSizeL);
+            const maxDrops = Math.ceil((maxTransferVolumeL - min_transfer_volume_l - currentVolume) / droplet_size_l);
 
             if (maxDrops <= 0) {
                 done = true;
@@ -98,18 +87,15 @@ export function alias(
             const tHigh = Math.ceil(t);
 
             const cLow =
-                (running + src * (minTransferVolumeL + tLow * dropletSizeL)) /
-                (adjustIntermediateVolume
-                    ? currentVolume + minTransferVolumeL + tLow * dropletSizeL + targetVolumeL
+                (running + src * (min_transfer_volume_l + tLow * droplet_size_l)) /
+                (adjust_intermediate_volume
+                    ? currentVolume + min_transfer_volume_l + tLow * droplet_size_l + targetVolumeL
                     : targetVolumeL);
             const cHigh =
-                (running + src * (minTransferVolumeL + tHigh * dropletSizeL)) /
-                (adjustIntermediateVolume
-                    ? currentVolume + minTransferVolumeL + tHigh * dropletSizeL + targetVolumeL
+                (running + src * (min_transfer_volume_l + tHigh * droplet_size_l)) /
+                (adjust_intermediate_volume
+                    ? currentVolume + min_transfer_volume_l + tHigh * droplet_size_l + targetVolumeL
                     : targetVolumeL);
-
-            // console.log(formatConc(src), 'drops', t, { tLow, tHigh }, maxDrops);
-            // console.log(formatConc(cLow), formatConc(cHigh));
 
             const isNextLow = Math.abs(cLow - value) < Math.abs(cHigh - value);
             const nextConc = isNextLow ? cLow : cHigh;
@@ -117,12 +103,11 @@ export function alias(
 
             if (nextConc < upperBound) {
                 aliasedConc = nextConc;
-                currentVolume += minTransferVolumeL + nextT * dropletSizeL;
-                running += src * (minTransferVolumeL + nextT * dropletSizeL);
+                currentVolume += min_transfer_volume_l + nextT * droplet_size_l;
+                running += src * (min_transfer_volume_l + nextT * droplet_size_l);
 
-                // console.log('xfer', formatConc(src), Math.round(1e9 * (minTransferVolumeL + nextT * dropletSizeL)), 'nL');
                 if (xfers) {
-                    xfers.push({ concentration_M: src, volume_l: minTransferVolumeL + nextT * dropletSizeL });
+                    xfers.push({ concentration_m: src, volume_l: min_transfer_volume_l + nextT * droplet_size_l });
                 }
             }
 
@@ -135,11 +120,7 @@ export function alias(
         if (done) break;
     }
 
-    // round to nM
-    aliasedConc = roundNano(aliasedConc);
-
-    // console.log('[aliased]', toNM(aliasedConc), 'nM')
-
+    aliasedConc = roundFactor(aliasedConc, 1e10);
     return aliasedConc;
 }
 
@@ -160,8 +141,6 @@ function explore(state: ExploreState, depth: number, concentrations: Intermediat
     const { options } = state;
     const sourceConcentrations = concentrations[depth - 1];
     const latest: number[] = concentrations[depth];
-
-    // console.log(concentrations);
 
     const maxErr = evaluateFast(state, depth, concentrations);
     if (state.bestScore > maxErr) {
@@ -211,28 +190,11 @@ function explore(state: ExploreState, depth: number, concentrations: Intermediat
     latest.pop();
 }
 
-interface _CurvePrintPoint {
-    pt: string;
-    target: string;
-    actual: string | null;
-    error: number | string;
-    transfers: string;
-}
-
-function evaluateFinal(state: ExploreState): [_CurvePrintPoint[], DilutionCurve] {
+function evaluateFinal(state: ExploreState): DilutionCurve {
     const { options, curve, bestIntermediates: concentrations } = state;
-    const printPoints: _CurvePrintPoint[] = [];
 
     const intermediates: DilutionPoint[][] = [];
     const points: DilutionPoint[] = [];
-
-    printPoints.push({
-        pt: 'nARP',
-        target: formatConc(concentrations[0][0]),
-        actual: '-',
-        error: '-',
-        transfers: '',
-    });
 
     for (let d = 1; d < concentrations.length; d++) {
         const xs: DilutionPoint[] = [];
@@ -242,61 +204,38 @@ function evaluateFinal(state: ExploreState): [_CurvePrintPoint[], DilutionCurve]
             const xfers: DilutionTransfer[] = [];
             alias(options, true, d - 1, d - 1, concentrations, conc, xfers);
 
-            printPoints.push({
-                pt: `Int ${d}`,
-                target: formatConc(conc),
-                actual: '-',
-                error: '-',
-                transfers: `${xfers.map(({ concentration_M: c, volume_l: v }) => `[${toNano(v)} nL@${formatConc(c)}]`).join(', ')}`,
-            });
-
             xs.push({
-                target_concentration_M: conc,
-                actual_concentration_M: conc,
+                target_concentration_m: conc,
+                actual_concentration_m: conc,
                 transfers: xfers,
             });
         }
     }
 
-    let idx = 1;
     for (const pt of curve) {
         const xfers: DilutionTransfer[] = [];
         const aliased = alias(options, false, 0, concentrations.length - 1, concentrations, pt, xfers);
-        const err = Math.abs((pt - aliased) / pt);
-        printPoints.push({
-            pt: `Pt ${idx++}`,
-            target: formatConc(pt),
-            actual: formatConc(aliased),
-            error: `${Math.round(1000 * err) / 10} %`,
-            transfers: `${xfers.map(({ concentration_M: c, volume_l: v }) => `[${toNano(v)} nL@${formatConc(c)}]`).join(', ')}`,
-        });
 
         points.push({
-            target_concentration_M: pt,
-            actual_concentration_M: aliased,
+            target_concentration_m: pt,
+            actual_concentration_m: aliased,
             transfers: xfers,
         });
     }
 
     const result: DilutionCurve = {
         options,
-        nARP_concentration_M: options.nARP_concentration_M,
+        nARP_concentration_M: options.source_concentration_m,
         intermediate_points: intermediates,
         points,
     };
 
-    return [printPoints, result];
+    return result;
 }
 
 export function findCurve(options: DilutionCurveOptions) {
     const curve = getCurvePoints(options);
     const state: ExploreState = { curve, options, bestScore: Number.POSITIVE_INFINITY, bestIntermediates: [] };
-    explore(state, 1, [[options.nARP_concentration_M], []]);
-
-    const [, result] = evaluateFinal(state);
-
-    // console.log(state.bestIntermediates);
-    // console.table(options);
-    // console.table(result);
-    return result;
+    explore(state, 1, [[options.source_concentration_m], []]);
+    return evaluateFinal(state);
 }

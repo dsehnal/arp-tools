@@ -43,32 +43,30 @@ export interface Bucket {
     sample_info: BucketSampleInfo[];
 
     source_labware: BucketLabware;
+    intermediate_labware: BucketLabware;
     arp_labware: BucketLabware;
 
     template: (BucketTemplateWell | null | undefined)[];
 }
 
+const DefaultLabware: BucketLabware = {
+    name: '',
+    shorthand: '',
+    dimensions: PlateLayouts[384],
+    dead_volume_l: 2.5e-6,
+    well_volume_l: 10e-6,
+};
+
 export const DefaultBucket: Bucket = {
     name: '',
     description: '',
     project: '',
-    source_labware: {
-        name: '',
-        shorthand: '',
-        dimensions: PlateLayouts[384],
-        dead_volume_l: 2.5e-6,
-        well_volume_l: 10e-6,
-    },
-    arp_labware: {
-        name: '',
-        shorthand: '',
-        dimensions: PlateLayouts[384],
-        dead_volume_l: 2.5e-6,
-        well_volume_l: 10e-6,
-    },
+    source_labware: DefaultLabware,
+    intermediate_labware: DefaultLabware,
+    arp_labware: DefaultLabware,
     normalize_solvent: 'global',
     sample_info: [
-        { kind: 'compound' },
+        { kind: 'cmpd' },
         { kind: 'ctrl+', is_control: true },
         { kind: 'ctrl-', is_control: true },
         { kind: 'ref', is_control: true },

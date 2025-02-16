@@ -1,32 +1,31 @@
+import { findCurve } from '@/api/curve';
+import { DefaultCurveOptions, DilutionCurve, DilutionCurveOptions, writeCurve } from '@/api/model/curve';
 import { Field } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
+import { InfoTip } from '@/components/ui/toggle-tip';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
+import { AsyncActionButton } from '@/lib/components/button';
 import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
-import { findCurve } from '@/api/curve';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { ToastService } from '@/lib/services/toast';
+import { download } from '@/lib/util/download';
 import { uuid4 } from '@/lib/util/uuid';
-import { DefaultCurveOptions, DilutionCurve, DilutionCurveOptions, DilutionPoint, writeCurve } from '@/api/model/curve';
-import { formatConc, roundValue, toNano } from '@/utils';
-import { Box, Button, Flex, HStack, Table, VStack } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, VStack } from '@chakra-ui/react';
+import { useState } from 'react';
+import { LuChartNoAxesColumn, LuDownload, LuSave } from 'react-icons/lu';
 import { useParams } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { resolvePrefixedRoute } from '../routing';
 import { CurvesApi } from './api';
-import { curveBreadcrumb, CurvesBreadcrumb } from './common';
-import { AsyncActionButton } from '@/lib/components/button';
-import { InfoTip } from '@/components/ui/toggle-tip';
-import { download } from '@/lib/util/download';
-import { useState } from 'react';
-import { LuChartNoAxesColumn, LuDownload, LuSave } from 'react-icons/lu';
+import { curveBreadcrumb, CurvesBreadcrumb, DilutionCurveTable } from './common';
 
 class EditCurveModel extends ReactiveModel {
     state = {
-        name: new BehaviorSubject<string>('Unnamed Curve'),
+        name: new BehaviorSubject<string>(''),
         options: new BehaviorSubject<DilutionCurveOptions>(DefaultCurveOptions),
         curve: new BehaviorSubject<DilutionCurve | undefined>(undefined),
     };
@@ -132,11 +131,11 @@ function Breadcrumb({ model }: { model?: EditCurveModel }) {
 function NavButtons({ model }: { model: EditCurveModel }) {
     return (
         <HStack gap={1}>
+            <AsyncActionButton action={model.export} size='xs' colorPalette='blue' variant='subtle'>
+                <LuDownload /> Export
+            </AsyncActionButton>
             <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
                 <LuSave /> Save
-            </AsyncActionButton>
-            <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
-                <LuDownload /> Export
             </AsyncActionButton>
         </HStack>
     );
@@ -178,12 +177,12 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                     size='sm'
                 />
             </Field>
-            <Field label='nARP Concentration (mM)'>
+            <Field label='Source Concentration (mM)'>
                 <SmartInput
-                    value={options.nARP_concentration_M}
+                    value={options.source_concentration_m}
                     format={SmartFormatters.unit(1e3)}
                     parse={SmartParsers.unit(1e-3)}
-                    onChange={(v) => model.update({ nARP_concentration_M: v })}
+                    onChange={(v) => model.update({ source_concentration_m: v })}
                     index={idx++}
                     size='sm'
                 />
@@ -192,7 +191,7 @@ function EditCurveOptions({ model }: { model: EditCurveModel }) {
                 <SmartInput
                     value={options.intermediate_volume_l}
                     format={SmartFormatters.unit(1e6)}
-                    parse={SmartParsers.unit(1e-7)}
+                    parse={SmartParsers.unit(1e-6)}
                     onChange={(v) => model.update({ intermediate_volume_l: v })}
                     index={idx++}
                     size='sm'
@@ -366,59 +365,5 @@ function EditCurveTable({ model }: { model: EditCurveModel }) {
         );
     }
 
-    const pt = (name: string, p: DilutionPoint, dmso = false) => {
-        const xferVolume = p.transfers.reduce((acc, t) => acc + t.volume_l, 0);
-        const dmsoPercent = (100 * xferVolume) / model.options.assay_volume_l;
-        return (
-            <Table.Row key={name}>
-                <Table.Cell>{name}</Table.Cell>
-                <Table.Cell>{formatConc(p.target_concentration_M)}</Table.Cell>
-                <Table.Cell>{formatConc(p.actual_concentration_M)}</Table.Cell>
-                <Table.Cell>
-                    {roundValue(
-                        100 *
-                            Math.abs((p.target_concentration_M - p.actual_concentration_M) / p.target_concentration_M),
-                        2
-                    )}{' '}
-                    %
-                </Table.Cell>
-                <Table.Cell>{dmso && `${roundValue(dmsoPercent, 2)} %`}</Table.Cell>
-                <Table.Cell>
-                    {p.transfers.length > 0 &&
-                        p.transfers
-                            .map((t) => `[${toNano(t.volume_l)} nL@${formatConc(t.concentration_M)}]`)
-                            .join(', ')}
-                </Table.Cell>
-            </Table.Row>
-        );
-    };
-
-    return (
-        <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
-            <Table.Root size='sm' stickyHeader showColumnBorder interactive>
-                <Table.Header>
-                    <Table.Row bg='bg.subtle'>
-                        <Table.ColumnHeader>Point</Table.ColumnHeader>
-                        <Table.ColumnHeader>Target</Table.ColumnHeader>
-                        <Table.ColumnHeader>Actual</Table.ColumnHeader>
-                        <Table.ColumnHeader>Error</Table.ColumnHeader>
-                        <Table.ColumnHeader>DMSO</Table.ColumnHeader>
-                        <Table.ColumnHeader>Transfers</Table.ColumnHeader>
-                    </Table.Row>
-                </Table.Header>
-
-                <Table.Body>
-                    {pt('nARP', {
-                        actual_concentration_M: curve.nARP_concentration_M,
-                        target_concentration_M: curve.nARP_concentration_M,
-                        transfers: [],
-                    })}
-                    {curve.intermediate_points.flatMap((points, i) =>
-                        points.map((p, j) => pt(`Int ${i + 1}-${j + 1}`, p))
-                    )}
-                    {curve.points.map((p, i) => pt(`${i + 1}`, p, true))}
-                </Table.Body>
-            </Table.Root>
-        </Table.ScrollArea>
-    );
+    return <DilutionCurveTable curve={curve} />;
 }

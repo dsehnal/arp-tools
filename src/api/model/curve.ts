@@ -1,4 +1,4 @@
-import { formatConc } from '@/utils';
+import { formatUnit, roundValue } from '@/utils';
 
 export interface DilutionCurveData {
     kind: 'dilution-curve';
@@ -7,13 +7,13 @@ export interface DilutionCurveData {
 }
 
 export interface DilutionTransfer {
-    concentration_M: number;
+    concentration_m: number;
     volume_l: number;
 }
 
 export interface DilutionPoint {
-    target_concentration_M: number;
-    actual_concentration_M: number;
+    target_concentration_m: number;
+    actual_concentration_m: number;
     transfers: DilutionTransfer[];
 }
 
@@ -23,7 +23,7 @@ export interface DilutionCurve {
     modified_on?: string;
 
     name?: string;
-    options?: DilutionCurveOptions;
+    options: DilutionCurveOptions;
 
     nARP_concentration_M: number;
     intermediate_points: DilutionPoint[][];
@@ -31,7 +31,7 @@ export interface DilutionCurve {
 }
 
 export interface DilutionCurveOptions {
-    nARP_concentration_M: number;
+    source_concentration_m: number;
     intermediate_volume_l: number;
     assay_volume_l: number;
     max_intermadiate_plates: number;
@@ -60,7 +60,7 @@ export type IntermediateConcentrations = number[][];
 export type IntermediateVolumes = number[];
 
 export const DefaultCurveOptions: DilutionCurveOptions = {
-    nARP_concentration_M: 10e-3,
+    source_concentration_m: 10e-3,
     intermediate_volume_l: 10e-6,
     assay_volume_l: 60e-6,
     max_intermadiate_plates: 2,
@@ -79,8 +79,18 @@ export const DefaultCurveOptions: DilutionCurveOptions = {
     num_intermediate_point_samples: 20,
 };
 
-export function formatCurve(conc: DilutionCurve) {
-    return `${conc.name ?? 'unnamed'}, ${conc.points.length}pt, ${formatConc(conc.points[0].target_concentration_M)}`;
+export function formatCurve(curve: DilutionCurve) {
+    const info = `pt:${curve.points.length} src:${formatUnit(curve.options?.source_concentration_m, 'M', {
+        compact: true,
+    })} top:${formatUnit(curve.points[0].target_concentration_m, 'M', { compact: true })} f:${roundValue(
+        curve.options?.dilution_factor ?? 0,
+        2
+    )} arp:${formatUnit(curve.options?.assay_volume_l, 'L', { compact: true })} int:${formatUnit(
+        curve.options?.intermediate_volume_l,
+        'L',
+        { compact: true }
+    )}`;
+    return curve.name ? `${curve.name}, ${info}` : info;
 }
 
 export function writeCurve(curve: DilutionCurve): DilutionCurveData {

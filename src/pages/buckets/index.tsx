@@ -94,15 +94,15 @@ function NavButtons({ model }: { model: BucketsModel }) {
 
     return (
         <HStack gap={1}>
+            <Button onClick={() => model.import(navigate)} size='xs' colorPalette='blue' variant='subtle'>
+                <LuImport /> Import
+            </Button>
             <Button
                 onClick={() => navigate(resolveRoute(BucketsBreadcrumb.path!, 'new'))}
                 size='xs'
                 colorPalette='blue'
             >
                 <LuCirclePlus /> New Bucket
-            </Button>
-            <Button onClick={() => model.import(navigate)} size='xs' colorPalette='blue'>
-                <LuImport /> Import
             </Button>
         </HStack>
     );

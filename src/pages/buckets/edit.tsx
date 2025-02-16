@@ -26,21 +26,12 @@ import { ToastService } from '@/lib/services/toast';
 import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
 import { download } from '@/lib/util/download';
 import { uuid4 } from '@/lib/util/uuid';
-import { formatConc } from '@/utils';
+import { formatUnit } from '@/utils';
 import { Alert, AspectRatio, Badge, Box, Button, Flex, HStack, Input, Table, Text, VStack } from '@chakra-ui/react';
 import Papa from 'papaparse';
 import { useRef } from 'react';
 import { FaCopy, FaFileExport, FaPaste } from 'react-icons/fa6';
-import {
-    LuArrowLeft,
-    LuChartNoAxesCombined,
-    LuCheck,
-    LuCirclePlus,
-    LuDownload,
-    LuSave,
-    LuSignal,
-    LuTrash,
-} from 'react-icons/lu';
+import { LuChartNoAxesCombined, LuCheck, LuCirclePlus, LuDownload, LuSave, LuSignal, LuTrash } from 'react-icons/lu';
 import { MdOutlineBorderClear } from 'react-icons/md';
 import { useParams } from 'react-router';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyChanged } from 'rxjs';
@@ -49,7 +40,6 @@ import { Layout } from '../layout';
 import { resolvePrefixedRoute } from '../routing';
 import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
-import { BiLeftArrow } from 'react-icons/bi';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -273,7 +263,7 @@ class EditBucketModel extends ReactiveModel {
                     typeof well?.sample_index === 'number' ? String(well.sample_index + 1) : '',
                     typeof well?.point_index === 'number' ? String(well.point_index + 1) : '',
                     info?.is_control ? 'Yes' : 'No',
-                    formatConc(info?.curve?.points[well?.point_index ?? -1]?.target_concentration_M),
+                    formatUnit(info?.curve?.points[well?.point_index ?? -1]?.target_concentration_m, 'M'),
                 ]);
             });
 
@@ -297,7 +287,17 @@ class EditBucketModel extends ReactiveModel {
     }
 
     save = async () => {
+        if (!this.bucket.name) {
+            ToastService.error('Bucket name is required');
+            return;
+        }
+        if (!this.bucket.curve) {
+            ToastService.error('Dilution curve is required');
+            return;
+        }
+
         const bucket = { ...this.bucket, id: this.id };
+
         await BucketsApi.save(bucket);
         this.state.bucket.next(bucket);
         ToastService.success('Saved');
@@ -366,11 +366,11 @@ function Breadcrumb({ model }: { model?: EditBucketModel }) {
 function NavButtons({ model }: { model: EditBucketModel }) {
     return (
         <HStack gap={1}>
+            <AsyncActionButton action={model.export} size='xs' colorPalette='blue' variant='subtle'>
+                <LuDownload /> Export
+            </AsyncActionButton>
             <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
                 <LuSave /> Save
-            </AsyncActionButton>
-            <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
-                <LuDownload /> Export
             </AsyncActionButton>
         </HStack>
     );
@@ -381,9 +381,9 @@ function EditBucket({ model }: { model: EditBucketModel }) {
 
     return (
         <VStack gapY={2}>
-            <Field label='Name'>
+            <Field label='Name' invalid={!bucket.name}>
                 <SmartInput
-                    placeholder='Enter bucket name'
+                    placeholder='Bucket name'
                     value={bucket.name}
                     parse={SmartParsers.trim}
                     onChange={(name) => model.update({ name })}
@@ -393,7 +393,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
             </Field>
             <Field label='Description'>
                 <SmartInput
-                    placeholder='Enter optional description'
+                    placeholder='Optional bucket description'
                     value={bucket.description}
                     parse={SmartParsers.trim}
                     onChange={(description) => model.update({ description })}
@@ -403,7 +403,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
             </Field>
             <Field label='Project'>
                 <SmartInput
-                    placeholder='Enter optional project'
+                    placeholder='Optional project'
                     value={bucket.project}
                     parse={SmartParsers.trim}
                     onChange={(project) => model.update({ project })}
@@ -420,6 +420,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                 />
             </Field>
             <LabwareEditor model={model} kind='source_labware' />
+            <LabwareEditor model={model} kind='intermediate_labware' />
             <LabwareEditor model={model} kind='arp_labware' />
 
             <Flex alignItems='flex-start' w='100%' gap={2}>
@@ -461,14 +462,14 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     <SampleIndexing model={model} />
 
                     <Text fontSize='md' fontWeight='bold'>
-                        Default Curve{' '}
+                        Dilution Curve{' '}
                         <InfoTip>Curve applied to all sample kinds, can be overridden on per kind basis.</InfoTip>
                     </Text>
 
                     <AsyncActionButton
                         variant='subtle'
                         size='xs'
-                        colorPalette={bucket.curve ? 'purple' : undefined}
+                        colorPalette={bucket.curve ? 'purple' : 'orange'}
                         action={() => model.sampleInfo.selectCurve()}
                     >
                         <LuChartNoAxesCombined /> {bucket.curve ? formatCurve(bucket.curve) : 'Select Curve'}
@@ -496,12 +497,26 @@ function EditBucket({ model }: { model: EditBucketModel }) {
     );
 }
 
-function LabwareEditor({ model, kind }: { model: EditBucketModel; kind: 'source_labware' | 'arp_labware' }) {
+function LabwareEditor({
+    model,
+    kind,
+}: {
+    model: EditBucketModel;
+    kind: 'source_labware' | 'intermediate_labware' | 'arp_labware';
+}) {
     const labware = model.bucket[kind];
     const w = '150px';
+    let label: string;
+    if (kind === 'source_labware') {
+        label = 'Source Labware';
+    } else if (kind === 'intermediate_labware') {
+        label = 'Intermediate Labware';
+    } else {
+        label = 'ARP Labware';
+    }
     return (
         <HStack gap={2} w='100%'>
-            <Field label={kind === 'source_labware' ? 'Source Labware' : 'ARP Labware'} minW={w} maxW={w}>
+            <Field label={label} minW={w} maxW={w}>
                 <SimpleSelect
                     value={String(PlateUtils.size(labware.dimensions))}
                     onChange={(layout) => model.update({ [kind]: { ...labware, dimensions: PlateLayouts[layout] } })}
@@ -616,7 +631,7 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
                 </Button>
 
                 <Button variant='subtle' colorPalette='blue' size='xs' onClick={model.templateBuilder.pointIndex}>
-                    <LuSignal /> Linear Point Index
+                    <LuSignal /> Apply Linear Point Index
                 </Button>
             </HStack>
         </>
@@ -633,7 +648,7 @@ function SampleInfoControlsRow({ model, info }: { model: EditBucketModel; info: 
                     size='xs'
                     onClick={() => model.templateBuilder.updateWell({ kind: info.kind })}
                 >
-                    <LuArrowLeft /> Apply
+                    <LuCheck /> Apply
                 </Button>
             </Table.Cell>
             <Table.Cell>

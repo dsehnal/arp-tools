@@ -6,7 +6,7 @@ import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { uuid4 } from '@/lib/util/uuid';
 import { DilutionCurve, readCurve } from '@/api/model/curve';
-import { formatConc } from '@/utils';
+import { formatUnit, roundValue } from '@/utils';
 import { Button, HStack, Table } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
@@ -95,11 +95,11 @@ function NavButtons({ model }: { model: CurvesModel }) {
 
     return (
         <HStack gap={1}>
+            <Button onClick={() => model.import(navigate)} size='xs' colorPalette='blue' variant='subtle'>
+                <LuImport /> Import
+            </Button>
             <Button onClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, 'new'))} size='xs' colorPalette='blue'>
                 <LuCirclePlus /> New Curve
-            </Button>
-            <Button onClick={() => model.import(navigate)} size='xs' colorPalette='blue'>
-                <LuImport /> Import
             </Button>
         </HStack>
     );
@@ -116,6 +116,8 @@ function CurveList({ model }: { model: CurvesModel }) {
                         <Table.ColumnHeader>Name</Table.ColumnHeader>
                         <Table.ColumnHeader># Points</Table.ColumnHeader>
                         <Table.ColumnHeader>Top Concentration</Table.ColumnHeader>
+                        <Table.ColumnHeader>Assay Volume</Table.ColumnHeader>
+                        <Table.ColumnHeader>Intermediate Volume</Table.ColumnHeader>
                         <Table.ColumnHeader>Modified On</Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
                     </Table.Row>
@@ -128,8 +130,12 @@ function CurveList({ model }: { model: CurvesModel }) {
                             onDoubleClick={() => navigate(resolveRoute(CurvesBreadcrumb.path!, curve.id!))}
                         >
                             <Table.Cell>{curve.name ?? 'unnamed'}</Table.Cell>
-                            <Table.Cell>{curve.points.length}</Table.Cell>
-                            <Table.Cell>{formatConc(curve.points[0].target_concentration_M)}</Table.Cell>
+                            <Table.Cell>
+                                {curve.points.length} ({roundValue(curve.options?.dilution_factor ?? 0, 2)} factor)
+                            </Table.Cell>
+                            <Table.Cell>{formatUnit(curve.points[0].target_concentration_m, 'M')}</Table.Cell>
+                            <Table.Cell>{formatUnit(curve.options?.assay_volume_l, 'L')}</Table.Cell>
+                            <Table.Cell>{formatUnit(curve.options?.intermediate_volume_l, 'L')}</Table.Cell>
                             <Table.Cell>{formatISODateString(curve.modified_on)}</Table.Cell>
                             <Table.Cell textAlign='right' padding={1}>
                                 <Button size='xs' colorPalette='blue' variant='subtle' asChild title='Edit'>
