@@ -33,6 +33,7 @@ export function UIRoot() {
                             {!!edit && <Route path=':id' element={edit} />}
                         </Route>
                     ))}
+                    <Route path='/' element={Pages[0][1]} />
                     <Route path='*' element={<NotFound />} />
                 </Routes>
             </Router>
