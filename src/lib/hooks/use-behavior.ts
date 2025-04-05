@@ -7,7 +7,10 @@ export function useBehavior<T>(s: BehaviorSubject<T> | undefined): T | undefined
     return useSyncExternalStore(
         useCallback(
             (callback: () => void) => {
-                const sub = (s as any)?.pipe!(skip(1)).subscribe(callback)!;
+                if (!s) {
+                    return () => {};
+                }
+                const sub = s.pipe(skip(1)).subscribe(callback)!;
                 return () => sub?.unsubscribe();
             },
             [s]
