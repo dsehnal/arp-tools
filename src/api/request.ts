@@ -3,14 +3,14 @@ import { splitString } from '@/lib/util/misc';
 import { ARPRequestSample, ARPRequestSampleValidation } from './model/request';
 import { Bucket } from './model/bucket';
 
-export function parseRequestSamplesCSV(csv: string) {
+export function parseRequestSamplesCSV(bucket: Bucket, csv: string) {
     const data = parseCSV(csv, ['Sample ID', 'Kinds', 'Source Label', 'Source Well', 'Comment']);
 
     if (!data.fieldMap['Sample ID']) {
         throw new Error('Missing Sample ID column');
     }
 
-    const defaultKind = this.request.bucket.sample_info.find((s) => !s.is_control)?.kind;
+    const defaultKind = bucket.sample_info.find((s) => !s.is_control)?.kind;
 
     const samples = data.result.data
         .filter((row: any) => data.get(row, 'Sample ID'))

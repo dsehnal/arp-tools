@@ -1,5 +1,11 @@
 import { uuid4 } from '@/lib/util/uuid';
-import { Bucket } from './bucket';
+import { Bucket, writeBucket } from './bucket';
+
+export interface ARPRequestData {
+    kind: 'arp-request';
+    version: 1;
+    data: ARPRequest;
+}
 
 export type ARPRequestStatus = 'new' | 'in-progress' | 'completed' | 'closed';
 
@@ -21,7 +27,7 @@ export interface ARPRequestSample {
 export type ARPRequestSampleValidation = ['error' | 'warning' | 'info', string][];
 
 export interface ARPRequest {
-    id: string;
+    id?: string;
     created_on?: string;
     modified_on?: string;
 
@@ -39,9 +45,17 @@ export function createARPRequest(bucket: Bucket): ARPRequest {
         id: uuid4(),
         name: '',
         description: '',
-        bucket,
+        bucket: { ...writeBucket(bucket).data },
         n_copies: 1,
         status: 'new',
         samples: [],
     };
+}
+
+export function writeARPRequest(request: ARPRequest): ARPRequestData {
+    const data = { ...request };
+    delete data.id;
+    delete data.created_on;
+    delete data.modified_on;
+    return { kind: 'arp-request', version: 1, data };
 }

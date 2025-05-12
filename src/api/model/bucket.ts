@@ -87,7 +87,7 @@ export const BucketLayouts = [
 ] as [string, string][];
 
 export function writeBucket(bucket: Bucket): BucketData {
-    const data = { ...bucket };
+    const data: Bucket = { ...bucket };
     delete data.id;
     delete data.created_on;
     delete data.modified_on;

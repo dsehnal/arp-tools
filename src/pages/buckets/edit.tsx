@@ -7,7 +7,7 @@ import {
     getBucketTemplateWellKey,
     writeBucket,
 } from '@/api/model/bucket';
-import { formatCurve } from '@/api/model/curve';
+import { formatCurve, writeCurve } from '@/api/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/api/model/plate';
 import { Field } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
@@ -124,7 +124,8 @@ class EditBucketModel extends ReactiveModel {
                 state,
                 model: options,
                 onOk: (state) => {
-                    const curve = curves.find((c) => c.id === state);
+                    const srcCurve = curves.find((c) => c.id === state);
+                    const curve = writeCurve(srcCurve!).data;
                     if (!info) {
                         this.update({ curve });
                     } else {
@@ -289,10 +290,6 @@ class EditBucketModel extends ReactiveModel {
     save = async () => {
         if (!this.bucket.name) {
             ToastService.error('Bucket name is required');
-            return;
-        }
-        if (!this.bucket.curve) {
-            ToastService.error('Dilution curve is required');
             return;
         }
 

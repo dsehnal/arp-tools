@@ -1,6 +1,6 @@
 import { formatCurve } from '@/api/model/curve';
 import { PlateLayouts } from '@/api/model/plate';
-import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions } from '@/api/model/request';
+import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/api/model/request';
 import { parseRequestSamplesCSV, validateRequestSample } from '@/api/request';
 import { Field } from '@/components/ui/field';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
@@ -23,6 +23,7 @@ import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
 import { useMemo } from 'react';
+import { download } from '@/lib/util/download';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -33,6 +34,10 @@ class EditRequestModel extends ReactiveModel {
 
     get request() {
         return this.state.request.value;
+    }
+
+    get bucket() {
+        return this.request.bucket;
     }
 
     update(next: Partial<ARPRequest>) {
@@ -46,7 +51,11 @@ class EditRequestModel extends ReactiveModel {
     };
 
     export = async () => {
-        alert('TODO');
+        const data = writeARPRequest(this.request);
+        download(
+            new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+            `request-${this.request.name || this.request.id || Date.now()}.json`
+        );
     };
 
     produce = async () => {
@@ -65,7 +74,7 @@ class EditRequestModel extends ReactiveModel {
     };
 
     private applyAddSamples(csv: string) {
-        this.update({ samples: parseRequestSamplesCSV(csv) });
+        this.update({ samples: parseRequestSamplesCSV(this.bucket, csv) });
     }
 
     async init() {
@@ -122,11 +131,11 @@ function NavButtons({ model }: { model: EditRequestModel }) {
             <AsyncActionButton action={model.produce} size='xs' colorPalette='purple'>
                 <LuCombine /> Produce
             </AsyncActionButton>
-            <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
-                <LuSave /> Save
-            </AsyncActionButton>
             <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
                 <LuDownload /> Export
+            </AsyncActionButton>
+            <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
+                <LuSave /> Save
             </AsyncActionButton>
         </HStack>
     );
