@@ -14,7 +14,7 @@ import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { ToastService } from '@/lib/services/toast';
-import { Alert, Box, Button, Flex, HStack, Table, Textarea, VStack } from '@chakra-ui/react';
+import { Alert, Box, Button, Flex, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
 import { LuCirclePlus, LuCombine, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
 import { useParams } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
@@ -152,7 +152,29 @@ function NavButtons({ model }: { model: EditRequestModel }) {
 function EditRequest({ model }: { model: EditRequestModel }) {
     useReactiveModel(model);
     return (
-        <HStack h='100%' position='relative' gap={2}>
+        <Tabs.Root defaultValue="samples" display='flex' flexDirection='column' height='full'>
+      <Tabs.List>
+        <Tabs.Trigger value="samples">
+          {/* <LuUser /> */}
+          Samples
+        </Tabs.Trigger>
+        <Tabs.Trigger value="production">
+          {/* <LuFolder /> */}
+          Production
+        </Tabs.Trigger>
+      </Tabs.List>
+      <Tabs.Content position='relative' value="samples" flexGrow={1}>
+        <Samples model={model} />
+      </Tabs.Content>
+      <Tabs.Content position='relative' value="production" flexGrow={1}>
+        <Production model={model} />
+      </Tabs.Content>
+    </Tabs.Root>
+    );
+}
+
+function Samples({ model }: { model: EditRequestModel }) {
+    return <HStack h='100%' position='relative' gap={2}>
             <SampleTable model={model} />
             <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%'>
                 <Box flexGrow={1} position='relative'>
@@ -162,8 +184,11 @@ function EditRequest({ model }: { model: EditRequestModel }) {
                     </Box>
                 </Box>
             </Flex>
-        </HStack>
-    );
+        </HStack>;
+}
+
+function Production({ model }: { model: EditRequestModel }) {
+    return <div>TODO</div>;
 }
 
 function BucketInfo({ model }: { model: EditRequestModel }) {
