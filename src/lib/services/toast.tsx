@@ -12,8 +12,8 @@ class _ToastService {
         id?: string;
     }) {
         toaster.create({
-            id: uuid4(),
             ...options,
+            id: options.id ?? uuid4(),
         });
     }
 
