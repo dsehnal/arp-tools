@@ -103,6 +103,11 @@ export const PlateUtils = {
             if (selection[i]) action(i);
         }
     },
+    rowMajorWellIndexToLabel([, cols]: PlateDimensions, index: number) {
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        return PlateUtils.wellLabel(row, col);
+    },
     rowToLabel(row: number) {
         return _RowToLabel.get(row) ?? String(row);
     },
@@ -146,7 +151,7 @@ export const PlateUtils = {
         }
     },
     wellLabel(row: number, col: number) {
-        return `${rowLabel(row)}${col + 1}`;
+        return `${PlateUtils.rowToLabel(row)}${col + 1}`;
     },
 };
 

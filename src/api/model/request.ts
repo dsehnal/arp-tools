@@ -37,7 +37,9 @@ export interface ARPRequest {
     bucket: Bucket;
     status: ARPRequestStatus;
     samples: ARPRequestSample[];
-    // needed_by?: DateLike
+    production: {
+        plate_labels?: Record<string, string | undefined>;
+    };
 }
 
 export function createARPRequest(bucket: Bucket): ARPRequest {
@@ -49,6 +51,7 @@ export function createARPRequest(bucket: Bucket): ARPRequest {
         n_copies: 1,
         status: 'new',
         samples: [],
+        production: {},
     };
 }
 

@@ -1,3 +1,5 @@
+import * as d3s from 'd3-scale-chromatic';
+import * as d3c from 'd3-color';
 import { formatCurve } from '@/api/model/curve';
 import { PlateLayouts } from '@/api/model/plate';
 import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/api/model/request';
@@ -17,19 +19,22 @@ import { ToastService } from '@/lib/services/toast';
 import { Alert, Box, Button, Flex, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
 import { LuCirclePlus, LuCombine, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
 import { useParams } from 'react-router';
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
 import { updateBucketTemplatePlate } from '../buckets/common';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { download } from '@/lib/util/download';
 import { memoizeLatest } from '@/lib/util/misc';
 import { ARPRequestBuilder } from '@/api/request/production';
+import { ARPProductionResult, ProductionPlate } from '@/api/model/production';
+import { compilePicklist } from '@/api/request/picklists';
 
 class EditRequestModel extends ReactiveModel {
     state = {
         request: new BehaviorSubject<ARPRequest>(undefined as any),
+        production: new BehaviorSubject<ARPProductionResult | undefined>(undefined),
     };
 
     plate = new PlateModel(PlateLayouts[384]);
@@ -40,6 +45,10 @@ class EditRequestModel extends ReactiveModel {
 
     get bucket() {
         return this.request.bucket;
+    }
+
+    get production() {
+        return this.state.production.value;
     }
 
     private _sampleInfo = memoizeLatest(getRequestSampleInfo);
@@ -67,7 +76,9 @@ class EditRequestModel extends ReactiveModel {
 
     produce = async () => {
         const builder = new ARPRequestBuilder(this.request);
-        builder.build();
+        const production = builder.build();
+        console.log(production);
+        this.state.production.next(production);
     };
 
     addSamples = () => {
@@ -93,6 +104,17 @@ class EditRequestModel extends ReactiveModel {
 
         this.state.request.next(req);
         updateBucketTemplatePlate(this.plate, req.bucket);
+    }
+
+    mount() {
+        this.subscribe(
+            this.state.request.pipe(
+                distinctUntilChanged((a, b) => a.samples === b.samples && a.n_copies === b.n_copies)
+            ),
+            () => {
+                this.produce();
+            }
+        );
     }
 
     constructor(public id: string) {
@@ -152,29 +174,24 @@ function NavButtons({ model }: { model: EditRequestModel }) {
 function EditRequest({ model }: { model: EditRequestModel }) {
     useReactiveModel(model);
     return (
-        <Tabs.Root defaultValue="samples" display='flex' flexDirection='column' height='full'>
-      <Tabs.List>
-        <Tabs.Trigger value="samples">
-          {/* <LuUser /> */}
-          Samples
-        </Tabs.Trigger>
-        <Tabs.Trigger value="production">
-          {/* <LuFolder /> */}
-          Production
-        </Tabs.Trigger>
-      </Tabs.List>
-      <Tabs.Content position='relative' value="samples" flexGrow={1}>
-        <Samples model={model} />
-      </Tabs.Content>
-      <Tabs.Content position='relative' value="production" flexGrow={1}>
-        <Production model={model} />
-      </Tabs.Content>
-    </Tabs.Root>
+        <Tabs.Root defaultValue='samples' display='flex' flexDirection='column' height='full'>
+            <Tabs.List>
+                <Tabs.Trigger value='samples'>Samples</Tabs.Trigger>
+                <Tabs.Trigger value='production'>Production</Tabs.Trigger>
+            </Tabs.List>
+            <Tabs.Content position='relative' value='samples' flexGrow={1}>
+                <Samples model={model} />
+            </Tabs.Content>
+            <Tabs.Content position='relative' value='production' flexGrow={1}>
+                <Production model={model} />
+            </Tabs.Content>
+        </Tabs.Root>
     );
 }
 
 function Samples({ model }: { model: EditRequestModel }) {
-    return <HStack h='100%' position='relative' gap={2}>
+    return (
+        <HStack h='100%' position='relative' gap={2}>
             <SampleTable model={model} />
             <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%'>
                 <Box flexGrow={1} position='relative'>
@@ -184,11 +201,127 @@ function Samples({ model }: { model: EditRequestModel }) {
                     </Box>
                 </Box>
             </Flex>
-        </HStack>;
+        </HStack>
+    );
 }
 
 function Production({ model }: { model: EditRequestModel }) {
-    return <div>TODO</div>;
+    useBehavior(model.state.production);
+
+    return (
+        <HStack h='100%' position='relative' gap={2}>
+            <ProductionPlates model={model} />
+            <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%'>
+                <Box flexGrow={1} position='relative'>
+                    <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll' pe={2}>
+                        <Box>
+                            <b>Plate Labels</b>
+                        </Box>
+                        <PlateLabels model={model} />
+                    </Box>
+                </Box>
+            </Flex>
+        </HStack>
+    );
+}
+
+function ProductionPlates({ model }: { model: EditRequestModel }) {
+    const { production } = model;
+    const options = useMemo(
+        () => production?.plates.map((p) => [p.label, p.label] as [string, string]) ?? [],
+        [production]
+    );
+    const [current, setCurrent] = useState('');
+    const plate = production?.plates.find((p) => p.label === current);
+    return (
+        <Box w='full' h='full' display='flex' flexDirection='column' gap={2}>
+            <SimpleSelect
+                placeholder='Select plate...'
+                value={current}
+                allowEmpty
+                onChange={setCurrent}
+                options={options}
+            />
+            <CurrentPlateVisual model={model} plate={plate} />
+            <PlatePicklist model={model} plate={plate} />
+        </Box>
+    );
+}
+
+function CurrentPlateVisual({ model, plate }: { model: EditRequestModel; plate?: ProductionPlate }) {
+    const plateModel = useRef<PlateModel>(null);
+    if (!plateModel.current) {
+        plateModel.current = new PlateModel(plate?.plate.dimensions ?? PlateLayouts[384]);
+    }
+
+    useEffect(() => {
+        if (!plate) {
+            plateModel.current!.update({ labels: [], colors: [] });
+            return;
+        }
+        if (plate.kind === 'arp') {
+            updateBucketTemplatePlate(plateModel.current!, model.request.bucket, plate);
+        } else {
+            plateModel.current!.update({
+                colors: plate.plate.wells.map((w, idx) => {
+                    if (!w) return undefined;
+                    return d3s.interpolateCividis(idx / plate.plate.wells.length);
+                }),
+                labels: [],
+            });
+        }
+    }, [plate, model]);
+
+    return (
+        <Box pos='relative' h='300px' w='full'>
+            <PlateVisual model={plateModel.current} />
+        </Box>
+    );
+}
+
+function PlatePicklist({ model, plate }: { model: EditRequestModel; plate?: ProductionPlate }) {
+    const request = useBehavior(model.state.request);
+    const picklist = useMemo(
+        () => (plate ? compilePicklist(model.request, plate) : ''),
+        [model, model.request.production.plate_labels, plate]
+    );
+
+    return <Textarea flexGrow={1} style={{ fontFamily: 'monospace' }} value={picklist} readOnly />;
+}
+
+function PlateLabels({ model }: { model: EditRequestModel }) {
+    const request = useBehavior(model.state.request);
+    const { production } = model;
+
+    if (!production) return <>Production not available</>;
+
+    return (
+        <VStack gap={2} w='full'>
+            {production.plates.map((plate, idx) => (
+                <Field label={plate.label} key={plate.label}>
+                    <SmartInput
+                        placeholder='Enter label...'
+                        value={request.production.plate_labels?.[plate.label] ?? ''}
+                        parse={SmartParsers.trim}
+                        onChange={(v) =>
+                            model.update({
+                                production: {
+                                    ...request.production,
+                                    plate_labels: {
+                                        ...request.production.plate_labels,
+                                        [plate.label]: v || undefined,
+                                    },
+                                },
+                            })
+                        }
+                        index={idx}
+                        indexGroup='plate-barcodes'
+                        size='sm'
+                    />
+                </Field>
+            ))}
+        </VStack>
+    );
 }
 
 function BucketInfo({ model }: { model: EditRequestModel }) {
@@ -337,7 +470,13 @@ function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string }> }
                     <code>Kinds</code> can be separated by whitespace.
                 </Alert.Title>
             </Alert.Root>
-            <Textarea value={current.csv} onChange={(e) => state.next({ csv: e.target.value })} rows={7} autoFocus />
+            <Textarea
+                value={current.csv}
+                style={{ fontFamily: 'monospace' }}
+                onChange={(e) => state.next({ csv: e.target.value })}
+                rows={7}
+                autoFocus
+            />
         </VStack>
     );
 }

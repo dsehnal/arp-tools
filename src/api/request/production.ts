@@ -2,8 +2,9 @@ import { isRelativelyClose } from '@/lib/util/math';
 import { DilutionCurve, DilutionPoint } from '../model/curve';
 import { ARPRequest, ARPRequestSample } from '../model/request';
 import { arrayMapAdd, setMapAdd } from '@/lib/util/collections';
-import { Bucket, BucketTemplateWell } from '../model/bucket';
-import { ARPProductionResult } from '../model/production';
+import { BucketTemplateWell } from '../model/bucket';
+import { ARPProductionResult, ProductionPlate, ProductionWell } from '../model/production';
+import { PlateUtils } from '../model/plate';
 
 const ConcentrationTolerance = 0.05;
 const VolumeTolerance = 0.05;
@@ -80,7 +81,7 @@ export class ARPRequestBuilder {
         }
 
         const source: ARPSampleSource = {
-            concentration_m: point.actual_concentration_m,
+            concentration_m: point.target_concentration_m,
             total_volume_l: curve.options.intermediate_volume_l,
             depth,
             blueprint,
@@ -126,34 +127,64 @@ export class ARPRequestBuilder {
         }
     }
 
+    useARPPoint(sample_id: string, point: DilutionPoint, curve: DilutionCurve): ARPSampleSourceUse[] {
+        const uses: ARPSampleSourceUse[] = [];
+        for (const xfer of point.transfers) {
+            const src = this.getSampleSource(sample_id, xfer.concentration_m, curve.options.intermediate_volume_l);
+            if (!src) {
+                // TODO: error
+                continue;
+            }
+            const use: ARPSampleSourceUse = { volume_l: xfer.volume_l };
+            src.arp_uses.push(use);
+            uses.push(use);
+        }
+        return uses;
+    }
+
     build() {
         this.initPoints();
-        const arpInstances = instantiateARPPlates(this.request);
+        const arpInstances = instantiateARPPlates(this);
+        const arpPlates: ProductionPlate[] = arpInstances.map((arp) => ({
+            kind: 'arp',
+            label: `ARP_${arp.index + 1}-C${arp.copy + 1}`,
+            plate: {
+                dimensions: this.bucket.arp_labware.dimensions,
+                wells: arp.wells.map((w) =>
+                    w
+                        ? {
+                              sample_id: w.sample_id,
+                              volume_l: w.point.transfers.reduce((sum, t) => sum + t.volume_l, 0),
+                              concentration_M: w.point.actual_concentration_m,
+                              transfers: w.uses.map((use) => ({
+                                  source_label: use.source_label ?? '<unknown>',
+                                  source_well: use.source_well ?? '<unknown>',
+                                  volume_l: use.volume_l,
+                              })),
+                          }
+                        : undefined
+                ),
+            },
+        }));
+        const sourcePlates = buildSourcePlates(this);
 
         const result: ARPProductionResult = {
-            arp_plates: arpInstances.map(arp => ({
-                dimensions: this.bucket.arp_labware.dimensions,
-                wells: arp.wells.map(w => w ? ({
-                    sample_id: w.sample_id,
-                    volume_l: w.point.transfers.reduce((sum, t) => sum + t.volume_l, 0),
-                    concentration_M: w.point.actual_concentration_m,
-                    transfers: []
-                }) : undefined)
-            }))
+            plates: [...sourcePlates, ...arpPlates],
         };
 
         return result;
     }
 
     constructor(public request: ARPRequest) {
-        this.solvent =  {
-        concentration_m: 0,
-        total_volume_l: this.bucket.curve?.options.intermediate_volume_l ?? this.bucket.source_labware.well_volume_l,
-        blueprint: [],
-        depth: 0,
-        build_uses: [],
-        arp_uses: [],
-    };
+        this.solvent = {
+            concentration_m: 0,
+            total_volume_l:
+                this.bucket.curve?.options.intermediate_volume_l ?? this.bucket.source_labware.well_volume_l,
+            blueprint: [],
+            depth: 0,
+            build_uses: [],
+            arp_uses: [],
+        };
     }
 }
 
@@ -162,13 +193,18 @@ interface ARPSampleInstance {
     template: BucketTemplateWell;
     curve: DilutionCurve;
     point: DilutionPoint;
+    uses: ARPSampleSourceUse[];
 }
 
 interface ARPPlateInstance {
-    wells: (ARPSampleInstance | null)[]
+    index: number;
+    copy: number;
+    wells: (ARPSampleInstance | null)[];
 }
 
-function instantiateARPPlates(request: ARPRequest) {
+function instantiateARPPlates(builder: ARPRequestBuilder) {
+    const { request } = builder;
+
     // Index samples
     const { samples } = request;
     const controlsByKind = new Map<string, ARPRequestSample>();
@@ -213,14 +249,13 @@ function instantiateARPPlates(request: ARPRequest) {
             templateControlKinds.add(kind);
             continue;
         }
-        
+
         setMapAdd(templateSampleIndexSetByKind, kind, sample_index);
     }
 
-    const templateSampleIndices = Array.from(templateSampleIndexSetByKind.entries()).map(([kind, set]) => [
-        kind,
-        Array.from(set).sort((a, b) => a - b),
-    ] as [string, number[]]);
+    const templateSampleIndices = Array.from(templateSampleIndexSetByKind.entries()).map(
+        ([kind, set]) => [kind, Array.from(set).sort((a, b) => a - b)] as [string, number[]]
+    );
 
     // Analyze template
     const arpPlatesSamples: Map<string, Map<number, ARPRequestSample>>[] = [];
@@ -245,53 +280,96 @@ function instantiateARPPlates(request: ARPRequest) {
 
     // Instantiate plates
     const arpInstances: ARPPlateInstance[] = [];
-    for (const plateSamples of arpPlatesSamples) {
-        const instanceWells: (ARPSampleInstance | null)[] = [];
-        for (const well of request.bucket.template) {
-            if (!well) {
-                instanceWells.push(null);
-                continue;
+    for (let copy = 0; copy < request.n_copies; copy++) {
+        let index = 0;
+        for (const plateSamples of arpPlatesSamples) {
+            const instanceWells: (ARPSampleInstance | null)[] = [];
+            for (const well of request.bucket.template) {
+                if (!well) {
+                    instanceWells.push(null);
+                    continue;
+                }
+
+                const { kind, sample_index, point_index } = well;
+                if (!kind || typeof point_index !== 'number') {
+                    instanceWells.push(null);
+                    continue;
+                }
+
+                const info = infos.get(kind);
+                const curve = info?.curve ?? request.bucket.curve;
+                const point = curve?.points[point_index];
+                if (!curve || !point) {
+                    instanceWells.push(null);
+                    continue;
+                }
+
+                let sample: ARPRequestSample | undefined;
+                if (info?.is_control) {
+                    sample = controlsByKind.get(kind);
+                } else {
+                    sample = plateSamples.get(kind)?.get(sample_index!);
+                }
+
+                if (!sample) {
+                    instanceWells.push(null);
+                    continue;
+                }
+
+                const uses = builder.useARPPoint(sample.id, point, curve);
+                instanceWells.push({
+                    sample_id: sample.id,
+                    template: well,
+                    curve,
+                    point,
+                    uses,
+                });
             }
 
-            const { kind, sample_index, point_index } = well;
-            if (!kind || typeof point_index !== 'number') {
-                instanceWells.push(null);
-                continue;
-            }
-
-            const info = infos.get(kind);
-            const curve = info?.curve ?? request.bucket.curve;
-            const point = curve?.points[point_index];
-            if (!curve || !point) {
-                instanceWells.push(null);
-                continue;
-            }
-
-                
-            let sample: ARPRequestSample | undefined;
-            if (info?.is_control) {
-                sample = controlsByKind.get(kind);
-            } else {
-                sample = plateSamples.get(kind)?.get(sample_index!);
-            }
-
-            if (!sample) {
-                instanceWells.push(null);
-                continue;
-            }
-
-            instanceWells.push({
-                sample_id: sample.id,
-                template: well,
-                curve,
-                point 
+            arpInstances.push({
+                copy,
+                index: index++,
+                wells: instanceWells,
             });
         }
-
-        arpInstances.push({
-            wells: instanceWells,
-        });
     }
 
     return arpInstances;
+}
+
+function buildSourcePlates(builder: ARPRequestBuilder): ProductionPlate[] {
+    const wellsByDepth = new Map<number, ProductionWell[]>();
+
+    builder.sampleSouces.forEach((sources, sample_id) => {
+        for (const src of sources) {
+            // TODO: ...
+            if (!src.arp_uses.length) continue;
+
+            arrayMapAdd(wellsByDepth, src.depth, {
+                sample_id,
+                volume_l: 0, // TODO
+                concentration_M: src.concentration_m,
+                transfers: [],
+            });
+        }
+    });
+
+    const plates: ProductionPlate[] = [];
+
+    for (const depth of Array.from(wellsByDepth.keys()).sort((a, b) => a - b)) {
+        const plate = PlateUtils.empty<ProductionWell>(builder.bucket.intermediate_labware.dimensions);
+        const wells = wellsByDepth.get(depth)!;
+        let offset = 0;
+        // TODO: ordering based on source rack and quadrants for nARP
+        PlateUtils.forEachColMajorIndex(plate.dimensions, (idx) => {
+            plate.wells[idx] = wells[offset++];
+        });
+        plates.push({
+            kind: 'source',
+            label: `Source ${depth + 1}`,
+            plate,
+        });
+    }
+
+    return plates;
 }

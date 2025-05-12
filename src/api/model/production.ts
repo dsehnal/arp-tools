@@ -1,3 +1,4 @@
+import { BucketTemplateWell } from './bucket';
 import { Plate, PlateDimensions } from './plate';
 import { ARPRequest } from './request';
 
@@ -13,7 +14,7 @@ export interface LiquidTransfer {
     destination_label: string;
     destination_well: string;
     volume_l: number;
-    concentration_M?: number;
+    concentration_m?: number;
     sample_id?: string;
     comment?: string;
 }
@@ -22,7 +23,7 @@ export interface ProductionTransfer {
     source_label: string;
     source_well: string;
     volume_l: number;
-    concentration_M?: number;
+    concentration_m?: number;
 }
 
 export interface ProductionWell {
@@ -34,8 +35,12 @@ export interface ProductionWell {
     comment?: string;
 }
 
-export type ProductionPlate = Plate<ProductionWell>;
+export interface ProductionPlate {
+    kind: 'source' | 'arp';
+    label: string;
+    plate: Plate<ProductionWell>;
+}
 
 export interface ARPProductionResult {
-    arp_plates: ProductionPlate[],
+    plates: ProductionPlate[];
 }

@@ -7,6 +7,7 @@ import { Bucket, getBucketTemplateWellKey } from '@/api/model/bucket';
 import { resolveRoute } from '../routing';
 import { ReactNode } from 'react';
 import { PlateUtils } from '@/api/model/plate';
+import { ProductionPlate } from '@/api/model/production';
 
 export const BucketsBreadcrumb: BreadcrumbItem = {
     icon: <LuLayoutGrid />,
@@ -31,7 +32,7 @@ export function bucketBreadcrumb({
     };
 }
 
-export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket) {
+export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket, production?: ProductionPlate) {
     const { template, arp_labware, sample_info } = bucket;
 
     const infos = new Map(sample_info.map((s) => [s.kind, s]));
@@ -61,7 +62,9 @@ export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket) {
 
     plate.update({
         dimensions: arp_labware.dimensions,
-        colors: template.map((w) => {
+        colors: template.map((w, idx) => {
+            if (production && !production.plate.wells[idx]) return undefined;
+
             const key = getBucketTemplateWellKey(w);
             if (!key || !w) return undefined;
             const isControl = infos.get(w.kind!)?.is_control;
