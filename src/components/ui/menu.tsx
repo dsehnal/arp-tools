@@ -1,4 +1,4 @@
-'use client';
+
 
 import { AbsoluteCenter, Menu as ChakraMenu, Portal } from '@chakra-ui/react';
 import * as React from 'react';

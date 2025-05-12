@@ -12,8 +12,13 @@ export const ARPRequestStatusOptions: [string, string][] = [
 
 export interface ARPRequestSample {
     id: string;
-    kind: string;
+    kinds: string[];
+    source_label?: string;
+    source_well?: string;
+    comment?: string;
 }
+
+export type ARPRequestSampleValidation = ['error' | 'warning' | 'info', string][];
 
 export interface ARPRequest {
     id: string;
@@ -26,7 +31,6 @@ export interface ARPRequest {
     bucket: Bucket;
     status: ARPRequestStatus;
     samples: ARPRequestSample[];
-    // created_on?: DateLike
     // needed_by?: DateLike
 }
 

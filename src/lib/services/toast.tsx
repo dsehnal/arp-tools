@@ -1,6 +1,7 @@
 import { toaster } from '@/components/ui/toaster';
 import { ReactNode } from 'react';
 import { formatError } from '../util/error';
+import { uuid4 } from '../util/uuid';
 
 class _ToastService {
     show(options: {
@@ -10,7 +11,10 @@ class _ToastService {
         type?: 'info' | 'success' | 'warning' | 'error';
         id?: string;
     }) {
-        toaster.create(options);
+        toaster.create({
+            id: uuid4(),
+            ...options,
+        });
     }
 
     hide(id: string) {

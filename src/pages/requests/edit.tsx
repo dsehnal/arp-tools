@@ -1,27 +1,28 @@
+import { formatCurve } from '@/api/model/curve';
+import { PlateLayouts } from '@/api/model/plate';
+import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions } from '@/api/model/request';
+import { parseRequestSamplesCSV, validateRequestSample } from '@/api/request';
 import { Field } from '@/components/ui/field';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
+import { AsyncActionButton } from '@/lib/components/button';
 import { SmartInput, SmartParsers } from '@/lib/components/input';
+import { PlateModel, PlateVisual } from '@/lib/components/plate';
 import { SimpleSelect } from '@/lib/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
-import { PlateModel, PlateVisual } from '@/lib/components/plate';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
-import { formatCurve } from '@/api/model/curve';
-import { PlateLayouts } from '@/api/model/plate';
-import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions } from '@/api/model/request';
+import { ToastService } from '@/lib/services/toast';
 import { Alert, Box, Button, Flex, HStack, Table, Textarea, VStack } from '@chakra-ui/react';
-import Papa from 'papaparse';
+import { LuCirclePlus, LuCombine, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
 import { useParams } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { updateBucketTemplatePlate } from '../buckets/common';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
-import { ToastService } from '@/lib/services/toast';
-import { AsyncActionButton } from '@/lib/components/button';
-import { LuCirclePlus, LuCombine, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
+import { useMemo } from 'react';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -64,27 +65,7 @@ class EditRequestModel extends ReactiveModel {
     };
 
     private applyAddSamples(csv: string) {
-        const data = Papa.parse(csv.replace(/\t/g, ','), { header: true, delimiter: ',' });
-
-        const idField = data.meta.fields?.find((f) => f.toLowerCase() === 'sample id');
-        if (!idField) {
-            throw new Error('Missing Sample ID column');
-        }
-
-        const defaultKind = this.request.bucket.sample_info.find((s) => !s.is_control)?.kind;
-        const kindField = data.meta.fields?.find((f) => f.toLowerCase() === 'kind');
-
-        const samples = data.data
-            .filter((row: any) => row[idField])
-            .map(
-                (row: any) =>
-                    ({
-                        id: row[idField],
-                        kind: row[kindField!]?.trim() || defaultKind,
-                    }) satisfies ARPRequestSample
-            );
-
-        this.update({ samples: [...this.request.samples, ...samples] });
+        this.update({ samples: parseRequestSamplesCSV(csv) });
     }
 
     async init() {
@@ -246,8 +227,11 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                 <Table.Header>
                     <Table.Row bg='bg.subtle'>
                         <Table.ColumnHeader>Sample ID</Table.ColumnHeader>
-                        <Table.ColumnHeader>Kind</Table.ColumnHeader>
                         <Table.ColumnHeader>Validation</Table.ColumnHeader>
+                        <Table.ColumnHeader>Source Label</Table.ColumnHeader>
+                        <Table.ColumnHeader>Source Well</Table.ColumnHeader>
+                        <Table.ColumnHeader>Kind</Table.ColumnHeader>
+                        <Table.ColumnHeader>Comment</Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
                     </Table.Row>
                 </Table.Header>
@@ -256,8 +240,13 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                     {req.samples.map((s, i) => (
                         <Table.Row key={i}>
                             <Table.Cell>{s.id}</Table.Cell>
-                            <Table.Cell>{s.kind}</Table.Cell>
-                            <Table.Cell></Table.Cell>
+                            <Table.Cell>
+                                <SampleValidation model={model} sample={s} />
+                            </Table.Cell>
+                            <Table.Cell>{s.source_label}</Table.Cell>
+                            <Table.Cell>{s.source_well}</Table.Cell>
+                            <Table.Cell>{s.kinds?.join(', ')}</Table.Cell>
+                            <Table.Cell>{s.comment}</Table.Cell>
                             <Table.Cell textAlign='right' padding={1}>
                                 <Button
                                     size='xs'
@@ -277,6 +266,20 @@ function SampleTable({ model }: { model: EditRequestModel }) {
     );
 }
 
+function SampleValidation({ model, sample }: { model: EditRequestModel; sample: ARPRequestSample }) {
+    const validation = useMemo(() => validateRequestSample(sample, model.request.bucket), [model, sample]);
+
+    return (
+        <VStack gap={1}>
+            {validation.map(([type, message], i) => (
+                <Box key={i} color={type === 'error' ? 'red.500' : type === 'warning' ? 'yellow.500' : 'blue.500'}>
+                    {message}
+                </Box>
+            ))}
+        </VStack>
+    );
+}
+
 function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string }> }) {
     const current = useBehavior(state);
     return (
@@ -284,7 +287,8 @@ function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string }> }
             <Alert.Root status='info'>
                 <Alert.Indicator />
                 <Alert.Title>
-                    Paste a CSV file with <code>Sample ID, Kind</code> columns.
+                    Paste a CSV file with <code>Sample ID, Kinds, Source Label, Source Well, Comment</code> columns.
+                    <code>Kinds</code> can be separated by whitespace, commas, or semicolons.
                 </Alert.Title>
             </Alert.Root>
             <Textarea value={current.csv} onChange={(e) => state.next({ csv: e.target.value })} rows={7} autoFocus />
