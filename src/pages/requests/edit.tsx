@@ -158,9 +158,6 @@ function NavButtons({ model }: { model: EditRequestModel }) {
             <Button onClick={model.addSamples} size='xs' colorPalette='green'>
                 <LuCirclePlus /> Add Samples
             </Button>
-            <AsyncActionButton action={model.produce} size='xs' colorPalette='purple'>
-                <LuCombine /> Produce
-            </AsyncActionButton>
             <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
                 <LuDownload /> Export
             </AsyncActionButton>
