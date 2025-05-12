@@ -42,8 +42,15 @@ export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
                         </MenuTrigger>
                         <MenuContent>
                             {Pages.map((b) => (
-                                <MenuItem key={b.path} value={b.path!}>
-                                    {b.icon} {b.title}
+                                <MenuItem 
+                                    key={b.path} 
+                                    value={b.path!} 
+                                    asChild 
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    <Link to={b.path ? resolveRoute(b.path) : '#'}>
+                                        {b.icon} {b.title}
+                                    </Link>
                                 </MenuItem>
                             ))}
                         </MenuContent>
