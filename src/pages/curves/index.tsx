@@ -6,7 +6,6 @@ import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { uuid4 } from '@/lib/util/uuid';
 import { DilutionCurve, readCurve } from '@/api/model/curve';
-import { formatUnit, roundValue } from '@/utils';
 import { Button, HStack, Table } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
@@ -16,6 +15,8 @@ import { CurvesApi } from './api';
 import { CurvesBreadcrumb } from './common';
 import { formatISODateString } from '@/lib/util/datetime';
 import { LuCirclePlus, LuCopy, LuImport, LuPencil, LuTrash } from 'react-icons/lu';
+import { roundValue } from '@/lib/util/math';
+import { formatUnit } from '@/lib/util/units';
 
 class CurvesModel extends ReactiveModel {
     state = {

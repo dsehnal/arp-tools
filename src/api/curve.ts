@@ -1,4 +1,4 @@
-import { roundFactor } from '../utils';
+import { roundFactor } from '@/lib/util/math';
 import {
     CurvePoints,
     DilutionCurve,

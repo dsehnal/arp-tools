@@ -84,8 +84,9 @@ export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket) {
         labels: template.map((w) => {
             if (!w) return undefined;
 
+            const isControl = infos.get(w.kind!)?.is_control;
             let index = '';
-            if (typeof w.sample_index === 'number') index += `${w.sample_index + 1}`;
+            if (!isControl && typeof w.sample_index === 'number') index += `${w.sample_index + 1}`;
             if (typeof w.point_index === 'number') {
                 if (index) index += '-';
                 index += `${w.point_index + 1}`;

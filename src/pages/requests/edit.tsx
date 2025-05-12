@@ -1,7 +1,7 @@
 import { formatCurve } from '@/api/model/curve';
 import { PlateLayouts } from '@/api/model/plate';
 import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/api/model/request';
-import { parseRequestSamplesCSV, validateRequestSample } from '@/api/request';
+import { getRequestSampleInfo, parseRequestSamplesCSV, validateRequestSample } from '@/api/request';
 import { Field } from '@/components/ui/field';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { AsyncActionButton } from '@/lib/components/button';
@@ -24,6 +24,7 @@ import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
 import { useMemo } from 'react';
 import { download } from '@/lib/util/download';
+import { memoizeLatest } from '@/lib/util/misc';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -38,6 +39,11 @@ class EditRequestModel extends ReactiveModel {
 
     get bucket() {
         return this.request.bucket;
+    }
+
+    private _sampleInfo = memoizeLatest(getRequestSampleInfo);
+    get sampleInfo() {
+        return this._sampleInfo(this.request);
     }
 
     update(next: Partial<ARPRequest>) {
@@ -239,7 +245,7 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                         <Table.ColumnHeader>Validation</Table.ColumnHeader>
                         <Table.ColumnHeader>Source Label</Table.ColumnHeader>
                         <Table.ColumnHeader>Source Well</Table.ColumnHeader>
-                        <Table.ColumnHeader>Kind</Table.ColumnHeader>
+                        <Table.ColumnHeader>Kinds</Table.ColumnHeader>
                         <Table.ColumnHeader>Comment</Table.ColumnHeader>
                         <Table.ColumnHeader></Table.ColumnHeader>
                     </Table.Row>
@@ -276,7 +282,11 @@ function SampleTable({ model }: { model: EditRequestModel }) {
 }
 
 function SampleValidation({ model, sample }: { model: EditRequestModel; sample: ARPRequestSample }) {
-    const validation = useMemo(() => validateRequestSample(sample, model.request.bucket), [model, sample]);
+    const validation = useMemo(
+        () => validateRequestSample(sample, model.sampleInfo),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [model, sample, model.request.samples]
+    );
 
     return (
         <VStack gap={1}>
@@ -297,7 +307,7 @@ function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string }> }
                 <Alert.Indicator />
                 <Alert.Title>
                     Paste a CSV file with <code>Sample ID, Kinds, Source Label, Source Well, Comment</code> columns.
-                    <code>Kinds</code> can be separated by whitespace, commas, or semicolons.
+                    <code>Kinds</code> can be separated by whitespace.
                 </Alert.Title>
             </Alert.Root>
             <Textarea value={current.csv} onChange={(e) => state.next({ csv: e.target.value })} rows={7} autoFocus />

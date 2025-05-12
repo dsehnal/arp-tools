@@ -1,6 +1,6 @@
 export const RoutingKind: 'browser' | 'hash' = 'hash';
 
-export function resolveRoute(...parts: string[]) {
+export function resolveRoute(...parts: (string | undefined)[]) {
     return `/${parts.join('/')}`;
 }
 

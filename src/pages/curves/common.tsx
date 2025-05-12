@@ -4,7 +4,8 @@ import { resolveRoute } from '../routing';
 import { ReactNode } from 'react';
 import { DilutionCurve, DilutionPoint } from '@/api/model/curve';
 import { Table } from '@chakra-ui/react';
-import { formatUnit, roundValue } from '@/utils';
+import { formatUnit } from '@/lib/util/units';
+import { roundValue } from '@/lib/util/math';
 
 export const CurvesBreadcrumb: BreadcrumbItem = {
     icon: <LuChartNoAxesCombined />,

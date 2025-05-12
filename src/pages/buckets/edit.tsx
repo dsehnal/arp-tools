@@ -26,7 +26,6 @@ import { ToastService } from '@/lib/services/toast';
 import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
 import { download } from '@/lib/util/download';
 import { uuid4 } from '@/lib/util/uuid';
-import { formatUnit } from '@/utils';
 import { Alert, AspectRatio, Badge, Box, Button, Flex, HStack, Input, Table, Text, VStack } from '@chakra-ui/react';
 import Papa from 'papaparse';
 import { useRef } from 'react';
@@ -40,6 +39,7 @@ import { Layout } from '../layout';
 import { resolvePrefixedRoute } from '../routing';
 import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
+import { formatUnit } from '@/lib/util/units';
 
 class EditBucketModel extends ReactiveModel {
     state = {

@@ -25,3 +25,11 @@ export function arrayMapAdd<K, V>(map: Map<K, V[]>, k: K, v: V) {
         map.get(k)!.push(v);
     }
 }
+
+export function createFloatArray(size: number): number[] {
+    const ret = new Array(size);
+    ret[0] = 0.1; // Force floating point backing array
+    for (let i = 1; i < size; i++) ret[i] = 0;
+    ret[0] = 0;
+    return ret;
+}
