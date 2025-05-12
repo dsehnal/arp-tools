@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import * as d3c from 'd3-color';
 import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
 import { ReactiveModel } from '../reactive-model';
-import { arrayEqual, resizeArray } from '../util/array';
+import { arrayEqual, resizeArray } from '../util/collections';
 
 export interface PlateState {
     dimensions: PlateDimensions;

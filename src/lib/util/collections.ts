@@ -26,6 +26,14 @@ export function arrayMapAdd<K, V>(map: Map<K, V[]>, k: K, v: V) {
     }
 }
 
+export function setMapAdd<K, V>(map: Map<K, Set<V>>, k: K, v: V) {
+    if (!map.has(k)) {
+        map.set(k, new Set([v]));
+    } else {
+        map.get(k)!.add(v);
+    }
+}
+
 export function createFloatArray(size: number): number[] {
     const ret = new Array(size);
     ret[0] = 0.1; // Force floating point backing array

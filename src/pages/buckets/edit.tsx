@@ -23,7 +23,7 @@ import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { ToastService } from '@/lib/services/toast';
-import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/array';
+import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/collections';
 import { download } from '@/lib/util/download';
 import { uuid4 } from '@/lib/util/uuid';
 import { Alert, AspectRatio, Badge, Box, Button, Flex, HStack, Input, Table, Text, VStack } from '@chakra-ui/react';

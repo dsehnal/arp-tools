@@ -25,6 +25,7 @@ import { requestBreadcrumb, RequestsBreadcrumb } from './common';
 import { useMemo } from 'react';
 import { download } from '@/lib/util/download';
 import { memoizeLatest } from '@/lib/util/misc';
+import { ARPRequestBuilder } from '@/api/request/production';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -65,7 +66,8 @@ class EditRequestModel extends ReactiveModel {
     };
 
     produce = async () => {
-        alert('TODO');
+        const builder = new ARPRequestBuilder(this.request);
+        builder.build();
     };
 
     addSamples = () => {

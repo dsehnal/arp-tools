@@ -36,19 +36,6 @@ export interface ProductionWell {
 
 export type ProductionPlate = Plate<ProductionWell>;
 
-export interface ARPProductionOptions {
-    plate_capacity: number;
-    dynamic_intermediate_backfill: boolean;
-}
-
-export interface ARPProductionState {
-    racks: Rackscan[];
-}
-
-export interface ARPProduction {
-    id: string;
-    requests: ARPRequest[];
-    state: ARPProductionState;
-    created_on?: string;
-    modified_on?: string;
+export interface ARPProductionResult {
+    arp_plates: ProductionPlate[],
 }
