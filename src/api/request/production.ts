@@ -147,7 +147,7 @@ export class ARPRequestBuilder {
         const arpInstances = instantiateARPPlates(this);
         const arpPlates: ProductionPlate[] = arpInstances.map((arp) => ({
             kind: 'arp',
-            label: `ARP_${arp.index + 1}-C${arp.copy + 1}`,
+            label: `ARP_P${arp.index + 1}-C${arp.copy + 1}`,
             plate: {
                 dimensions: this.bucket.arp_labware.dimensions,
                 wells: arp.wells.map((w) =>
