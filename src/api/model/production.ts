@@ -1,6 +1,4 @@
-import { BucketTemplateWell } from './bucket';
 import { Plate, PlateDimensions } from './plate';
-import { ARPRequest } from './request';
 
 export interface Rackscan {
     label?: string;
@@ -30,6 +28,7 @@ export interface ProductionTransfer {
 export interface ProductionWell {
     // kind: 'source' | 'intermediate' | 'final';
     sample_id: string;
+    sample_kind?: string;
     volume_l: number;
     concentration_m?: number;
     transfers: ProductionTransfer[];

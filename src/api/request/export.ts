@@ -4,6 +4,55 @@ import { ProductionPlate, ProductionTransfer, ProductionWell } from '../model/pr
 import { ARPRequest } from '../model/request';
 import { roundValue } from '@/lib/util/math';
 
+export function writePlatemaps(request: ARPRequest, plates: ProductionPlate[]) {
+    const Columns = [
+        'Plate Label',
+        'Well Label',
+        'Sample ID',
+        'Sample Kind',
+        'Volume',
+        'Volume Unit',
+        'Concentration',
+        'Concentration Unit',
+    ];
+
+    const rows: string[][] = [Columns];
+
+    for (const plate of plates) {
+        const plateRows = writePlatemap(request, plate);
+        for (const row of plateRows) {
+            rows.push(row);
+        }
+    }
+    
+    return writeCSV(rows, ',');
+}
+
+function writePlatemap(request: ARPRequest, plate: ProductionPlate) {
+    const rows: string[][] = [];
+    PlateUtils.forEachColMajorWell(plate.plate, (well, rowMajorIndex, row, col) => {
+        rows.push([
+            // 'Plate Label',
+            request.production.plate_labels?.[plate.label] ?? `<${plate.label}>`,
+            // 'Well Label',
+            PlateUtils.wellLabel(row, col),
+            // 'Sample ID',
+            well?.sample_id ?? '',
+            // 'Sample Kind',
+            well?.sample_kind ?? '',
+            // 'Volume',
+            well?.volume_l ? `${roundValue(well.volume_l * 1e9, 0)}` : '',
+            // 'Volume Unit',
+            'nL',
+            // 'Concentration',
+            well?.concentration_m ? `${roundValue(well.concentration_m * 1e9, 0)}` : '',
+            // 'Concentration Unit',
+            'nM',
+        ]);
+    });
+    return rows;
+}
+
 export function writePicklists(request: ARPRequest, plates: ProductionPlate[]) {
     const Columns = [
         'Source Label',
@@ -20,7 +69,7 @@ export function writePicklists(request: ARPRequest, plates: ProductionPlate[]) {
     for (let i = 0; i < plates.length; i++) {
         const plate = plates[i];
         const plateIndexing = i % 2 ? 'descending' : 'ascending';
-        const plateRows = _writePicklist(request, plate, plateIndexing);
+        const plateRows = writePicklist(request, plate, plateIndexing);
         for (const row of plateRows) {
             rows.push(row);
         }
@@ -29,7 +78,7 @@ export function writePicklists(request: ARPRequest, plates: ProductionPlate[]) {
     return writeCSV(rows, ',');
 }
 
-function _writePicklist(request: ARPRequest, plate: ProductionPlate, plateIndexing: 'ascending' | 'descending') {
+function writePicklist(request: ARPRequest, plate: ProductionPlate, plateIndexing: 'ascending' | 'descending') {
     const rows: string[][] = [];
 
     const isNArp = plate.kind === 'nARP';

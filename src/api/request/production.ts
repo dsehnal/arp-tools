@@ -212,6 +212,7 @@ interface SampleSource {
 
 interface ARPWell {
     sample_id: string;
+    sample_kind: string;
     template: BucketTemplateWell;
     curve: DilutionCurve;
     point: DilutionPoint;
@@ -369,6 +370,7 @@ function step1_initARPPlates(ctx: BuilderContext) {
 
                 instanceWells.push({
                     sample_id: sample.id,
+                    sample_kind: kind,
                     template: well,
                     curve,
                     point,
@@ -600,6 +602,7 @@ function step4_buildARPPlates(ctx: BuilderContext, sourcePlates: ProductionPlate
                         w
                             ? {
                                   sample_id: w.sample_id,
+                                  sample_kind: w.sample_kind,
                                   volume_l: w.point.transfers.reduce((sum, t) => sum + t.volume_l, 0),
                                   concentration_m: w.point.target_concentration_m,
                                   transfers: w.uses.map((use) => ({
