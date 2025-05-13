@@ -6,12 +6,27 @@ import { roundValue } from '@/lib/util/math';
 import { encode as encodeZip } from 'uzip-module';
 
 export function writeProductionZip(request: ARPRequest, production: ARPProductionResult) {
-    const srcPlates = writePlatemaps(request, production.plates.filter(p => p.kind !== 'arp'));
-    const arpPlates = writePlatemaps(request, production.plates.filter(p => p.kind !== 'arp'));
+    const srcPlates = writePlatemaps(
+        request,
+        production.plates.filter((p) => p.kind !== 'arp')
+    );
+    const arpPlates = writePlatemaps(
+        request,
+        production.plates.filter((p) => p.kind !== 'arp')
+    );
 
-    const nARPPicklist = writePicklists(request, production.plates.filter(p => p.kind === 'nARP'));
-    const intermediatePicklist = writePicklists(request, production.plates.filter(p => p.kind === 'intermediate'));
-    const arpPicklist = writePicklists(request, production.plates.filter(p => p.kind === 'arp'));
+    const nARPPicklist = writePicklists(
+        request,
+        production.plates.filter((p) => p.kind === 'nARP')
+    );
+    const intermediatePicklist = writePicklists(
+        request,
+        production.plates.filter((p) => p.kind === 'intermediate')
+    );
+    const arpPicklist = writePicklists(
+        request,
+        production.plates.filter((p) => p.kind === 'arp')
+    );
 
     const encoder = new TextEncoder();
     const files = {

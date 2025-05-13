@@ -42,8 +42,7 @@ class EditRequestModel extends ReactiveModel {
     plate = new PlateModel(PlateLayouts[384]);
 
     get canEdit() {
-
-    return this.request.status === 'new' || this.request.status === 'in-progress';
+        return this.request.status === 'new' || this.request.status === 'in-progress';
     }
 
     get request() {
@@ -85,9 +84,7 @@ class EditRequestModel extends ReactiveModel {
         if (!this.production) return;
 
         const labels = this.request.production.plate_labels;
-        const rows = [
-            ['Request Name', 'Plate', 'Label']
-        ];
+        const rows = [['Request Name', 'Plate', 'Label']];
         for (const plate of this.production.plates) {
             const label = labels?.[plate.label] || '';
             rows.push([this.request.name, plate.label, label]);
@@ -101,7 +98,7 @@ class EditRequestModel extends ReactiveModel {
             console.error(e);
             ToastService.error('Error copying labels to clipboard', { id: 'copy-labels' });
         }
-    }
+    };
 
     download = () => {
         if (!this.production) return;
@@ -212,10 +209,14 @@ export function EditRequestUI() {
 function Breadcrumb({ model }: { model?: EditRequestModel }) {
     const req = useBehavior(model?.state.request);
     if (!req) return <>Loading...</>;
-    return <>
-        <span>{req.name || 'Unnamed Request'}</span>
-        <span>[Bucket: {req.bucket.name}, Project: {req.bucket.project || 'n/a'}]</span>
-    </>;
+    return (
+        <>
+            <span>{req.name || 'Unnamed Request'}</span>
+            <span>
+                [Bucket: {req.bucket.name}, Project: {req.bucket.project || 'n/a'}]
+            </span>
+        </>
+    );
 }
 
 function NavButtons({ model }: { model: EditRequestModel }) {
@@ -267,7 +268,7 @@ function SamplesTab({ model }: { model: EditRequestModel }) {
 }
 
 function BucketTab({ model }: { model: EditRequestModel }) {
-    return <BucketInfo model={model} />
+    return <BucketInfo model={model} />;
 }
 
 function ProductionTab({ model }: { model: EditRequestModel }) {
@@ -295,12 +296,16 @@ function ProductionTab({ model }: { model: EditRequestModel }) {
             </Flex>
             <ProductionPlates model={model} />
             <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%' position='relative'>
-                {production && <Button onClick={model.download} size='sm' colorPalette='purple' variant='solid'>
-                    <FaDownload /> Download Picklists and Platemaps
-                </Button>}
-                {production && <Button onClick={model.copyLabels} size='sm' colorPalette='blue' variant='subtle'>
-                    <FaCopy /> Copy Labels
-                </Button>}
+                {production && (
+                    <Button onClick={model.download} size='sm' colorPalette='purple' variant='solid'>
+                        <FaDownload /> Download Picklists and Platemaps
+                    </Button>
+                )}
+                {production && (
+                    <Button onClick={model.copyLabels} size='sm' colorPalette='blue' variant='subtle'>
+                        <FaCopy /> Copy Labels
+                    </Button>
+                )}
                 <Flex grow={1} pos='relative'>
                     <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll'>
                         <PlateLabels model={model} />
@@ -461,7 +466,8 @@ function BucketInfo({ model }: { model: EditRequestModel }) {
                 <PlateVisual model={model.plate} />
             </Box>
             <Box>
-            <Badge colorPalette='purple'>Curve</Badge> {req.bucket.curve ? formatCurve(req.bucket.curve) : 'No curve'}
+                <Badge colorPalette='purple'>Curve</Badge>{' '}
+                {req.bucket.curve ? formatCurve(req.bucket.curve) : 'No curve'}
             </Box>
             <Box fontWeight='bold'>Sample Kinds</Box>
             {req.bucket.sample_info.map((s) => (
@@ -469,9 +475,7 @@ function BucketInfo({ model }: { model: EditRequestModel }) {
                     <Badge colorPalette='blue'>{s.kind}</Badge> {s.curve ? formatCurve(s.curve) : 'Global curve'}
                 </Box>
             ))}
-            <Box>
-                TODO: rest of the bucket info
-            </Box>
+            <Box>TODO: rest of the bucket info</Box>
         </VStack>
     );
 }
@@ -562,37 +566,40 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                             }
                         }
                         if (!isControl) sampleIndex++;
-                        return <Table.Row key={i}>
-                            <Table.Cell>{
-                                !isControl ? sampleIndex : undefined
-                            }</Table.Cell>
-                            <Table.Cell>{s.id}</Table.Cell>
-                            <Table.Cell>
-                                <SampleValidation model={model} sample={s} />
-                            </Table.Cell>
-                            <Table.Cell>{s.source_label}</Table.Cell>
-                            <Table.Cell>{s.source_well}</Table.Cell>
-                            <Table.Cell>
-                                <HStack gap={1}>
-                                    {s.kinds.map(k => <Badge key={k} colorPalette='blue'>{k}</Badge>)}
-
-                                </HStack>
+                        return (
+                            <Table.Row key={i}>
+                                <Table.Cell>{!isControl ? sampleIndex : undefined}</Table.Cell>
+                                <Table.Cell>{s.id}</Table.Cell>
+                                <Table.Cell>
+                                    <SampleValidation model={model} sample={s} />
                                 </Table.Cell>
-                            <Table.Cell>{s.comment}</Table.Cell>
-                            <Table.Cell textAlign='right' padding={1}>
-                                <Button
-                                    size='xs'
-                                    colorPalette='red'
-                                    onClick={() => model.removeSample(s)}
-                                    title='Remove'
-                                    variant='subtle'
-                                    disabled={!canEdit}
-                                >
-                                    <LuTrash />
-                                </Button>
-                            </Table.Cell>
-                        </Table.Row>
-})}
+                                <Table.Cell>{s.source_label}</Table.Cell>
+                                <Table.Cell>{s.source_well}</Table.Cell>
+                                <Table.Cell>
+                                    <HStack gap={1}>
+                                        {s.kinds.map((k) => (
+                                            <Badge key={k} colorPalette='blue'>
+                                                {k}
+                                            </Badge>
+                                        ))}
+                                    </HStack>
+                                </Table.Cell>
+                                <Table.Cell>{s.comment}</Table.Cell>
+                                <Table.Cell textAlign='right' padding={1}>
+                                    <Button
+                                        size='xs'
+                                        colorPalette='red'
+                                        onClick={() => model.removeSample(s)}
+                                        title='Remove'
+                                        variant='subtle'
+                                        disabled={!canEdit}
+                                    >
+                                        <LuTrash />
+                                    </Button>
+                                </Table.Cell>
+                            </Table.Row>
+                        );
+                    })}
                 </Table.Body>
             </Table.Root>
         </Table.ScrollArea>
