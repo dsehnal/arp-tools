@@ -37,7 +37,7 @@ export interface Bucket {
     description: string;
     project: string;
 
-    normalize_solvent: 'per-curve' | 'global' | 'no';
+    normalize_solvent: 'per-kind' | 'global' | 'no';
 
     curve?: DilutionCurve;
     sample_info: BucketSampleInfo[];

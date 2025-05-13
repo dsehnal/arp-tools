@@ -7,7 +7,6 @@ import { useNavigate, Link } from 'react-router';
 import { BucketsBreadcrumb } from './buckets/common';
 import { CurvesBreadcrumb } from './curves/common';
 import { RequestsBreadcrumb } from './requests/common';
-import { ProductionBreadcrumb } from './production/common';
 import { resolveRoute } from './routing';
 import { SettingsBreadcrumb } from './settings/common';
 
@@ -23,7 +22,7 @@ export interface LayoutProps {
     buttons?: ReactNode;
 }
 
-const Pages = [RequestsBreadcrumb, ProductionBreadcrumb, CurvesBreadcrumb, BucketsBreadcrumb, SettingsBreadcrumb];
+export const Pages = [RequestsBreadcrumb, CurvesBreadcrumb, BucketsBreadcrumb, SettingsBreadcrumb];
 
 export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
     const navigate = useNavigate();

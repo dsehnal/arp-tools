@@ -14,7 +14,7 @@ class SettingsModel extends ReactiveModel {
     resetStore = async () => {
         DialogService.confirm({
             title: 'Reset DB',
-            message: 'Are you sure you want to reset the database?',
+            message: 'Are you sure you want to reset the database? This cannot be undone.',
             onOk: async () => {
                 await dropDB();
                 ToastService.info('DB Reset', { duration: 3000 });
@@ -57,9 +57,15 @@ function NavButtons({ model }: { model: SettingsModel }) {
 function Settings({ model }: { model: SettingsModel }) {
     return (
         <VStack gap={2}>
-            <Button onClick={model.resetStore}>Reset DB</Button>
-            <Button onClick={model.exportDB}>Export DB</Button>
-            <Button onClick={model.importDB}>Import DB</Button>
+            <Button w='full' onClick={model.resetStore} variant='outline' colorPalette='red'>
+                Reset DB
+            </Button>
+            <Button w='full' onClick={model.exportDB} variant='outline' colorPalette='blue'>
+                Export DB
+            </Button>
+            <Button w='full' onClick={model.importDB} variant='outline' colorPalette='blue'>
+                Import DB
+            </Button>
         </VStack>
     );
 }

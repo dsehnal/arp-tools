@@ -6,16 +6,15 @@ import { EditBucketUI } from './pages/buckets/edit';
 import { CurvesUI } from './pages/curves';
 import { EditCurveUI } from './pages/curves/edit';
 import { RequestsUI } from './pages/requests';
-import { ProductionsUI } from './pages/production';
 import { EditRequestUI } from './pages/requests/edit';
 import { RoutingKind } from './pages/routing';
 import { SettingsUI } from './pages/settings';
 import { Layout } from './pages/layout';
 import { Box } from '@chakra-ui/react';
+import { LandingUI } from './pages/landing';
 
 const Pages = [
     ['requests', <RequestsUI />, <EditRequestUI />],
-    ['production', <ProductionsUI />],
     ['curves', <CurvesUI />, <EditCurveUI />],
     ['buckets', <BucketsUI />, <EditBucketUI />],
     ['settings', <SettingsUI />],
@@ -33,7 +32,7 @@ export function UIRoot() {
                             {!!edit && <Route path=':id' element={edit} />}
                         </Route>
                     ))}
-                    <Route path='/' element={Pages[0][1]} />
+                    <Route path='/' element={<LandingUI />} />
                     <Route path='*' element={<NotFound />} />
                 </Routes>
             </Router>

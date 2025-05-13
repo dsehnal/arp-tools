@@ -412,7 +412,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                 <SimpleSelect
                     value={bucket.normalize_solvent}
                     onChange={(normalize_solvent) => model.update({ normalize_solvent })}
-                    options={['per-curve', 'global', 'no']}
+                    options={['per-kind', 'global', 'no']}
                     size='sm'
                 />
             </Field>

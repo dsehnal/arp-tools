@@ -1,10 +1,10 @@
 import { BreadcrumbItem } from '../layout';
-import { LuList } from 'react-icons/lu';
 import { resolveRoute } from '../routing';
 import { ReactNode } from 'react';
+import { FaRobot } from 'react-icons/fa';
 
 export const RequestsBreadcrumb: BreadcrumbItem = {
-    icon: <LuList />,
+    icon: <FaRobot />,
     title: 'Requests',
     path: 'requests',
 };
