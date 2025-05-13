@@ -1,8 +1,29 @@
 import { writeCSV } from '@/lib/util/csv';
 import { PlateUtils, WellCoords } from '../model/plate';
-import { ProductionPlate, ProductionTransfer, ProductionWell } from '../model/production';
+import { ARPProductionResult, ProductionPlate, ProductionTransfer, ProductionWell } from '../model/production';
 import { ARPRequest } from '../model/request';
 import { roundValue } from '@/lib/util/math';
+import { encode as encodeZip } from 'uzip-module';
+
+export function writeProductionZip(request: ARPRequest, production: ARPProductionResult) {
+    const srcPlates = writePlatemaps(request, production.plates.filter(p => p.kind !== 'arp'));
+    const arpPlates = writePlatemaps(request, production.plates.filter(p => p.kind !== 'arp'));
+
+    const nARPPicklist = writePicklists(request, production.plates.filter(p => p.kind === 'nARP'));
+    const intermediatePicklist = writePicklists(request, production.plates.filter(p => p.kind === 'intermediate'));
+    const arpPicklist = writePicklists(request, production.plates.filter(p => p.kind === 'arp'));
+
+    const encoder = new TextEncoder();
+    const files = {
+        'platemaps/source.csv': encoder.encode(srcPlates),
+        'platemaps/arp.csv': encoder.encode(arpPlates),
+        'picklists/source.csv': encoder.encode(nARPPicklist),
+        'picklists/intermediate.csv': encoder.encode(intermediatePicklist),
+        'picklists/arp.csv': encoder.encode(arpPicklist),
+    };
+    const zip = encodeZip(files);
+    return new Blob([zip], { type: 'application/zip' });
+}
 
 export function writePlatemaps(request: ARPRequest, plates: ProductionPlate[]) {
     const Columns = [
@@ -24,7 +45,7 @@ export function writePlatemaps(request: ARPRequest, plates: ProductionPlate[]) {
             rows.push(row);
         }
     }
-    
+
     return writeCSV(rows, ',');
 }
 
