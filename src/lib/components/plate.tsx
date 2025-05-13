@@ -111,7 +111,6 @@ export class PlateModel extends ReactiveModel {
 
     private handleMouseDown(ev: MouseEvent) {
         this.prevSelection = this.state.value.selection;
-        this.update({ selection: PlateUtils.emptySelection(this.dimensions) });
         this.getWellCoords(ev, this.mouseDownCoords);
         this.isMouseDown = true;
 

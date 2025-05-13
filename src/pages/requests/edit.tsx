@@ -1,9 +1,10 @@
-import * as d3s from 'd3-scale-chromatic';
-import * as d3c from 'd3-color';
 import { formatCurve } from '@/api/model/curve';
-import { PlateLayouts } from '@/api/model/plate';
+import { PlateLayouts, PlateUtils } from '@/api/model/plate';
+import { ARPProductionResult, ProductionPlate, ProductionTransfer } from '@/api/model/production';
 import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/api/model/request';
 import { getRequestSampleInfo, parseRequestSamplesCSV, validateRequestSample } from '@/api/request';
+import { compilePicklist } from '@/api/request/picklists';
+import { buildRequest } from '@/api/request/production';
 import { Field } from '@/components/ui/field';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
 import { AsyncActionButton } from '@/lib/components/button';
@@ -11,25 +12,24 @@ import { SmartInput, SmartParsers } from '@/lib/components/input';
 import { PlateModel, PlateVisual } from '@/lib/components/plate';
 import { SimpleSelect } from '@/lib/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
-import { useBehavior } from '@/lib/hooks/use-behavior';
+import { useBehavior, useBehaviorProp } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { ToastService } from '@/lib/services/toast';
+import { download } from '@/lib/util/download';
+import { memoizeLatest } from '@/lib/util/misc';
+import { formatUnit } from '@/lib/util/units';
 import { Alert, Box, Button, Flex, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
-import { LuCirclePlus, LuCombine, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
+import * as d3s from 'd3-scale-chromatic';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { LuCirclePlus, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
 import { useParams } from 'react-router';
 import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
 import { updateBucketTemplatePlate } from '../buckets/common';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { download } from '@/lib/util/download';
-import { memoizeLatest } from '@/lib/util/misc';
-import { ARPRequestBuilder } from '@/api/request/production';
-import { ARPProductionResult, ProductionPlate } from '@/api/model/production';
-import { compilePicklist } from '@/api/request/picklists';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -75,8 +75,7 @@ class EditRequestModel extends ReactiveModel {
     };
 
     produce = async () => {
-        const builder = new ARPRequestBuilder(this.request);
-        const production = builder.build();
+        const production = buildRequest(this.request);
         console.log(production);
         this.state.production.next(production);
     };
@@ -270,9 +269,48 @@ function CurrentPlateVisual({ model, plate }: { model: EditRequestModel; plate?:
     }, [plate, model]);
 
     return (
-        <Box pos='relative' h='300px' w='full'>
-            <PlateVisual model={plateModel.current} />
+        <Box>
+            <Box pos='relative' h='300px' w='full'>
+                <PlateVisual model={plateModel.current} />
+            </Box>
+            <Box textAlign='right' fontSize='smaller'>
+                <CurrentPlateLabel model={model} plate={plate} visual={plateModel.current} />
+            </Box>
         </Box>
+    );
+}
+
+function formatTransfer(t: ProductionTransfer) {
+    const r = formatUnit(t.volume_l, 'L', { compact: true });
+    if (!t.concentration_m) return `${r} solvent`;
+    return `${r}@${formatUnit(t.concentration_m, 'M', { compact: true })}`;
+}
+
+function CurrentPlateLabel({
+    plate,
+    visual,
+}: {
+    model: EditRequestModel;
+    plate?: ProductionPlate;
+    visual: PlateModel;
+}) {
+    const selection = useBehaviorProp(
+        visual?.state,
+        (s) => s.selection
+    );
+    const idx = PlateUtils.firstSelectedIndex(selection);
+    const well = plate?.plate.wells[idx!];
+
+    if (typeof idx !== 'number') return <>Nothing Selected</>;
+
+    const label = PlateUtils.rowMajorWellIndexToLabel(visual.dimensions, idx);
+    if (!well) return <>{label}</>;
+
+    return (
+        <>
+            {label}: {well.sample_id} {formatUnit(well.volume_l, 'L', { compact: true })}@
+            {formatUnit(well.concentration_m, 'M', { compact: true })} [{well.transfers.map(formatTransfer).join(', ')}]
+        </>
     );
 }
 
@@ -280,7 +318,7 @@ function PlatePicklist({ model, plate }: { model: EditRequestModel; plate?: Prod
     const request = useBehavior(model.state.request);
     const picklist = useMemo(
         () => (plate ? compilePicklist(model.request, plate) : ''),
-        [model, model.request.production.plate_labels, plate]
+        [model, request.production.plate_labels, plate]
     );
 
     return <Textarea flexGrow={1} style={{ fontFamily: 'monospace' }} value={picklist} readOnly />;

@@ -30,13 +30,16 @@ export interface ProductionWell {
     // kind: 'source' | 'intermediate' | 'final';
     sample_id: string;
     volume_l: number;
-    concentration_M?: number;
+    concentration_m?: number;
     transfers: ProductionTransfer[];
     comment?: string;
 }
 
 export interface ProductionPlate {
     kind: 'source' | 'arp';
+    index: number;
+    copy?: number;
+
     label: string;
     plate: Plate<ProductionWell>;
 }
