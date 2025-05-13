@@ -17,6 +17,7 @@ export function FileDropArea({ title, onChange, extensions, multiple }: FileDrop
             onFileChange={(e) => onChange(e.acceptedFiles)}
         >
             <FileUploadDropzone
+                minH={0}
                 label={`Drag and drop ${title ?? (multiple ? 'files' : 'file')} here, or click to select`}
                 description={`${extensions.join(', ')}`}
             />

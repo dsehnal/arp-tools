@@ -32,6 +32,7 @@ import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
 import { writeCSV } from '@/lib/util/csv';
 import { FaCopy, FaDownload } from 'react-icons/fa';
+import { FileDropArea } from '@/lib/components/file-upload';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -125,9 +126,15 @@ class EditRequestModel extends ReactiveModel {
         DialogService.show({
             title: 'Add Samples',
             body: AddSamplesDialog,
-            state: new BehaviorSubject({ csv: '' }),
-            onOk: async (state: { csv: string }) => {
-                this.applyAddSamples(state.csv);
+            state: new BehaviorSubject({ csv: '', files: [] }),
+            onOk: async (state: { csv: string; files: File[] }) => {
+                if (state.files.length > 0) {
+                    const file = state.files[0];
+                    const text = await file.text();
+                    this.applyAddSamples(text);
+                } else {
+                    this.applyAddSamples(state.csv);
+                }
             },
         });
     };
@@ -624,24 +631,28 @@ function SampleValidation({ model, sample }: { model: EditRequestModel; sample: 
     );
 }
 
-function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string }> }) {
+function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string; files: File[] }> }) {
     const current = useBehavior(state);
     return (
         <VStack gap={2}>
             <Alert.Root status='info'>
                 <Alert.Indicator />
                 <Alert.Title>
-                    Paste a CSV file with <code>Sample ID, Kinds, Source Label, Source Well, Comment</code> columns.
+                    Paste or drop a CSV file with <code>Sample ID, Kinds, Source Label, Source Well, Comment</code>{' '}
+                    columns.
                     <code>Kinds</code> can be separated by whitespace.
                 </Alert.Title>
             </Alert.Root>
-            <Textarea
-                value={current.csv}
-                style={{ fontFamily: 'monospace' }}
-                onChange={(e) => state.next({ csv: e.target.value })}
-                rows={7}
-                autoFocus
-            />
+            {current.files?.length === 0 && (
+                <Textarea
+                    value={current.csv}
+                    style={{ fontFamily: 'monospace' }}
+                    onChange={(e) => state.next({ csv: e.target.value, files: [] })}
+                    rows={7}
+                    autoFocus
+                />
+            )}
+            <FileDropArea onChange={(files) => state.next({ ...current, files })} extensions={['.csv']} />
         </VStack>
     );
 }

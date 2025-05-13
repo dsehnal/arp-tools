@@ -1,7 +1,7 @@
 import Papa from 'papaparse';
 
 export function parseCSV<T extends string>(csv: string, fields: T[]) {
-    const result = Papa.parse(csv.replace(/\t/g, ','), { header: true, delimiter: ',' });
+    const result = Papa.parse(csv, { header: true, delimitersToGuess: [',', '\t', ';'] });
     const fieldMap = Object.fromEntries(
         fields.map((f) => {
             const match = normalizeFieldName(f);
