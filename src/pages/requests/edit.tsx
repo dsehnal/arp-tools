@@ -3,11 +3,10 @@ import { PlateLayouts, PlateUtils } from '@/api/model/plate';
 import { ARPProductionResult, ProductionPlate, ProductionTransfer } from '@/api/model/production';
 import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/api/model/request';
 import { getRequestSampleInfo, parseRequestSamplesCSV, validateRequestSample } from '@/api/request';
-import { compilePicklist } from '@/api/request/export';
+import { writePicklists } from '@/api/request/export';
 import { buildRequest } from '@/api/request/production';
 import { Field } from '@/components/ui/field';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
-import { AsyncActionButton } from '@/lib/components/button';
 import { SmartInput, SmartParsers } from '@/lib/components/input';
 import { PlateModel, PlateVisual } from '@/lib/components/plate';
 import { SimpleSelect } from '@/lib/components/select';
@@ -19,17 +18,20 @@ import { DialogService } from '@/lib/services/dialog';
 import { ToastService } from '@/lib/services/toast';
 import { download } from '@/lib/util/download';
 import { memoizeLatest } from '@/lib/util/misc';
+import { SingleAsyncQueue } from '@/lib/util/queue';
 import { formatUnit } from '@/lib/util/units';
-import { Alert, Box, Button, Flex, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
+import { Alert, Badge, Box, Button, Flex, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
 import * as d3s from 'd3-scale-chromatic';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LuCirclePlus, LuDownload, LuSave, LuTrash } from 'react-icons/lu';
+import { LuCirclePlus, LuTrash } from 'react-icons/lu';
 import { useParams } from 'react-router';
-import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
+import { BehaviorSubject, distinctUntilChanged, skip, throttleTime } from 'rxjs';
 import { updateBucketTemplatePlate } from '../buckets/common';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
+import { writeCSV } from '@/lib/util/csv';
+import { FaCopy, FaDownload } from 'react-icons/fa';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -38,6 +40,11 @@ class EditRequestModel extends ReactiveModel {
     };
 
     plate = new PlateModel(PlateLayouts[384]);
+
+    get canEdit() {
+
+    return this.request.status === 'new' || this.request.status === 'in-progress';
+    }
 
     get request() {
         return this.state.request.value;
@@ -60,10 +67,44 @@ class EditRequestModel extends ReactiveModel {
         this.state.request.next({ ...this.request, ...next });
     }
 
-    save = async () => {
+    private saveQueue = new SingleAsyncQueue();
+    save = () => {
         if (!this.request) return;
-        await RequestsApi.save(this.request);
-        ToastService.success('Saved');
+        this.saveQueue.run(async () => {
+            try {
+                await RequestsApi.save(this.request);
+                ToastService.success('Saved', { id: 'save', duration: 500 });
+            } catch (e) {
+                console.error(e);
+                ToastService.error('Error saving request', { id: 'save' });
+            }
+        });
+    };
+
+    copyLabels = () => {
+        if (!this.production) return;
+
+        const labels = this.request.production.plate_labels;
+        const rows = [
+            ['Request Name', 'Plate', 'Label']
+        ];
+        for (const plate of this.production.plates) {
+            const label = labels?.[plate.label] || '';
+            rows.push([this.request.name, plate.label, label]);
+        }
+
+        const csv = writeCSV(rows, '\t');
+        try {
+            window.navigator.clipboard.writeText(csv);
+            ToastService.success('Copied to clipboard', { id: 'copy-labels' });
+        } catch (e) {
+            console.error(e);
+            ToastService.error('Error copying labels to clipboard', { id: 'copy-labels' });
+        }
+    }
+
+    download = () => {
+
     };
 
     export = async () => {
@@ -91,6 +132,17 @@ class EditRequestModel extends ReactiveModel {
         });
     };
 
+    removeSample(sample: ARPRequestSample) {
+        DialogService.confirm({
+            title: 'Remove Sample',
+            message: `Are you sure you want to remove ${sample.id}?`,
+            onOk: async () => {
+                const samples = this.request.samples.filter((s) => s !== sample);
+                this.update({ samples });
+            },
+        });
+    }
+
     private applyAddSamples(csv: string) {
         this.update({ samples: parseRequestSamplesCSV(this.bucket, csv) });
     }
@@ -112,6 +164,13 @@ class EditRequestModel extends ReactiveModel {
             ),
             () => {
                 this.produce();
+            }
+        );
+
+        this.subscribe(
+            this.state.request.pipe(skip(1), throttleTime(500, undefined, { leading: false, trailing: true })),
+            () => {
+                this.save();
             }
         );
     }
@@ -138,6 +197,7 @@ export function EditRequestUI() {
                 requestBreadcrumb({ isLoading: loading, name: <Breadcrumb model={model} />, id: model?.id }),
             ]}
             buttons={!!model && <NavButtons model={model} />}
+            contentPadding={0}
         >
             <AsyncWrapper loading={!model || loading} error={error}>
                 <EditRequest model={model!} />
@@ -148,21 +208,20 @@ export function EditRequestUI() {
 
 function Breadcrumb({ model }: { model?: EditRequestModel }) {
     const req = useBehavior(model?.state.request);
-    return req?.name || 'Unnamed Request';
+    if (!req) return <>Loading...</>;
+    return <>
+        <span>{req.name || 'Unnamed Request'}</span>
+        <span>[Bucket: {req.bucket.name}, Project: {req.bucket.project || 'n/a'}]</span>
+    </>;
 }
 
 function NavButtons({ model }: { model: EditRequestModel }) {
+    useBehavior(model.state.request);
     return (
         <HStack gap={1}>
-            <Button onClick={model.addSamples} size='xs' colorPalette='green'>
+            <Button onClick={model.addSamples} size='xs' colorPalette='green' disabled={!model.canEdit}>
                 <LuCirclePlus /> Add Samples
             </Button>
-            <AsyncActionButton action={model.export} size='xs' colorPalette='blue'>
-                <LuDownload /> Export
-            </AsyncActionButton>
-            <AsyncActionButton action={model.save} size='xs' colorPalette='blue'>
-                <LuSave /> Save
-            </AsyncActionButton>
         </HStack>
     );
 }
@@ -173,26 +232,29 @@ function EditRequest({ model }: { model: EditRequestModel }) {
         <Tabs.Root defaultValue='samples' display='flex' flexDirection='column' height='full'>
             <Tabs.List>
                 <Tabs.Trigger value='samples'>Samples</Tabs.Trigger>
+                <Tabs.Trigger value='bucket'>Bucket</Tabs.Trigger>
                 <Tabs.Trigger value='production'>Production</Tabs.Trigger>
             </Tabs.List>
-            <Tabs.Content position='relative' value='samples' flexGrow={1}>
-                <Samples model={model} />
+            <Tabs.Content position='relative' value='samples' flexGrow={1} p={2}>
+                <SamplesTab model={model} />
             </Tabs.Content>
-            <Tabs.Content position='relative' value='production' flexGrow={1}>
-                <Production model={model} />
+            <Tabs.Content position='relative' value='bucket' flexGrow={1} p={2}>
+                <BucketTab model={model} />
+            </Tabs.Content>
+            <Tabs.Content position='relative' value='production' flexGrow={1} p={2}>
+                <ProductionTab model={model} />
             </Tabs.Content>
         </Tabs.Root>
     );
 }
 
-function Samples({ model }: { model: EditRequestModel }) {
+function SamplesTab({ model }: { model: EditRequestModel }) {
     return (
         <HStack h='100%' position='relative' gap={2}>
             <SampleTable model={model} />
             <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%'>
                 <Box flexGrow={1} position='relative'>
-                    <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll' pe={2}>
-                        <BucketInfo model={model} />
+                    <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll'>
                         <EditOptions model={model} />
                     </Box>
                 </Box>
@@ -201,21 +263,46 @@ function Samples({ model }: { model: EditRequestModel }) {
     );
 }
 
-function Production({ model }: { model: EditRequestModel }) {
-    useBehavior(model.state.production);
+function BucketTab({ model }: { model: EditRequestModel }) {
+    return <BucketInfo model={model} />
+}
+
+function ProductionTab({ model }: { model: EditRequestModel }) {
+    const production = useBehavior(model.state.production);
 
     return (
         <HStack h='100%' position='relative' gap={2}>
-            <ProductionPlates model={model} />
-            <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%'>
-                <Box flexGrow={1} position='relative'>
-                    <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll' pe={2}>
-                        <Box>
-                            <b>Plate Labels</b>
+            <Flex gap={2} minW={300} maxW={300} w={300} flexDirection='column' h='100%' position='relative'>
+                <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll'>
+                    <Box fontWeight='bold'>Errors</Box>
+                    {production?.errors.map((e, i) => (
+                        <Box key={`err${i}`} color='red.500'>
+                            {e}
                         </Box>
+                    ))}
+                    {production?.errors.length === 0 && 'No errors'}
+                    <Box fontWeight='bold'>Warnings</Box>
+                    {production?.errors.map((e, i) => (
+                        <Box key={`warn${i}`} color='yellow.500'>
+                            {e}
+                        </Box>
+                    ))}
+                    {production?.warnings.length === 0 && 'No warnings'}
+                </Box>
+            </Flex>
+            <ProductionPlates model={model} />
+            <Flex gap={2} minW={400} maxW={400} w={400} flexDirection='column' h='100%' position='relative'>
+                {production && <Button onClick={model.download} size='sm' colorPalette='purple' variant='solid'>
+                    <FaDownload /> Download Picklists and Platemaps
+                </Button>}
+                {production && <Button onClick={model.copyLabels} size='sm' colorPalette='blue' variant='subtle'>
+                    <FaCopy /> Copy Labels
+                </Button>}
+                <Flex grow={1} pos='relative'>
+                    <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll'>
                         <PlateLabels model={model} />
                     </Box>
-                </Box>
+                </Flex>
             </Flex>
         </HStack>
     );
@@ -317,7 +404,7 @@ function CurrentPlateLabel({
 function PlatePicklist({ model, plate }: { model: EditRequestModel; plate?: ProductionPlate }) {
     const request = useBehavior(model.state.request);
     const picklist = useMemo(
-        () => (plate ? compilePicklist(model.request, plate) : ''),
+        () => (plate ? writePicklists(model.request, [plate]) : ''),
         [model, request.production.plate_labels, plate]
     );
 
@@ -370,18 +457,25 @@ function BucketInfo({ model }: { model: EditRequestModel }) {
             <Box pos='relative' h='300px' w='full'>
                 <PlateVisual model={model.plate} />
             </Box>
+            <Box>
+            <Badge colorPalette='purple'>Curve</Badge> {req.bucket.curve ? formatCurve(req.bucket.curve) : 'No curve'}
+            </Box>
             <Box fontWeight='bold'>Sample Kinds</Box>
             {req.bucket.sample_info.map((s) => (
                 <Box key={s.kind}>
-                    {s.kind}: {s.curve ? formatCurve(s.curve) : 'No curve'}
+                    <Badge colorPalette='blue'>{s.kind}</Badge> {s.curve ? formatCurve(s.curve) : 'Global curve'}
                 </Box>
             ))}
+            <Box>
+                TODO: rest of the bucket info
+            </Box>
         </VStack>
     );
 }
 
 function EditOptions({ model }: { model: EditRequestModel }) {
     const req = useBehavior(model.state.request);
+    const { canEdit } = model;
     let idx = 0;
 
     return (
@@ -394,6 +488,7 @@ function EditOptions({ model }: { model: EditRequestModel }) {
                     onChange={(v) => model.update({ name: v })}
                     index={idx++}
                     size='sm'
+                    disabled={!canEdit}
                 />
             </Field>
 
@@ -404,6 +499,7 @@ function EditOptions({ model }: { model: EditRequestModel }) {
                     onChange={(v) => model.update({ n_copies: v })}
                     index={idx++}
                     size='sm'
+                    disabled={!canEdit}
                 />
             </Field>
 
@@ -415,6 +511,7 @@ function EditOptions({ model }: { model: EditRequestModel }) {
                     onChange={(v) => model.update({ description: v })}
                     index={idx++}
                     size='sm'
+                    disabled={!canEdit}
                 />
             </Field>
             <Field label='Status'>
@@ -430,12 +527,17 @@ function EditOptions({ model }: { model: EditRequestModel }) {
 
 function SampleTable({ model }: { model: EditRequestModel }) {
     const req = useBehavior(model.state.request);
+    const { canEdit } = model;
+
+    let sampleIndex = 0;
+    const infos = new Map(req.bucket.sample_info.map((s) => [s.kind, s]));
 
     return (
         <Table.ScrollArea borderWidth='1px' w='100%' h='100%'>
             <Table.Root size='sm' stickyHeader showColumnBorder interactive>
                 <Table.Header>
                     <Table.Row bg='bg.subtle'>
+                        <Table.ColumnHeader></Table.ColumnHeader>
                         <Table.ColumnHeader>Sample ID</Table.ColumnHeader>
                         <Table.ColumnHeader>Validation</Table.ColumnHeader>
                         <Table.ColumnHeader>Source Label</Table.ColumnHeader>
@@ -447,29 +549,47 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                 </Table.Header>
 
                 <Table.Body>
-                    {req.samples.map((s, i) => (
-                        <Table.Row key={i}>
+                    {req.samples.map((s, i) => {
+                        let isControl = true;
+                        for (const kind of s.kinds) {
+                            const info = infos.get(kind);
+                            if (!info?.is_control) {
+                                isControl = false;
+                                break;
+                            }
+                        }
+                        if (!isControl) sampleIndex++;
+                        return <Table.Row key={i}>
+                            <Table.Cell>{
+                                !isControl ? sampleIndex : undefined
+                            }</Table.Cell>
                             <Table.Cell>{s.id}</Table.Cell>
                             <Table.Cell>
                                 <SampleValidation model={model} sample={s} />
                             </Table.Cell>
                             <Table.Cell>{s.source_label}</Table.Cell>
                             <Table.Cell>{s.source_well}</Table.Cell>
-                            <Table.Cell>{s.kinds?.join(', ')}</Table.Cell>
+                            <Table.Cell>
+                                <HStack gap={1}>
+                                    {s.kinds.map(k => <Badge key={k} colorPalette='blue'>{k}</Badge>)}
+
+                                </HStack>
+                                </Table.Cell>
                             <Table.Cell>{s.comment}</Table.Cell>
                             <Table.Cell textAlign='right' padding={1}>
                                 <Button
                                     size='xs'
                                     colorPalette='red'
-                                    onClick={() => model.update({ samples: req.samples.filter((p) => s !== p) })}
+                                    onClick={() => model.removeSample(s)}
                                     title='Remove'
                                     variant='subtle'
+                                    disabled={!canEdit}
                                 >
                                     <LuTrash />
                                 </Button>
                             </Table.Cell>
                         </Table.Row>
-                    ))}
+})}
                 </Table.Body>
             </Table.Root>
         </Table.ScrollArea>

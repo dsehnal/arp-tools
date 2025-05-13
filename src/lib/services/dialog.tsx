@@ -8,7 +8,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Box, Button } from '@chakra-ui/react';
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useEffect } from 'react';
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from '../hooks/use-behavior';
 import { formatError } from '../util/error';
@@ -78,6 +78,29 @@ export const DialogService = new _DialogService();
 export function DialogProvider() {
     const current = useBehavior(DialogService.dialog);
     const state = useBehavior(DialogService.state);
+
+    useEffect(() => {
+        if (!current) return;
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            // Check target is not input or textarea by tagname
+            if (e.target instanceof HTMLElement && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+                return;
+            }
+
+            e.stopPropagation();
+            e.preventDefault();
+
+            if (DialogService.state.value.isLoading) return;
+            if (e.key === 'Enter') {
+                DialogService.onOk();
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+        };
+    }, [current]);
 
     if (!current) return null;
 

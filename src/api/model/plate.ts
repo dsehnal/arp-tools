@@ -169,15 +169,25 @@ export const PlateUtils = {
     wellLabel(row: number, col: number) {
         return `${PlateUtils.rowToLabel(row)}${col + 1}`;
     },
-    labelToCoords(label: string): WellCoords {
+    labelToCoords(label: string, out: WellCoords = [-1, -1]): WellCoords {
         const match = label.match(/^([A-Z]+)(\d+)$/i);
-        if (!match) return [-1, -1];
+        if (!match) {
+            out[0] = -1;
+            out[1] = -1;
+            return out;
+        }
         const rowLabel = match[1];
         const colLabel = match[2];
         const row = PlateUtils.labelToRow(rowLabel);
         const col = +colLabel - 1;
-        if (row < 0 || col < 0) return [-1, -1];
-        return [row, col];
+        if (row < 0 || col < 0) {
+            out[0] = -1;
+            out[1] = -1;
+            return out;
+        }
+        out[0] = row;
+        out[1] = col;
+        return out;
     },
 };
 

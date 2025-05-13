@@ -10,6 +10,7 @@ export interface SmartInputProps<T> {
     onChange?: (value: T) => void;
     size?: 'xs' | 'sm';
     readOnly?: boolean;
+    disabled?: boolean;
     indexGroup?: string;
     index?: number;
     autoFocus?: boolean;
@@ -23,6 +24,7 @@ export function SmartInput<T>({
     onChange,
     size,
     readOnly,
+    disabled,
     index,
     indexGroup,
     autoFocus,
@@ -38,6 +40,7 @@ export function SmartInput<T>({
             ref={ref}
             size={size}
             readOnly={readOnly}
+            disabled={disabled}
             placeholder={placeholder}
             data-index={`${indexGroup ?? ''}-${index}`}
             autoFocus={autoFocus}

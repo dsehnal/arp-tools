@@ -21,6 +21,10 @@ export function parseCSV<T extends string>(csv: string, fields: T[]) {
     };
 }
 
+export function writeCSV(rows: any[][], delimiter = ',') {
+    return Papa.unparse(rows, { delimiter });
+}
+
 function normalizeFieldName(field: string) {
     return field.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
 }

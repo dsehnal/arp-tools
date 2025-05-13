@@ -20,11 +20,12 @@ export interface LayoutProps {
     breadcrumbs?: (BreadcrumbItem | undefined)[];
     children: ReactNode;
     buttons?: ReactNode;
+    contentPadding?: number;
 }
 
 export const Pages = [RequestsBreadcrumb, CurvesBreadcrumb, BucketsBreadcrumb, SettingsBreadcrumb];
 
-export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
+export function Layout({ breadcrumbs, children, buttons, contentPadding }: LayoutProps) {
     const navigate = useNavigate();
 
     const BL = BreadcrumbLink as any;
@@ -63,7 +64,7 @@ export function Layout({ breadcrumbs, children, buttons }: LayoutProps) {
                 <Box w={2} />
             </Flex>
             <Box flexGrow={1} position='relative' bg='gray.950'>
-                <Box position='absolute' inset={0} px={2} py={2} overflow='hidden' overflowY='auto'>
+                <Box position='absolute' inset={0} p={contentPadding ?? 2} overflow='hidden' overflowY='auto'>
                     {children}
                 </Box>
             </Box>
