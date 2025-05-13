@@ -59,12 +59,28 @@ export const PlateUtils = {
     },
     forEachColMajorIndex(
         dimensions: PlateDimensions,
-        action: (rowMajorIndex: number, row: number, col: number) => any
+        action: (rowMajorIndex: number, row: number, col: number) => any,
+        options?: { byQuadrant?: boolean }
     ) {
-        for (let col = 0; col < dimensions[1]; col++) {
-            for (let row = 0; row < dimensions[0]; row++) {
-                const index = row * dimensions[1] + col;
-                action(index, row, col);
+        if (options?.byQuadrant) {
+            for (let quadrant = 0; quadrant < 4; quadrant++) {
+                const ro = quadrant & 0x1;
+                const co = (quadrant >> 1) & 0x1;
+                for (let c = 0; c < dimensions[1] / 2; c++) {
+                    const col = 2 * c + co;
+                    for (let r = 0; r < dimensions[0] / 2; r++) {
+                        const row = 2 * r + ro;
+                        const index = row * dimensions[1] + col;
+                        action(index, row, col);
+                    }
+                }
+            }
+        } else {
+            for (let col = 0; col < dimensions[1]; col++) {
+                for (let row = 0; row < dimensions[0]; row++) {
+                    const index = row * dimensions[1] + col;
+                    action(index, row, col);
+                }
             }
         }
     },
@@ -152,6 +168,16 @@ export const PlateUtils = {
     },
     wellLabel(row: number, col: number) {
         return `${PlateUtils.rowToLabel(row)}${col + 1}`;
+    },
+    labelToCoords(label: string): WellCoords {
+        const match = label.match(/^([A-Z]+)(\d+)$/i);
+        if (!match) return [-1, -1];
+        const rowLabel = match[1];
+        const colLabel = match[2];
+        const row = PlateUtils.labelToRow(rowLabel);
+        const col = +colLabel - 1;
+        if (row < 0 || col < 0) return [-1, -1];
+        return [row, col];
     },
 };
 

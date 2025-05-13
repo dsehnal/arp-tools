@@ -20,6 +20,7 @@ export interface LiquidTransfer {
 }
 
 export interface ProductionTransfer {
+    source_plate_index: number;
     source_label: string;
     source_well: string;
     volume_l: number;
@@ -36,7 +37,7 @@ export interface ProductionWell {
 }
 
 export interface ProductionPlate {
-    kind: 'source' | 'arp';
+    kind: 'nARP' | 'intermediate' | 'arp';
     index: number;
     copy?: number;
 
@@ -45,5 +46,7 @@ export interface ProductionPlate {
 }
 
 export interface ARPProductionResult {
+    errors: string[];
+    warnings: string[];
     plates: ProductionPlate[];
 }

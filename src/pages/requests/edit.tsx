@@ -3,7 +3,7 @@ import { PlateLayouts, PlateUtils } from '@/api/model/plate';
 import { ARPProductionResult, ProductionPlate, ProductionTransfer } from '@/api/model/production';
 import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/api/model/request';
 import { getRequestSampleInfo, parseRequestSamplesCSV, validateRequestSample } from '@/api/request';
-import { compilePicklist } from '@/api/request/picklists';
+import { compilePicklist } from '@/api/request/export';
 import { buildRequest } from '@/api/request/production';
 import { Field } from '@/components/ui/field';
 import { AsyncWrapper } from '@/lib/components/async-wrapper';
@@ -261,9 +261,12 @@ function CurrentPlateVisual({ model, plate }: { model: EditRequestModel; plate?:
             plateModel.current!.update({
                 colors: plate.plate.wells.map((w, idx) => {
                     if (!w) return undefined;
+                    if (!w.concentration_m) return 'lightblue';
                     return d3s.interpolateCividis(idx / plate.plate.wells.length);
                 }),
-                labels: [],
+                labels: plate.plate.wells.map((w) => {
+                    return w?.sample_id;
+                }),
             });
         }
     }, [plate, model]);
@@ -294,10 +297,7 @@ function CurrentPlateLabel({
     plate?: ProductionPlate;
     visual: PlateModel;
 }) {
-    const selection = useBehaviorProp(
-        visual?.state,
-        (s) => s.selection
-    );
+    const selection = useBehaviorProp(visual?.state, (s) => s.selection);
     const idx = PlateUtils.firstSelectedIndex(selection);
     const well = plate?.plate.wells[idx!];
 

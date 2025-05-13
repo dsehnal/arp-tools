@@ -4,9 +4,19 @@ import { ARPRequest } from '../model/request';
 import { roundValue } from '@/lib/util/math';
 
 export function compilePicklist(request: ARPRequest, plate: ProductionPlate) {
-    const Columns = ['Source Label', 'Source Well', 'Destination Label', 'Destination Well', 'Volume', 'Volume Unit'];
+    const Columns = [
+        'Source Label',
+        'Source Well',
+        'Destination Label',
+        'Destination Well',
+        'Volume',
+        'Volume Unit',
+        'Sample ID',
+    ];
 
     const rows: string[][] = [Columns];
+
+    const isNArp = plate.kind === 'nARP';
 
     let wellIndex = 0;
     for (const well of plate.plate.wells) {
@@ -15,12 +25,14 @@ export function compilePicklist(request: ARPRequest, plate: ProductionPlate) {
 
         for (const transfer of well.transfers) {
             const row: string[] = [
-                transfer.source_label,
+                request.production.plate_labels?.[transfer.source_label] ??
+                    (!isNArp ? `<${transfer.source_label}>` : transfer.source_label),
                 transfer.source_well,
-                request.production.plate_labels?.[plate.label] ?? plate.label,
+                request.production.plate_labels?.[plate.label] ?? `<${plate.label}>`,
                 PlateUtils.rowMajorWellIndexToLabel(plate.plate.dimensions, wI),
-                `${roundValue(transfer.volume_l * 1e9, 0)}`,
-                'nL', // TODO: use uL for nARP
+                `${roundValue(transfer.volume_l * (isNArp ? 1e6 : 1e9), 0)}`,
+                isNArp ? 'uL' : 'nL',
+                transfer.concentration_m ? well.sample_id : '<solvent>',
             ];
 
             rows.push(row);

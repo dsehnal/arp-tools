@@ -19,7 +19,12 @@ export function useBehavior<T>(s: BehaviorSubject<T> | undefined): T | undefined
     );
 }
 
-export function useBehaviorProp<T, V>(s: BehaviorSubject<T>, p: (v: T) => V, operators?: OperatorFunction<V, V>[], cmp?: (a: V, b: V) => boolean): V;
+export function useBehaviorProp<T, V>(
+    s: BehaviorSubject<T>,
+    p: (v: T) => V,
+    operators?: OperatorFunction<V, V>[],
+    cmp?: (a: V, b: V) => boolean
+): V;
 export function useBehaviorProp<T, V>(
     s: BehaviorSubject<T> | undefined,
     p: (v: T) => V,
@@ -32,7 +37,11 @@ export function useBehaviorProp<T, V>(
     operators?: OperatorFunction<V, V>[],
     cmp?: (a: V, b: V) => boolean
 ): T | undefined {
-    const fns = useRef<{ p: (v: T) => V; cmp?: (a: V, b: V) => boolean, operators?: OperatorFunction<V, V>[] }>({ p, operators, cmp });
+    const fns = useRef<{ p: (v: T) => V; cmp?: (a: V, b: V) => boolean; operators?: OperatorFunction<V, V>[] }>({
+        p,
+        operators,
+        cmp,
+    });
     fns.current.p = p;
     fns.current.operators = operators;
     fns.current.cmp = cmp;
@@ -48,7 +57,7 @@ export function useBehaviorProp<T, V>(
                         skip(1),
                         map(fns.current.p),
                         distinctUntilChanged(fns.current.cmp),
-                        ...(operators || []) as [],
+                        ...((operators || []) as [])
                     )
                     .subscribe(callback)!;
 
