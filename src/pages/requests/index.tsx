@@ -166,13 +166,15 @@ function CreateRequestDialog({
     const current = useBehavior(state);
     return (
         <VStack gap={2}>
-            <Alert.Root status='info'>
-                <Alert.Indicator />
-                <Alert.Title>
-                    A snapshot of the bucket will be created. Modifying the selected bucket will only affect future
-                    requests.
-                </Alert.Title>
-            </Alert.Root>
+            {!!current.name && !current.files?.length && (
+                <Alert.Root status='info'>
+                    <Alert.Indicator />
+                    <Alert.Title>
+                        A snapshot of the bucket will be created. Modifying the selected bucket will only affect future
+                        requests.
+                    </Alert.Title>
+                </Alert.Root>
+            )}
             {current.files?.length === 0 && (
                 <SimpleSelect
                     placeholder='Select bucket...'

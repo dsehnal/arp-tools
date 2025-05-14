@@ -11,7 +11,6 @@ import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { ToastService } from '@/lib/services/toast';
-import { download } from '@/lib/util/download';
 import { uuid4 } from '@/lib/util/uuid';
 import { Box, Button, Flex, HStack, VStack } from '@chakra-ui/react';
 import { useState } from 'react';
@@ -21,7 +20,7 @@ import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { resolvePrefixedRoute } from '../routing';
 import { CurvesApi } from './api';
-import { curveBreadcrumb, CurvesBreadcrumb, DilutionCurveTable } from './common';
+import { curveBreadcrumb, CurvesBreadcrumb, DilutionCurveTable, downloadCurve } from './common';
 
 class EditCurveModel extends ReactiveModel {
     state = {
@@ -65,12 +64,7 @@ class EditCurveModel extends ReactiveModel {
             ToastService.info('Nothing to export');
             return;
         }
-
-        const data = writeCurve(this.curve);
-        download(
-            new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
-            `curve-${this.state.name.value}.json`
-        );
+        downloadCurve(this.curve, this.state.name.value);
     };
 
     async init() {

@@ -43,7 +43,7 @@ import {
 } from '@chakra-ui/react';
 import Papa from 'papaparse';
 import { useRef } from 'react';
-import { FaCopy, FaFileExport, FaPaste } from 'react-icons/fa6';
+import { FaCopy, FaFileExport, FaMagnifyingGlass, FaPaste } from 'react-icons/fa6';
 import { LuChartNoAxesCombined, LuCirclePlus, LuDownload, LuSave, LuSignal, LuTrash } from 'react-icons/lu';
 import { MdOutlineBorderClear } from 'react-icons/md';
 import { useParams } from 'react-router';
@@ -55,10 +55,11 @@ import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
 import { formatUnit } from '@/lib/util/units';
 import { CtrlOrMeta, isEventTargetInput } from '@/lib/util/events';
-import { FaEdit, FaUndo } from 'react-icons/fa';
+import { FaDownload, FaEdit, FaUndo } from 'react-icons/fa';
 import { FileDropArea } from '@/components/file-upload';
 import { memoizeLatest } from '@/lib/util/misc';
 import { validateBucket } from '@/lib/tools/bucket';
+import { downloadCurve, showCurveDetails } from '../curves/common';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -552,14 +553,7 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                         <InfoTip>Curve applied to all sample kinds, can be overridden on per kind basis.</InfoTip>
                     </Text>
 
-                    <AsyncActionButton
-                        variant='subtle'
-                        size='xs'
-                        colorPalette={bucket.curve ? 'purple' : 'orange'}
-                        action={() => model.sampleInfo.selectCurve()}
-                    >
-                        <LuChartNoAxesCombined /> {bucket.curve ? formatCurve(bucket.curve) : 'Select Curve'}
-                    </AsyncActionButton>
+                    <SelectCurveButton model={model} curve={bucket.curve} />
 
                     <HStack gap={2}>
                         <Text fontSize='md' fontWeight='bold'>
@@ -582,6 +576,55 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                 </VStack>
             </Flex>
         </VStack>
+    );
+}
+
+function SelectCurveButton({
+    model,
+    curve,
+    info,
+}: {
+    model: EditBucketModel;
+    curve?: DilutionCurve;
+    info?: BucketSampleInfo;
+}) {
+    return (
+        <Group attached>
+            <AsyncActionButton
+                variant='subtle'
+                size='xs'
+                colorPalette={curve ? 'purple' : info ? undefined : 'orange'}
+                action={() => model.sampleInfo.selectCurve(info)}
+                maxW={220}
+                overflow='hidden'
+                textOverflow='ellipsis'
+                whiteSpace='normal'
+            >
+                <LuChartNoAxesCombined /> {curve ? formatCurve(curve) : 'Select Curve'}
+            </AsyncActionButton>
+            {curve && (
+                <Button
+                    variant='outline'
+                    size='xs'
+                    colorPalette='purple'
+                    onClick={() => showCurveDetails(curve)}
+                    disabled={!curve}
+                >
+                    <FaMagnifyingGlass />
+                </Button>
+            )}
+            {curve && (
+                <Button
+                    variant='outline'
+                    size='xs'
+                    colorPalette='purple'
+                    onClick={() => downloadCurve(curve)}
+                    disabled={!curve}
+                >
+                    <FaDownload />
+                </Button>
+            )}
+        </Group>
     );
 }
 
@@ -906,14 +949,7 @@ function SampleInfoControlsRow({
             </Table.Cell>
 
             <Table.Cell p={1}>
-                <AsyncActionButton
-                    variant='subtle'
-                    colorPalette={info.curve ? 'purple' : undefined}
-                    size='xs'
-                    action={() => model.sampleInfo.selectCurve(info)}
-                >
-                    <LuChartNoAxesCombined /> {info?.curve ? formatCurve(info.curve) : 'Select Curve'}
-                </AsyncActionButton>
+                <SelectCurveButton model={model} curve={info.curve} info={info} />
             </Table.Cell>
             <Table.Cell textAlign='end' p={1}>
                 <Button variant='plain' colorPalette='red' size='xs' onClick={() => model.sampleInfo.remove(info)}>
@@ -934,13 +970,15 @@ function SelectCurveDialog({
     const current = useBehavior(state);
     return (
         <VStack gap={2}>
-            <Alert.Root status='info'>
-                <Alert.Indicator />
-                <Alert.Title>
-                    Selecting a curve will create a local copy for this bucket. If you modify the curve, you will have
-                    to re-select it.
-                </Alert.Title>
-            </Alert.Root>
+            {!!current.name && !current.files?.length && (
+                <Alert.Root status='info'>
+                    <Alert.Indicator />
+                    <Alert.Title>
+                        Selecting a curve will create a local copy for this bucket. If you modify the curve, you will
+                        have to re-select it.
+                    </Alert.Title>
+                </Alert.Root>
+            )}
             {current.files?.length === 0 && (
                 <SimpleSelect
                     placeholder='Select curve...'

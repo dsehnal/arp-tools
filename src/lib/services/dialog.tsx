@@ -19,7 +19,7 @@ export interface DialogProps<T, S> {
     body: FC<{ state?: BehaviorSubject<S>; model?: T }>;
     okContent?: string;
     onOk?: (state?: S) => any;
-    options?: { cancelButton?: boolean };
+    options?: { noFooter?: boolean; cancelButton?: boolean; size?: 'sm' | 'md' | 'lg' | 'xl' };
     model?: T;
     state?: BehaviorSubject<S>;
 }
@@ -108,7 +108,7 @@ export function DialogProvider() {
     const Body = current.body;
 
     return (
-        <DialogRoot open onEscapeKeyDown={DialogService.tryClose}>
+        <DialogRoot open onEscapeKeyDown={DialogService.tryClose} size={current.options?.size}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{current.title}</DialogTitle>
@@ -117,17 +117,19 @@ export function DialogProvider() {
                 <DialogBody>
                     <Body state={current.state} model={current.model} />
                 </DialogBody>
-                <DialogFooter>
-                    {state.error && <Box color='fg.error'>{state.error}</Box>}
-                    {current.options?.cancelButton && (
-                        <Button variant='outline' onClick={DialogService.close} disabled={state.isLoading}>
-                            Cancel
+                {!current.options?.noFooter && (
+                    <DialogFooter>
+                        {state.error && <Box color='fg.error'>{state.error}</Box>}
+                        {current.options?.cancelButton && (
+                            <Button variant='outline' onClick={DialogService.close} disabled={state.isLoading}>
+                                Cancel
+                            </Button>
+                        )}
+                        <Button colorPalette='blue' onClick={DialogService.onOk} loading={state.isLoading}>
+                            {current.okContent || 'OK'}
                         </Button>
-                    )}
-                    <Button colorPalette='blue' onClick={DialogService.onOk} loading={state.isLoading}>
-                        {current.okContent || 'OK'}
-                    </Button>
-                </DialogFooter>
+                    </DialogFooter>
+                )}
             </DialogContent>
         </DialogRoot>
     );
