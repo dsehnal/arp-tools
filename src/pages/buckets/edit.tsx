@@ -874,7 +874,7 @@ function AddWellKindDialog({ state }: { state: BehaviorSubject<string> }) {
             size='sm'
             placeholder='Enter kind...'
             value={current}
-            parse={SmartParsers.trim}
+            parse={(v) => v.replace(/[\s,;]+/g, '')}
             onChange={(v) => state.next(v)}
             autoFocus
         />
