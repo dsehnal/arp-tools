@@ -1,7 +1,7 @@
 import { Box, Flex } from '@chakra-ui/react';
 import { ReactNode } from 'react';
 import { BreadcrumbLink, BreadcrumbRoot } from '@/components/ui/breadcrumb';
-import { MenuContent, MenuItem, MenuRoot, MenuTrigger } from '@/components/ui/menu';
+import { MenuContent, MenuItem, MenuRoot, MenuTrigger, MenuSeparator } from '@/components/ui/menu';
 import { LuChevronDown, LuTableRowsSplit } from 'react-icons/lu';
 import { useNavigate, Link } from 'react-router';
 import { BucketsBreadcrumb } from './buckets/common';
@@ -9,6 +9,7 @@ import { CurvesBreadcrumb } from './curves/common';
 import { RequestsBreadcrumb } from './requests/common';
 import { resolveRoute } from './routing';
 import { SettingsBreadcrumb } from './settings/common';
+import { FaHome } from 'react-icons/fa';
 
 export interface BreadcrumbItem {
     icon?: ReactNode;
@@ -34,7 +35,7 @@ export function Layout({ breadcrumbs, children, buttons, contentPadding }: Layou
         <Flex h='100%' w='full' flexDir='column'>
             <Flex alignItems='center' bg='gray.800'>
                 <BreadcrumbRoot px={4} py={3}>
-                    <MenuRoot onSelect={(e) => navigate(resolveRoute(e.value))}>
+                    <MenuRoot>
                         <MenuTrigger asChild>
                             <BreadcrumbLink as='button'>
                                 <LuTableRowsSplit /> ARP Tools <LuChevronDown />
@@ -48,6 +49,12 @@ export function Layout({ breadcrumbs, children, buttons, contentPadding }: Layou
                                     </Link>
                                 </MenuItem>
                             ))}
+                            <MenuSeparator />
+                            <MenuItem value='/' asChild style={{ cursor: 'pointer' }}>
+                                <Link to='/'>
+                                    <FaHome /> Home
+                                </Link>
+                            </MenuItem>
                         </MenuContent>
                     </MenuRoot>
 

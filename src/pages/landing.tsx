@@ -1,4 +1,4 @@
-import { Button, Flex, HStack, VStack } from '@chakra-ui/react';
+import { Box, Button, Flex, HStack, VStack } from '@chakra-ui/react';
 import { Layout, Pages } from './layout';
 import { Link } from 'react-router';
 import { resolveRoute } from './routing';
@@ -6,7 +6,10 @@ import { resolveRoute } from './routing';
 export function LandingUI() {
     return (
         <Layout>
-            <Flex alignItems='center' justifyContent='center' height='full'>
+            <Flex alignItems='center' justifyContent='center' height='full' flexDir='column' gap={8}>
+                <Box fontSize='4rem' color='gray.700' fontWeight='bold'>
+                    ARP Tools
+                </Box>
                 <HStack gap={4}>
                     {Pages.map((b) => (
                         <Button
