@@ -1,11 +1,11 @@
-import { findCurve } from '@/api/curve';
-import { DefaultCurveOptions, DilutionCurve, DilutionCurveOptions, writeCurve } from '@/api/model/curve';
+import { findCurve } from '@/lib/tools/curve';
+import { DefaultCurveOptions, DilutionCurve, DilutionCurveOptions, writeCurve } from '@/lib/tools/model/curve';
 import { Field } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
 import { InfoTip } from '@/components/ui/toggle-tip';
-import { AsyncWrapper } from '@/lib/components/async-wrapper';
-import { AsyncActionButton } from '@/lib/components/button';
-import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
+import { AsyncWrapper } from '@/components/async-wrapper';
+import { AsyncActionButton } from '@/components/button';
+import { SmartFormatters, SmartInput, SmartParsers } from '@/components/input';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';

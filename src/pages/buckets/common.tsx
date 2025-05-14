@@ -1,13 +1,13 @@
-import { PlateModel } from '@/lib/components/plate';
+import { PlateModel } from '@/components/plate';
 import * as d3s from 'd3-scale-chromatic';
 import * as d3c from 'd3-color';
 import { BreadcrumbItem } from '../layout';
 import { LuLayoutGrid } from 'react-icons/lu';
-import { Bucket, getBucketTemplateWellKey } from '@/api/model/bucket';
+import { Bucket, getBucketTemplateWellKey } from '@/lib/tools/model/bucket';
 import { resolveRoute } from '../routing';
 import { ReactNode } from 'react';
-import { PlateUtils } from '@/api/model/plate';
-import { ProductionPlate } from '@/api/model/production';
+import { PlateUtils } from '@/lib/tools/model/plate';
+import { ProductionPlate } from '@/lib/tools/model/production';
 
 export const BucketsBreadcrumb: BreadcrumbItem = {
     icon: <LuLayoutGrid />,

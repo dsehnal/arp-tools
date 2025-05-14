@@ -1,15 +1,15 @@
-import { formatCurve } from '@/api/model/curve';
-import { PlateLayouts, PlateUtils } from '@/api/model/plate';
-import { ARPProductionResult, ProductionPlate, ProductionTransfer } from '@/api/model/production';
-import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/api/model/request';
-import { getRequestSampleInfo, parseRequestSamplesCSV, validateRequestSample } from '@/api/request';
-import { writePicklists, writeProductionZip } from '@/api/request/export';
-import { buildRequest } from '@/api/request/production';
+import { formatCurve } from '@/lib/tools/model/curve';
+import { PlateLayouts, PlateUtils } from '@/lib/tools/model/plate';
+import { ARPProductionResult, ProductionPlate, ProductionTransfer } from '@/lib/tools/model/production';
+import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/lib/tools/model/request';
+import { getRequestSampleInfo, parseRequestSamplesCSV, validateRequestSample } from '@/lib/tools/request';
+import { writePicklists, writeProductionZip } from '@/lib/tools/request/export';
+import { buildRequest } from '@/lib/tools/request/production';
 import { Field } from '@/components/ui/field';
-import { AsyncWrapper } from '@/lib/components/async-wrapper';
-import { SmartInput, SmartParsers } from '@/lib/components/input';
-import { PlateModel, PlateVisual } from '@/lib/components/plate';
-import { SimpleSelect } from '@/lib/components/select';
+import { AsyncWrapper } from '@/components/async-wrapper';
+import { SmartInput, SmartParsers } from '@/components/input';
+import { PlateModel, PlateVisual } from '@/components/plate';
+import { SimpleSelect } from '@/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior, useBehaviorProp } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
@@ -32,7 +32,7 @@ import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
 import { writeCSV } from '@/lib/util/csv';
 import { FaCopy, FaDownload } from 'react-icons/fa';
-import { FileDropArea } from '@/lib/components/file-upload';
+import { FileDropArea } from '@/components/file-upload';
 
 class EditRequestModel extends ReactiveModel {
     state = {

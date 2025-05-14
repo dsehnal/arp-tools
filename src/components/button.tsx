@@ -1,5 +1,5 @@
 import { Button, ButtonProps } from '@chakra-ui/react';
-import { useAsyncAction } from '../hooks/use-async-action';
+import { useAsyncAction } from '@/lib/hooks/use-async-action';
 
 export interface AsyncActionButtonProps extends ButtonProps {
     action: () => Promise<void>;

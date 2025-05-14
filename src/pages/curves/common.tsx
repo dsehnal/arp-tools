@@ -2,7 +2,7 @@ import { BreadcrumbItem } from '../layout';
 import { LuChartNoAxesCombined } from 'react-icons/lu';
 import { resolveRoute } from '../routing';
 import { ReactNode } from 'react';
-import { DilutionCurve, DilutionPoint } from '@/api/model/curve';
+import { DilutionCurve, DilutionPoint } from '@/lib/tools/model/curve';
 import { Table } from '@chakra-ui/react';
 import { formatUnit } from '@/lib/util/units';
 import { roundValue } from '@/lib/util/math';

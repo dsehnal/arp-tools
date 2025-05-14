@@ -1,23 +1,23 @@
-import { AsyncWrapper } from '@/lib/components/async-wrapper';
+import { AsyncWrapper } from '@/components/async-wrapper';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
-import { ARPRequest, createARPRequest } from '@/api/model/request';
+import { ARPRequest, createARPRequest } from '@/lib/tools/model/request';
 import { Alert, Badge, Button, HStack, Table, VStack } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { RequestsBreadcrumb } from './common';
-import { SimpleSelect } from '@/lib/components/select';
+import { SimpleSelect } from '@/components/select';
 import { BucketsApi } from '../buckets/api';
 import { DialogService } from '@/lib/services/dialog';
 import { resolveRoute } from '../routing';
-import { AsyncActionButton } from '@/lib/components/button';
+import { AsyncActionButton } from '@/components/button';
 import { formatISODateString } from '@/lib/util/datetime';
 import { LuCirclePlus, LuPencil, LuTrash } from 'react-icons/lu';
-import { FileDropArea } from '@/lib/components/file-upload';
-import { Bucket, readBucket } from '@/api/model/bucket';
+import { FileDropArea } from '@/components/file-upload';
+import { Bucket, readBucket } from '@/lib/tools/model/bucket';
 
 class RequestsModel extends ReactiveModel {
     state = {

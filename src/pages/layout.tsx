@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 import { BreadcrumbLink, BreadcrumbRoot } from '@/components/ui/breadcrumb';
 import { MenuContent, MenuItem, MenuRoot, MenuTrigger, MenuSeparator } from '@/components/ui/menu';
 import { LuChevronDown, LuTableRowsSplit } from 'react-icons/lu';
-import { useNavigate, Link } from 'react-router';
+import { Link } from 'react-router';
 import { BucketsBreadcrumb } from './buckets/common';
 import { CurvesBreadcrumb } from './curves/common';
 import { RequestsBreadcrumb } from './requests/common';
@@ -27,8 +27,6 @@ export interface LayoutProps {
 export const Pages = [RequestsBreadcrumb, CurvesBreadcrumb, BucketsBreadcrumb, SettingsBreadcrumb];
 
 export function Layout({ breadcrumbs, children, buttons, contentPadding }: LayoutProps) {
-    const navigate = useNavigate();
-
     const BL = BreadcrumbLink as any;
 
     return (

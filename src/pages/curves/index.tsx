@@ -1,11 +1,11 @@
-import { AsyncWrapper } from '@/lib/components/async-wrapper';
-import { FileDropArea } from '@/lib/components/file-upload';
+import { AsyncWrapper } from '@/components/async-wrapper';
+import { FileDropArea } from '@/components/file-upload';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { uuid4 } from '@/lib/util/uuid';
-import { DilutionCurve, readCurve } from '@/api/model/curve';
+import { DilutionCurve, readCurve } from '@/lib/tools/model/curve';
 import { Button, HStack, Table } from '@chakra-ui/react';
 import { Link, NavigateFunction, useNavigate } from 'react-router';
 import { BehaviorSubject } from 'rxjs';

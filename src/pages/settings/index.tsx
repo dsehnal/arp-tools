@@ -1,4 +1,4 @@
-import { AsyncWrapper } from '@/lib/components/async-wrapper';
+import { AsyncWrapper } from '@/components/async-wrapper';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';

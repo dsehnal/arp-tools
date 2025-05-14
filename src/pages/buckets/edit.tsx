@@ -6,17 +6,17 @@ import {
     DefaultBucket,
     getBucketTemplateWellKey,
     writeBucket,
-} from '@/api/model/bucket';
-import { DilutionCurve, formatCurve, readCurve, writeCurve } from '@/api/model/curve';
-import { PlateDimensions, PlateLayouts, PlateUtils } from '@/api/model/plate';
+} from '@/lib/tools/model/bucket';
+import { DilutionCurve, formatCurve, readCurve, writeCurve } from '@/lib/tools/model/curve';
+import { PlateDimensions, PlateLayouts, PlateUtils } from '@/lib/tools/model/plate';
 import { Field } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
 import { InfoTip } from '@/components/ui/toggle-tip';
-import { AsyncWrapper } from '@/lib/components/async-wrapper';
-import { AsyncActionButton } from '@/lib/components/button';
-import { SmartFormatters, SmartInput, SmartParsers } from '@/lib/components/input';
-import { PlateModel, PlateVisual } from '@/lib/components/plate';
-import { SimpleSelect } from '@/lib/components/select';
+import { AsyncWrapper } from '@/components/async-wrapper';
+import { AsyncActionButton } from '@/components/button';
+import { SmartFormatters, SmartInput, SmartParsers } from '@/components/input';
+import { PlateModel, PlateVisual } from '@/components/plate';
+import { SimpleSelect } from '@/components/select';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
@@ -43,7 +43,7 @@ import {
 import Papa from 'papaparse';
 import { useRef } from 'react';
 import { FaCopy, FaFileExport, FaPaste } from 'react-icons/fa6';
-import { LuChartNoAxesCombined, LuCheck, LuCirclePlus, LuDownload, LuSave, LuSignal, LuTrash } from 'react-icons/lu';
+import { LuChartNoAxesCombined, LuCirclePlus, LuDownload, LuSave, LuSignal, LuTrash } from 'react-icons/lu';
 import { MdOutlineBorderClear } from 'react-icons/md';
 import { useParams } from 'react-router';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyChanged } from 'rxjs';
@@ -55,7 +55,7 @@ import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from '
 import { formatUnit } from '@/lib/util/units';
 import { CtrlOrMeta, isEventTargetInput } from '@/lib/util/events';
 import { FaEdit, FaUndo } from 'react-icons/fa';
-import { FileDropArea } from '@/lib/components/file-upload';
+import { FileDropArea } from '@/components/file-upload';
 
 class EditBucketModel extends ReactiveModel {
     state = {

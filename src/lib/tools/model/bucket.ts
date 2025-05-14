@@ -1,4 +1,4 @@
-import { DilutionCurve } from '@/api/model/curve';
+import { DilutionCurve } from '@/lib/tools/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from './plate';
 
 export interface BucketData {
