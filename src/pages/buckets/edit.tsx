@@ -598,7 +598,8 @@ function SelectCurveButton({
                 maxW={220}
                 overflow='hidden'
                 textOverflow='ellipsis'
-                whiteSpace='normal'
+                whiteSpace='nowrap'
+                justifyContent='flex-start'
             >
                 <LuChartNoAxesCombined /> {curve ? formatCurve(curve) : 'Select Curve'}
             </AsyncActionButton>

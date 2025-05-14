@@ -47,7 +47,7 @@ export function validateBucket(bucket: Bucket) {
                 errors.push(`${label}: Invalid curve point index`);
             }
         }
-        if (info?.is_control && typeof well.sample_index !== 'number') {
+        if (!info?.is_control && typeof well.sample_index !== 'number') {
             errors.push(`${label}: Sample index not assigned`);
         }
     });
