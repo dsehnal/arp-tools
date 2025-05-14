@@ -450,7 +450,8 @@ function getSourceOrder(ctx: BuilderContext) {
 }
 
 function assignProductionWell(ctx: BuilderContext, src: SampleSource, well: SourceWell) {
-    const sourceVolumeL = ctx.bucket.source_labware.well_volume_l;
+    const sourceVolumeL =
+        src.depth === 0 ? ctx.bucket.source_labware.well_volume_l : ctx.bucket.intermediate_labware.well_volume_l;
     well.production_well = {
         sample_id: src.id,
         volume_l: src.depth === 0 ? Math.min(Math.ceil(well.usage_l * 1e6) / 1e6, sourceVolumeL) : src.total_volume_l,
@@ -522,7 +523,7 @@ function step3_buildSourcePlates(ctx: BuilderContext): ProductionPlate[] {
             continue;
         }
 
-        const label = depth === 0 ? 'nARP' : `Int_P${depth}`;
+        const label = depth === 0 ? 'source' : `Int_P${depth}`;
         const plate = PlateUtils.empty<ProductionWell>(ctx.bucket.intermediate_labware.dimensions);
 
         let offset = 0;
@@ -542,7 +543,7 @@ function step3_buildSourcePlates(ctx: BuilderContext): ProductionPlate[] {
 
         labelToIndex.set(label, plates.length);
         plates.push({
-            kind: depth === 0 ? 'nARP' : 'intermediate',
+            kind: depth === 0 ? 'source' : 'intermediate',
             index: plates.length,
             label,
             plate,

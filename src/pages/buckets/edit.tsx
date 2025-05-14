@@ -33,6 +33,7 @@ import {
     Box,
     Button,
     Flex,
+    Group,
     HStack,
     Input,
     Kbd,
@@ -56,6 +57,8 @@ import { formatUnit } from '@/lib/util/units';
 import { CtrlOrMeta, isEventTargetInput } from '@/lib/util/events';
 import { FaEdit, FaUndo } from 'react-icons/fa';
 import { FileDropArea } from '@/components/file-upload';
+import { memoizeLatest } from '@/lib/util/misc';
+import { validateBucket } from '@/lib/tools/bucket';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -72,6 +75,11 @@ class EditBucketModel extends ReactiveModel {
     }
 
     plate = new PlateModel(DefaultBucket.arp_labware.dimensions);
+
+    private _validation = memoizeLatest(validateBucket);
+    get validation() {
+        return this._validation(this.bucket);
+    }
 
     update(next: Partial<Bucket>, pushTemplateHistory = true) {
         if (pushTemplateHistory && this.bucket.template !== next.template) {
@@ -526,13 +534,14 @@ function EditBucket({ model }: { model: EditBucketModel }) {
             <Field label='Template' />
 
             <ActionButtons model={model} />
+
             <Flex alignItems='flex-start' w='100%' gap={2}>
                 <Box width='50%' minW='50%' maxW='50%' position='relative'>
                     <AspectRatio ratio={1.33}>
                         <PlateVisual model={model.plate} />
                     </AspectRatio>
                 </Box>
-                <VStack gap={1} flexGrow={1} alignItems='flex-start'>
+                <VStack gap={1} flexGrow={1} alignItems='flex-start' overflowY='auto'>
                     <Text fontSize='md' fontWeight='bold'>
                         Indexing
                     </Text>
@@ -562,48 +571,119 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     </HStack>
 
                     <Table.Root size='sm' interactive>
-                        <Table.Body>
+                        <Table.Body w='full'>
                             {bucket.sample_info.map((info, index) => (
                                 <SampleInfoControlsRow key={index} model={model} info={info} index={index} />
                             ))}
                         </Table.Body>
                     </Table.Root>
+
+                    <Validation model={model} />
                 </VStack>
             </Flex>
         </VStack>
     );
 }
 
-function ActionButtons({ model }: { model: EditBucketModel }) {
+function Validation({ model }: { model: EditBucketModel }) {
+    const { validation } = model;
+
+    return (
+        <HStack gap={2} w='full' alignItems='flex-start'>
+            <Box flexGrow={1} flexShrink={0} flexBasis={0}>
+                <Text fontSize='md' fontWeight='bold'>
+                    Errors
+                </Text>
+                <Box overflow='hidden' overflowY='auto' maxH={100}>
+                    {validation.errors.map((msg, i) => (
+                        <Box key={i} color='red.500'>
+                            {msg}
+                        </Box>
+                    ))}
+                    {!validation.errors.length && (
+                        <Box fontStyle='italic' color='gray.500'>
+                            No errors
+                        </Box>
+                    )}
+                </Box>
+            </Box>
+            <Box flexGrow={1} flexShrink={0} flexBasis={0}>
+                <Text fontSize='md' fontWeight='bold'>
+                    Warnings
+                </Text>
+                <Box overflow='hidden' overflowY='auto' maxH={100}>
+                    {validation.warnings.map((msg, i) => (
+                        <Box key={i} color='yellow.500'>
+                            {msg}
+                        </Box>
+                    ))}
+                    {!validation.errors.length && (
+                        <Box fontStyle='italic' color='gray.500'>
+                            No warnings
+                        </Box>
+                    )}
+                </Box>
+            </Box>
+        </HStack>
+    );
+}
+
+function TemplateShortcut({
+    model,
+    modifier,
+    shortcut,
+}: {
+    model: EditBucketModel;
+    modifier?: boolean;
+    shortcut: string;
+}) {
     const isPlateActive = useBehavior(model.plate.status.isActive);
+
+    if (!isPlateActive) return null;
+    return (
+        <Kbd size='sm' position='absolute' top='0' transform='translateY(-120%)'>
+            {modifier ? CtrlOrMeta : undefined}
+            {modifier ? ' ' : undefined}+{shortcut}
+        </Kbd>
+    );
+}
+
+function ActionButtons({ model }: { model: EditBucketModel }) {
     const history = useBehavior(model.state.templateHistory);
 
     return (
         <HStack gap={2} alignItems='flex-start' justifyContent='center' w='full'>
-            <Button variant='subtle' size='xs' onClick={model.templateBuilder.copy}>
+            <Button variant='subtle' size='xs' onClick={model.templateBuilder.copy} pos='relative'>
                 <FaCopy /> Copy
-                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+C</Kbd>}
+                <TemplateShortcut model={model} modifier shortcut='C' />
             </Button>
-            <Button variant='subtle' size='xs' onClick={model.templateBuilder.paste}>
+            <Button variant='subtle' size='xs' onClick={model.templateBuilder.paste} pos='relative'>
                 <FaPaste /> Paste Exact
-                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+V</Kbd>}
+                <TemplateShortcut model={model} modifier shortcut='V' />
             </Button>
             <Button
                 variant='subtle'
                 size='xs'
                 onClick={model.templateBuilder.pasteSmart}
                 title='Automatically increment sample indices'
+                pos='relative'
             >
                 <FaPaste /> Paste Smart
-                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+Shift+V</Kbd>}
+                <TemplateShortcut model={model} modifier shortcut='Shift+V' />
             </Button>
-            <Button variant='subtle' size='xs' onClick={model.templateBuilder.clear}>
+            <Button variant='subtle' size='xs' onClick={model.templateBuilder.clear} pos='relative'>
                 <MdOutlineBorderClear /> Clear Wells
-                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+X</Kbd>}
+                <TemplateShortcut model={model} modifier shortcut='X' />
             </Button>
-            <Button variant='subtle' size='xs' onClick={model.templateBuilder.undo} disabled={history.length === 0}>
+            <Button
+                variant='subtle'
+                size='xs'
+                onClick={model.templateBuilder.undo}
+                disabled={history.length === 0}
+                pos='relative'
+            >
                 <FaUndo /> Undo
-                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+Z</Kbd>}
+                <TemplateShortcut model={model} modifier shortcut='Z' />
             </Button>
             <Box flexGrow={1} />
             <Button variant='subtle' size='xs' onClick={model.templateBuilder.export}>
@@ -683,8 +763,6 @@ function LabwareEditor({
 }
 
 function SampleIndexing({ model }: { model: EditBucketModel }) {
-    const isPlateActive = useBehavior(model.plate.status.isActive);
-
     const sampleIndex = useRef<HTMLInputElement>(null);
     const pointIndex = useRef<HTMLInputElement>(null);
 
@@ -707,51 +785,61 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
     return (
         <>
             <HStack gap={1} alignItems='flex-start' w='100%'>
-                <Input
-                    ref={sampleIndex}
-                    size='xs'
-                    placeholder='Sample Index'
-                    w='140px'
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            (e.target as HTMLElement).blur();
-                            applySampleIndex();
-                        }
-                    }}
-                />
-                <Button variant='subtle' colorPalette='blue' size='xs' onClick={applySampleIndex}>
-                    <FaEdit /> Set Sample Index
-                    {isPlateActive && <Kbd size='sm'>1-9* / Backspace</Kbd>}
-                </Button>
+                <Group attached>
+                    <Input
+                        ref={sampleIndex}
+                        size='xs'
+                        placeholder='Sample Index'
+                        w='140px'
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                (e.target as HTMLElement).blur();
+                                applySampleIndex();
+                            }
+                        }}
+                    />
+                    <Button variant='subtle' colorPalette='blue' size='xs' onClick={applySampleIndex} pos='relative'>
+                        <FaEdit /> Set Sample Index
+                        <TemplateShortcut model={model} shortcut='1-9* / Backspace' />
+                    </Button>
+                </Group>
             </HStack>
 
             <HStack gap={1} alignItems='flex-start'>
-                <Input
-                    ref={pointIndex}
-                    size='xs'
-                    placeholder='Curve Point Index'
-                    w='140px'
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                            (e.target as HTMLElement).blur();
-                            applyPointIndex();
-                        }
-                    }}
-                />
+                <Group attached>
+                    <Input
+                        ref={pointIndex}
+                        size='xs'
+                        placeholder='Curve Point Index'
+                        w='140px'
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                (e.target as HTMLElement).blur();
+                                applyPointIndex();
+                            }
+                        }}
+                    />
+
+                    <Button
+                        variant='subtle'
+                        colorPalette='blue'
+                        size='xs'
+                        onClick={applyPointIndex}
+                        alignContent='flex-start'
+                    >
+                        <FaEdit /> Set Point Index
+                    </Button>
+                </Group>
 
                 <Button
                     variant='subtle'
                     colorPalette='blue'
                     size='xs'
-                    onClick={applyPointIndex}
-                    alignContent='flex-start'
+                    onClick={model.templateBuilder.pointIndex}
+                    pos='relative'
                 >
-                    <FaEdit /> Set Point Index
-                </Button>
-
-                <Button variant='subtle' colorPalette='blue' size='xs' onClick={model.templateBuilder.pointIndex}>
                     <LuSignal /> Linear Point Index
-                    {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+D</Kbd>}
+                    <TemplateShortcut model={model} modifier shortcut='D' />
                 </Button>
             </HStack>
         </>

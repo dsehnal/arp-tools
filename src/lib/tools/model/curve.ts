@@ -81,7 +81,7 @@ export const DefaultCurveOptions: DilutionCurveOptions = {
 };
 
 export function formatCurve(curve: DilutionCurve) {
-    const info = `pt:${curve.points.length} src:${formatUnit(curve.options?.source_concentration_m, 'M', {
+    const info = `${curve.points.length}pt src:${formatUnit(curve.options?.source_concentration_m, 'M', {
         compact: true,
     })} top:${formatUnit(curve.points[0].target_concentration_m, 'M', { compact: true })} f:${roundValue(
         curve.options?.dilution_factor ?? 0,

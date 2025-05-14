@@ -17,7 +17,7 @@ export function writeProductionZip(request: ARPRequest, production: ProductionRe
 
     const nARPPicklist = writePicklists(
         request,
-        production.plates.filter((p) => p.kind === 'nARP')
+        production.plates.filter((p) => p.kind === 'source')
     );
     const intermediatePicklist = writePicklists(
         request,
@@ -117,7 +117,7 @@ export function writePicklists(request: ARPRequest, plates: ProductionPlate[]) {
 function writePicklist(request: ARPRequest, plate: ProductionPlate, plateIndexing: 'ascending' | 'descending') {
     const rows: string[][] = [];
 
-    const isNArp = plate.kind === 'nARP';
+    const isNArp = plate.kind === 'source';
 
     const transfers: [ProductionTransfer, ProductionWell, number][] = [];
 

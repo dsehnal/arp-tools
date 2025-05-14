@@ -25,7 +25,7 @@ export interface ProductionWell {
 }
 
 export interface ProductionPlate {
-    kind: 'nARP' | 'intermediate' | 'arp';
+    kind: 'source' | 'intermediate' | 'arp';
     index: number;
     copy?: number;
 

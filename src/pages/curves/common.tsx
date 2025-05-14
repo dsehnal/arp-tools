@@ -76,7 +76,7 @@ export function DilutionCurveTable({ curve }: { curve: DilutionCurve }) {
 
                 <Table.Body>
                     {pt(
-                        'nARP',
+                        'Source',
                         {
                             actual_concentration_m: curve.nARP_concentration_M,
                             target_concentration_m: curve.nARP_concentration_M,
