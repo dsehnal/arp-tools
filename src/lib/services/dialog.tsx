@@ -12,6 +12,7 @@ import { FC, ReactNode, useEffect } from 'react';
 import { BehaviorSubject } from 'rxjs';
 import { useBehavior } from '../hooks/use-behavior';
 import { formatError } from '../util/error';
+import { isEventTargetInput } from '../util/events';
 
 export interface DialogProps<T, S> {
     title: string;
@@ -84,7 +85,7 @@ export function DialogProvider() {
 
         const onKeyDown = (e: KeyboardEvent) => {
             // Check target is not input or textarea by tagname
-            if (e.target instanceof HTMLElement && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
+            if (isEventTargetInput(e)) {
                 return;
             }
 

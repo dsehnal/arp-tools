@@ -169,6 +169,21 @@ export const PlateUtils = {
     wellLabel(row: number, col: number) {
         return `${PlateUtils.rowToLabel(row)}${col + 1}`;
     },
+    rowMajorIndexToCoords([rows, cols]: PlateDimensions, index: number, out: WellCoords = [-1, -1]): WellCoords {
+        if (index < 0 || index >= rows * cols) {
+            out[0] = -1;
+            out[1] = -1;
+            return out;
+        }
+        const row = Math.floor(index / cols);
+        const col = index % cols;
+        out[0] = row;
+        out[1] = col;
+        return out; 
+    },
+    coordsToRowMajorIndex([, cols]: PlateDimensions, [row, col]: WellCoords): number {
+        return row * cols + col;
+    },
     labelToCoords(label: string, out: WellCoords = [-1, -1]): WellCoords {
         const match = label.match(/^([A-Z]+)(\d+)$/i);
         if (!match) {

@@ -4,6 +4,7 @@ import * as d3c from 'd3-color';
 import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
 import { ReactiveModel } from '../reactive-model';
 import { arrayEqual, resizeArray } from '../util/collections';
+import { isEventTargetInput } from '../util/events';
 
 export interface PlateState {
     dimensions: PlateDimensions;
@@ -22,6 +23,8 @@ export class PlateModel extends ReactiveModel {
         highlight: [],
     });
 
+    isActive = new BehaviorSubject(false);
+
     private parent: HTMLDivElement | undefined = undefined;
 
     metrics: ReturnType<typeof getCanvasMetrics> = { dx: 1, dy: 1 };
@@ -36,6 +39,10 @@ export class PlateModel extends ReactiveModel {
 
     get dimensions() {
         return this.state.value.dimensions;
+    }
+
+    get isMouseInside() {
+        return this.isActive.value;
     }
 
     layers: {
@@ -85,7 +92,6 @@ export class PlateModel extends ReactiveModel {
     };
 
     private mouseMoveCoords: WellCoords = [0, 0];
-    private isMouseInside = false;
     private isMouseDown = false;
     private mouseDownCoords: WellCoords = [0, 0];
     private prevSelection: PlateSelection | undefined = undefined;
@@ -135,6 +141,53 @@ export class PlateModel extends ReactiveModel {
         this.isMouseDown = false;
     }
 
+    private handleKeyDown(ev: KeyboardEvent) {
+        if (isEventTargetInput(ev) || !this.isMouseInside) return;
+        if (!ev.key.startsWith('Arrow')) return;
+
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        const dir = [0, 0];
+        switch (ev.key) {
+            case 'ArrowUp':
+                dir[0] = -1;
+                break;
+            case 'ArrowDown':
+                dir[0] = 1;
+                break;
+            case 'ArrowLeft':
+                dir[1] = -1;
+                break;
+            case 'ArrowRight':
+                dir[1] = 1;
+                break;
+            default:
+                return;
+        }
+
+        let prevSelection = this.state.value.selection;
+        if (PlateUtils.isSelectionEmpty(prevSelection)) {
+            prevSelection = PlateUtils.emptySelection(this.dimensions);
+            prevSelection[0] = 1 as any;
+        }
+        const nextSelection = PlateUtils.emptySelection(this.dimensions);
+
+        const coords: WellCoords = [0, 0];
+        PlateUtils.forEachSelectionIndex(prevSelection, (index) => {
+            PlateUtils.rowMajorIndexToCoords(this.dimensions, index, coords);
+            coords[0] += dir[0];
+            coords[1] += dir[1];
+            if (coords[0] < 0) coords[0] = this.dimensions[0] - 1;
+            if (coords[0] >= this.dimensions[0]) coords[0] = 0;
+            if (coords[1] < 0) coords[1] = this.dimensions[1] - 1;
+            if (coords[1] >= this.dimensions[1]) coords[1] = 0;
+            nextSelection[PlateUtils.coordsToRowMajorIndex(this.dimensions, coords)] = 1 as any;
+        })
+
+        this.update({ selection: nextSelection });
+    }
+
     private getWellCoords(ev: MouseEvent, coords: WellCoords) {
         const { size } = this;
         if (!size) {
@@ -164,18 +217,22 @@ export class PlateModel extends ReactiveModel {
         this.event(parent, 'mousedown', (ev) => this.handleMouseDown(ev));
         this.event(window, 'mouseup', () => this.handleMouseUp());
         this.event(parent, 'mouseenter', () => {
-            this.isMouseInside = true;
+            this.isActive.next(true);
         });
         this.event(parent, 'mouseout', () => {
-            this.isMouseInside = false;
+            this.isActive.next(false);
             if (!this.isMouseDown) {
                 this.update({ highlight: PlateUtils.emptySelection(this.dimensions) });
             }
         });
+        this.event(window, 'keydown', (ev) => this.handleKeyDown(ev));
 
         this.handleResize();
 
         this.subscribe(this.state.pipe(distinctUntilChanged((a, b) => arrayEqual(a.dimensions, b.dimensions))), () => {
+            drawPlateGrid(this);
+        });
+        this.subscribe(this.isActive, () => {
             drawPlateGrid(this);
         });
         this.subscribe(this.state.pipe(distinctUntilChanged((a, b) => arrayEqual(a.highlight, b.highlight))), () => {
@@ -226,8 +283,9 @@ export class PlateModel extends ReactiveModel {
 }
 
 const DefaultPlateColors = {
-    highlight: 'rgba(163, 207, 255, 0.66)',
+    highlight: 'rgba(6, 7, 7, 0.66)',
     select: 'rgba(23, 61, 166, 0.66)',
+    active: '#3b82f6',
 };
 
 const PlateVisualConstants = {
@@ -288,7 +346,9 @@ function drawPlateGrid(plate: PlateModel) {
     ctx.closePath();
 
     ctx.setLineDash([]);
-    ctx.strokeStyle = 'rgba(155, 155, 155, 1.0)';
+    ctx.strokeStyle = plate.isMouseInside
+        ? DefaultPlateColors.active
+        : 'rgba(155, 155, 155, 1.0)';
     ctx.lineWidth = 1;
     ctx.strokeRect(
         PlateVisualConstants.leftOffset,
@@ -301,7 +361,9 @@ function drawPlateGrid(plate: PlateModel) {
     ctx.font = `${labelSize}px monospace`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#999';
+    ctx.fillStyle = plate.isMouseInside
+        ? DefaultPlateColors.active
+        : '#999';
 
     for (let row = 0; row < rows; row++) {
         ctx.fillText(

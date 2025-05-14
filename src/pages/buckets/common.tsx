@@ -60,6 +60,7 @@ export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket, pro
         }
     });
 
+
     plate.update({
         dimensions: arp_labware.dimensions,
         colors: template.map((w, idx) => {
@@ -67,18 +68,24 @@ export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket, pro
 
             const key = getBucketTemplateWellKey(w);
             if (!key || !w) return undefined;
-            const isControl = infos.get(w.kind!)?.is_control;
+            const info = infos.get(w.kind!);
+            const curve = info?.curve ?? bucket.curve;
+            const isControl = info?.is_control;
             const keys = isControl ? ctrlKeys : sampleKeys;
             const t = keys.get(key)! / (keys.size - 1 || 1) || 0;
 
             // TODO: cache this?
             let color = isControl ? d3s.interpolateCividis(t) : d3s.interpolateWarm(t);
             if (typeof w.point_index === 'number') {
-                const hsl = d3c.hsl(color);
-                const maxIndex = maxPointIndex.get(key)! || 1;
-                if (maxIndex > 1) {
-                    hsl.l = 0.5 + (0.4 * w.point_index) / maxIndex;
-                    color = d3c.rgb(hsl).formatRgb();
+                if (curve && !curve?.points[w.point_index]) {
+                    color = 'darkred';
+                } else {
+                    const hsl = d3c.hsl(color);
+                    const maxIndex = maxPointIndex.get(key)! || 1;
+                    if (maxIndex > 1) {
+                        hsl.l = 0.5 + (0.4 * w.point_index) / maxIndex;
+                        color = d3c.rgb(hsl).formatRgb();
+                    }
                 }
             }
 

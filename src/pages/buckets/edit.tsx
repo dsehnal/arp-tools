@@ -125,7 +125,7 @@ class EditBucketModel extends ReactiveModel {
                 model: options,
                 onOk: (state) => {
                     const srcCurve = curves.find((c) => c.id === state);
-                    const curve = writeCurve(srcCurve!).data;
+                    const curve = srcCurve ? writeCurve(srcCurve).data : undefined;
                     if (!info) {
                         this.update({ curve });
                     } else {
