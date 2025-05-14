@@ -60,7 +60,6 @@ export function updateBucketTemplatePlate(plate: PlateModel, bucket: Bucket, pro
         }
     });
 
-
     plate.update({
         dimensions: arp_labware.dimensions,
         colors: template.map((w, idx) => {

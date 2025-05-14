@@ -23,7 +23,9 @@ export class PlateModel extends ReactiveModel {
         highlight: [],
     });
 
-    isActive = new BehaviorSubject(false);
+    status = {
+        isActive: new BehaviorSubject(false),
+    };
 
     private parent: HTMLDivElement | undefined = undefined;
 
@@ -41,8 +43,8 @@ export class PlateModel extends ReactiveModel {
         return this.state.value.dimensions;
     }
 
-    get isMouseInside() {
-        return this.isActive.value;
+    get isActive() {
+        return this.status.isActive.value;
     }
 
     layers: {
@@ -75,6 +77,29 @@ export class PlateModel extends ReactiveModel {
         this.state.next(update);
     }
 
+    moveSelection(dir: [number, number]) {
+        let prevSelection = this.state.value.selection;
+        if (PlateUtils.isSelectionEmpty(prevSelection)) {
+            prevSelection = PlateUtils.emptySelection(this.dimensions);
+            prevSelection[0] = 1 as any;
+        }
+        const nextSelection = PlateUtils.emptySelection(this.dimensions);
+
+        const coords: WellCoords = [0, 0];
+        PlateUtils.forEachSelectionIndex(prevSelection, (index) => {
+            PlateUtils.rowMajorIndexToCoords(this.dimensions, index, coords);
+            coords[0] += dir[0];
+            coords[1] += dir[1];
+            if (coords[0] < 0) coords[0] = this.dimensions[0] - 1;
+            if (coords[0] >= this.dimensions[0]) coords[0] = 0;
+            if (coords[1] < 0) coords[1] = this.dimensions[1] - 1;
+            if (coords[1] >= this.dimensions[1]) coords[1] = 0;
+            nextSelection[PlateUtils.coordsToRowMajorIndex(this.dimensions, coords)] = 1 as any;
+        });
+
+        this.update({ selection: nextSelection });
+    }
+
     private handleResize = () => {
         const { size } = this;
         if (!size) return;
@@ -97,11 +122,11 @@ export class PlateModel extends ReactiveModel {
     private prevSelection: PlateSelection | undefined = undefined;
 
     private handleMouseMove(ev: MouseEvent) {
-        if (this.isMouseDown || this.isMouseInside) {
+        if (this.isMouseDown || this.isActive) {
             ev.preventDefault();
         }
 
-        if (!this.isMouseInside && !this.isMouseDown) return;
+        if (!this.isActive && !this.isMouseDown) return;
 
         this.getWellCoords(ev, this.mouseMoveCoords);
 
@@ -142,13 +167,13 @@ export class PlateModel extends ReactiveModel {
     }
 
     private handleKeyDown(ev: KeyboardEvent) {
-        if (isEventTargetInput(ev) || !this.isMouseInside) return;
+        if (isEventTargetInput(ev) || !this.isActive) return;
         if (!ev.key.startsWith('Arrow')) return;
 
         ev.preventDefault();
         ev.stopPropagation();
 
-        const dir = [0, 0];
+        const dir: [number, number] = [0, 0];
         switch (ev.key) {
             case 'ArrowUp':
                 dir[0] = -1;
@@ -166,26 +191,7 @@ export class PlateModel extends ReactiveModel {
                 return;
         }
 
-        let prevSelection = this.state.value.selection;
-        if (PlateUtils.isSelectionEmpty(prevSelection)) {
-            prevSelection = PlateUtils.emptySelection(this.dimensions);
-            prevSelection[0] = 1 as any;
-        }
-        const nextSelection = PlateUtils.emptySelection(this.dimensions);
-
-        const coords: WellCoords = [0, 0];
-        PlateUtils.forEachSelectionIndex(prevSelection, (index) => {
-            PlateUtils.rowMajorIndexToCoords(this.dimensions, index, coords);
-            coords[0] += dir[0];
-            coords[1] += dir[1];
-            if (coords[0] < 0) coords[0] = this.dimensions[0] - 1;
-            if (coords[0] >= this.dimensions[0]) coords[0] = 0;
-            if (coords[1] < 0) coords[1] = this.dimensions[1] - 1;
-            if (coords[1] >= this.dimensions[1]) coords[1] = 0;
-            nextSelection[PlateUtils.coordsToRowMajorIndex(this.dimensions, coords)] = 1 as any;
-        })
-
-        this.update({ selection: nextSelection });
+        this.moveSelection(dir);
     }
 
     private getWellCoords(ev: MouseEvent, coords: WellCoords) {
@@ -217,10 +223,10 @@ export class PlateModel extends ReactiveModel {
         this.event(parent, 'mousedown', (ev) => this.handleMouseDown(ev));
         this.event(window, 'mouseup', () => this.handleMouseUp());
         this.event(parent, 'mouseenter', () => {
-            this.isActive.next(true);
+            this.status.isActive.next(true);
         });
         this.event(parent, 'mouseout', () => {
-            this.isActive.next(false);
+            this.status.isActive.next(false);
             if (!this.isMouseDown) {
                 this.update({ highlight: PlateUtils.emptySelection(this.dimensions) });
             }
@@ -232,7 +238,7 @@ export class PlateModel extends ReactiveModel {
         this.subscribe(this.state.pipe(distinctUntilChanged((a, b) => arrayEqual(a.dimensions, b.dimensions))), () => {
             drawPlateGrid(this);
         });
-        this.subscribe(this.isActive, () => {
+        this.subscribe(this.status.isActive, () => {
             drawPlateGrid(this);
         });
         this.subscribe(this.state.pipe(distinctUntilChanged((a, b) => arrayEqual(a.highlight, b.highlight))), () => {
@@ -346,9 +352,7 @@ function drawPlateGrid(plate: PlateModel) {
     ctx.closePath();
 
     ctx.setLineDash([]);
-    ctx.strokeStyle = plate.isMouseInside
-        ? DefaultPlateColors.active
-        : 'rgba(155, 155, 155, 1.0)';
+    ctx.strokeStyle = plate.isActive ? DefaultPlateColors.active : 'rgba(155, 155, 155, 1.0)';
     ctx.lineWidth = 1;
     ctx.strokeRect(
         PlateVisualConstants.leftOffset,
@@ -361,9 +365,7 @@ function drawPlateGrid(plate: PlateModel) {
     ctx.font = `${labelSize}px monospace`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = plate.isMouseInside
-        ? DefaultPlateColors.active
-        : '#999';
+    ctx.fillStyle = plate.isActive ? DefaultPlateColors.active : '#999';
 
     for (let row = 0; row < rows; row++) {
         ctx.fillText(
@@ -403,10 +405,10 @@ function drawPlateSelection(plate: PlateModel, target: HTMLCanvasElement, select
             if (!sel) continue;
 
             ctx.fillRect(
-                PlateVisualConstants.leftOffset + 0.5 + col * dx,
-                PlateVisualConstants.topOffset + 0.5 + row * dy,
-                dx,
-                dy
+                PlateVisualConstants.leftOffset + col * dx,
+                PlateVisualConstants.topOffset + row * dy,
+                dx + 0.5,
+                dy + 0.5
             );
         }
     }

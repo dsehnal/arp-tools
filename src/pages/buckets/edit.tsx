@@ -26,7 +26,20 @@ import { ToastService } from '@/lib/services/toast';
 import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/collections';
 import { download } from '@/lib/util/download';
 import { uuid4 } from '@/lib/util/uuid';
-import { Alert, AspectRatio, Badge, Box, Button, Flex, HStack, Input, Table, Text, VStack } from '@chakra-ui/react';
+import {
+    Alert,
+    AspectRatio,
+    Badge,
+    Box,
+    Button,
+    Flex,
+    HStack,
+    Input,
+    Kbd,
+    Table,
+    Text,
+    VStack,
+} from '@chakra-ui/react';
 import Papa from 'papaparse';
 import { useRef } from 'react';
 import { FaCopy, FaFileExport, FaPaste } from 'react-icons/fa6';
@@ -40,10 +53,13 @@ import { resolvePrefixedRoute } from '../routing';
 import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
 import { formatUnit } from '@/lib/util/units';
+import { CtrlOrMeta, isEventTargetInput } from '@/lib/util/events';
+import { FaEdit, FaUndo } from 'react-icons/fa';
 
 class EditBucketModel extends ReactiveModel {
     state = {
         bucket: new BehaviorSubject(DefaultBucket),
+        templateHistory: new BehaviorSubject<Bucket['template'][]>([]),
     };
 
     get bucket() {
@@ -56,7 +72,10 @@ class EditBucketModel extends ReactiveModel {
 
     plate = new PlateModel(DefaultBucket.arp_labware.dimensions);
 
-    update(next: Partial<Bucket>) {
+    update(next: Partial<Bucket>, pushTemplateHistory = true) {
+        if (pushTemplateHistory && this.bucket.template !== next.template) {
+            this.state.templateHistory.next([...this.state.templateHistory.value, this.bucket.template]);
+        }
         this.state.bucket.next({ ...this.bucket, ...next });
     }
 
@@ -247,6 +266,13 @@ class EditBucketModel extends ReactiveModel {
                 template: wells,
             });
         },
+        undo: () => {
+            const history = this.state.templateHistory.value;
+            const prev = history[history.length - 1];
+            if (!prev) return;
+            this.state.templateHistory.next(history.slice(0, history.length - 1));
+            this.update({ template: prev }, false);
+        },
         export: () => {
             const rows: string[][] = [
                 ['Well', 'Row', 'Col', 'Kind', 'Sample Index', 'Point Index', 'Is Control', 'Concentration'],
@@ -273,6 +299,36 @@ class EditBucketModel extends ReactiveModel {
         },
     };
 
+    private getShortcutAction(ev: KeyboardEvent) {
+        if (ev.ctrlKey || ev.metaKey) {
+            if (/^\d$/.test(ev.key)) {
+                const kind = this.bucket.sample_info[+ev.key - 1]?.kind;
+                if (kind) {
+                    return () => this.templateBuilder.updateWell({ kind });
+                }
+            }
+
+            const key = ev.key.toLowerCase();
+            if (key === 'c') {
+                return this.templateBuilder.copy;
+            } else if (key.toLowerCase() === 'v' && !ev.shiftKey) {
+                return this.templateBuilder.paste;
+            } else if (key === 'v' && ev.shiftKey) {
+                return this.templateBuilder.pasteSmart;
+            } else if (key === 'x') {
+                return this.templateBuilder.clear;
+            } else if (key === 'd') {
+                return this.templateBuilder.pointIndex;
+            } else if (key === 'z') {
+                return this.templateBuilder.undo;
+            }
+        }
+
+        if (ev.key === 'Enter') {
+            return () => this.plate.moveSelection([1, 0]);
+        }
+    }
+
     mount(): void {
         this.subscribe(
             combineLatest([
@@ -285,6 +341,45 @@ class EditBucketModel extends ReactiveModel {
                 this.syncPlate();
             }
         );
+
+        let currentSampleIndex = '';
+
+        this.subscribe(this.plate.state.pipe(distinctUntilKeyChanged('selection')), () => {
+            currentSampleIndex = '';
+        });
+
+        this.event(window, 'keydown', (ev) => {
+            if (!this.plate.isActive || isEventTargetInput(ev)) return;
+
+            let updateSampleIndex = false;
+            if (!ev.ctrlKey && !ev.metaKey) {
+                const isNum = /^\d$/.test(ev.key);
+                if (isNum) {
+                    currentSampleIndex += ev.key;
+                    updateSampleIndex = true;
+                } else if (ev.key === 'Backspace') {
+                    currentSampleIndex = currentSampleIndex.slice(0, currentSampleIndex.length - 1);
+                    updateSampleIndex = true;
+                } else {
+                    currentSampleIndex = '';
+                }
+            }
+
+            let action: (() => void) | undefined;
+            if (updateSampleIndex) {
+                const idx = SmartParsers.number(currentSampleIndex);
+                action = () =>
+                    this.templateBuilder.updateWell({
+                        sample_index: idx === null ? undefined : idx - 1,
+                    });
+            } else {
+                action = this.getShortcutAction(ev);
+            }
+            if (!action) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            action?.();
+        });
     }
 
     save = async () => {
@@ -420,6 +515,9 @@ function EditBucket({ model }: { model: EditBucketModel }) {
             <LabwareEditor model={model} kind='intermediate_labware' />
             <LabwareEditor model={model} kind='arp_labware' />
 
+            <Field label='Template' />
+
+            <ActionButtons model={model} />
             <Flex alignItems='flex-start' w='100%' gap={2}>
                 <Box width='50%' minW='50%' maxW='50%' position='relative'>
                     <AspectRatio ratio={1.33}>
@@ -427,32 +525,6 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     </AspectRatio>
                 </Box>
                 <VStack gap={1} flexGrow={1} alignItems='flex-start'>
-                    <Text fontSize='md' fontWeight='bold'>
-                        Actions
-                    </Text>
-                    <HStack gap={2} alignItems='flex-start' w='100%'>
-                        <Button variant='subtle' size='xs' onClick={model.templateBuilder.copy}>
-                            <FaCopy /> Copy
-                        </Button>
-                        <Button variant='subtle' size='xs' onClick={model.templateBuilder.paste}>
-                            <FaPaste /> Paste Exact
-                        </Button>
-                        <Button
-                            variant='subtle'
-                            size='xs'
-                            onClick={model.templateBuilder.pasteSmart}
-                            title='Automatically increment sample indices'
-                        >
-                            <FaPaste /> Paste Smart
-                        </Button>
-                        <Button variant='subtle' size='xs' onClick={model.templateBuilder.clear}>
-                            <MdOutlineBorderClear /> Clear Selected Wells
-                        </Button>
-                        <Button variant='subtle' size='xs' onClick={model.templateBuilder.export}>
-                            <FaFileExport /> Export CSV
-                        </Button>
-                    </HStack>
-
                     <Text fontSize='md' fontWeight='bold'>
                         Indexing
                     </Text>
@@ -484,13 +556,52 @@ function EditBucket({ model }: { model: EditBucketModel }) {
                     <Table.Root size='sm' interactive>
                         <Table.Body>
                             {bucket.sample_info.map((info, index) => (
-                                <SampleInfoControlsRow key={index} model={model} info={info} />
+                                <SampleInfoControlsRow key={index} model={model} info={info} index={index} />
                             ))}
                         </Table.Body>
                     </Table.Root>
                 </VStack>
             </Flex>
         </VStack>
+    );
+}
+
+function ActionButtons({ model }: { model: EditBucketModel }) {
+    const isPlateActive = useBehavior(model.plate.status.isActive);
+    const history = useBehavior(model.state.templateHistory);
+
+    return (
+        <HStack gap={2} alignItems='flex-start' w='full'>
+            <Button variant='subtle' size='xs' onClick={model.templateBuilder.copy}>
+                <FaCopy /> Copy
+                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+C</Kbd>}
+            </Button>
+            <Button variant='subtle' size='xs' onClick={model.templateBuilder.paste}>
+                <FaPaste /> Paste Exact
+                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+V</Kbd>}
+            </Button>
+            <Button
+                variant='subtle'
+                size='xs'
+                onClick={model.templateBuilder.pasteSmart}
+                title='Automatically increment sample indices'
+            >
+                <FaPaste /> Paste Smart
+                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+Shift+V</Kbd>}
+            </Button>
+            <Button variant='subtle' size='xs' onClick={model.templateBuilder.clear}>
+                <MdOutlineBorderClear /> Clear Selected Wells
+                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+X</Kbd>}
+            </Button>
+            <Button variant='subtle' size='xs' onClick={model.templateBuilder.undo} disabled={history.length === 0}>
+                <FaUndo /> Undo
+                {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+Z</Kbd>}
+            </Button>
+            <Box flexGrow={1} />
+            <Button variant='subtle' size='xs' onClick={model.templateBuilder.export}>
+                <FaFileExport /> Export Template CSV
+            </Button>
+        </HStack>
     );
 }
 
@@ -564,6 +675,8 @@ function LabwareEditor({
 }
 
 function SampleIndexing({ model }: { model: EditBucketModel }) {
+    const isPlateActive = useBehavior(model.plate.status.isActive);
+
     const sampleIndex = useRef<HTMLInputElement>(null);
     const pointIndex = useRef<HTMLInputElement>(null);
 
@@ -599,7 +712,8 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
                     }}
                 />
                 <Button variant='subtle' colorPalette='blue' size='xs' onClick={applySampleIndex}>
-                    <LuCheck /> Apply Sample Index
+                    <FaEdit /> Set Sample Index
+                    {isPlateActive && <Kbd size='sm'>1-9* / Backspace</Kbd>}
                 </Button>
             </HStack>
 
@@ -624,18 +738,29 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
                     onClick={applyPointIndex}
                     alignContent='flex-start'
                 >
-                    <LuCheck /> Apply Point Index
+                    <FaEdit /> Set Point Index
                 </Button>
 
                 <Button variant='subtle' colorPalette='blue' size='xs' onClick={model.templateBuilder.pointIndex}>
-                    <LuSignal /> Apply Linear Point Index
+                    <LuSignal /> Linear Point Index
+                    {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+D</Kbd>}
                 </Button>
             </HStack>
         </>
     );
 }
 
-function SampleInfoControlsRow({ model, info }: { model: EditBucketModel; info: BucketSampleInfo }) {
+function SampleInfoControlsRow({
+    model,
+    info,
+    index,
+}: {
+    model: EditBucketModel;
+    info: BucketSampleInfo;
+    index: number;
+}) {
+    const isPlateActive = useBehavior(model.plate.status.isActive);
+
     return (
         <Table.Row>
             <Table.Cell p={1} w={6}>
@@ -645,7 +770,13 @@ function SampleInfoControlsRow({ model, info }: { model: EditBucketModel; info: 
                     size='xs'
                     onClick={() => model.templateBuilder.updateWell({ kind: info.kind })}
                 >
-                    <LuCheck /> Apply
+                    <FaEdit />
+                    {!isPlateActive && 'Apply'}
+                    {isPlateActive && (
+                        <Kbd size='sm'>
+                            {CtrlOrMeta}+{index + 1}
+                        </Kbd>
+                    )}
                 </Button>
             </Table.Cell>
             <Table.Cell>
@@ -663,7 +794,7 @@ function SampleInfoControlsRow({ model, info }: { model: EditBucketModel; info: 
                     >
                         Control
                     </Switch>
-                    {info.is_control && (
+                    {/* {info.is_control && (
                         <Box maxW='140px'>
                             <SmartInput
                                 size='xs'
@@ -674,7 +805,7 @@ function SampleInfoControlsRow({ model, info }: { model: EditBucketModel; info: 
                                 }
                             />
                         </Box>
-                    )}
+                    )} */}
                 </HStack>
             </Table.Cell>
 

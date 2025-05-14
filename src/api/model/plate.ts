@@ -179,7 +179,7 @@ export const PlateUtils = {
         const col = index % cols;
         out[0] = row;
         out[1] = col;
-        return out; 
+        return out;
     },
     coordsToRowMajorIndex([, cols]: PlateDimensions, [row, col]: WellCoords): number {
         return row * cols + col;
