@@ -1,6 +1,6 @@
 import { Input } from '@chakra-ui/react';
 import { useEffect, useRef } from 'react';
-import { roundValue } from '../util/math';
+import { roundValue } from '@/lib/util/math';
 
 export interface SmartInputProps<T> {
     value: T;

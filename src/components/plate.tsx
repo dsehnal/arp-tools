@@ -2,9 +2,9 @@ import { PlateColors, PlateDimensions, PlateLabels, PlateSelection, PlateUtils, 
 import { useEffect, useRef } from 'react';
 import * as d3c from 'd3-color';
 import { BehaviorSubject, distinctUntilChanged } from 'rxjs';
-import { ReactiveModel } from '../reactive-model';
-import { arrayEqual, resizeArray } from '../util/collections';
-import { isEventTargetInput } from '../util/events';
+import { ReactiveModel } from '@/lib/reactive-model';
+import { arrayEqual, resizeArray } from '@/lib/util/collections';
+import { isEventTargetInput } from '@/lib/util/events';
 
 export interface PlateState {
     dimensions: PlateDimensions;
