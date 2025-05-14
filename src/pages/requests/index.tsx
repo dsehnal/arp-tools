@@ -16,6 +16,8 @@ import { resolveRoute } from '../routing';
 import { AsyncActionButton } from '@/lib/components/button';
 import { formatISODateString } from '@/lib/util/datetime';
 import { LuCirclePlus, LuPencil, LuTrash } from 'react-icons/lu';
+import { FileDropArea } from '@/lib/components/file-upload';
+import { Bucket, readBucket } from '@/api/model/bucket';
 
 class RequestsModel extends ReactiveModel {
     state = {
@@ -30,14 +32,21 @@ class RequestsModel extends ReactiveModel {
     async createNew(navigate: NavigateFunction) {
         const buckets = await BucketsApi.list();
         const options = buckets.map((b) => [b.id, b.name || 'unnamed']);
-        const state = new BehaviorSubject('');
+        const state = new BehaviorSubject({ name: '', files: [] });
         DialogService.show({
             title: 'Create Request',
             body: CreateRequestDialog,
             state,
             model: options,
-            onOk: async (state) => {
-                const bucket = buckets.find((c) => c.id === state);
+            onOk: async (state: { name: string | undefined; files: File[] }) => {
+                let bucket: Bucket | undefined;
+
+                if (state.files.length) {
+                    const json = JSON.parse(await state.files[0].text());
+                    bucket = readBucket(json);
+                } else {
+                    bucket = buckets.find((c) => c.id === state.name);
+                }
                 if (!bucket) return;
 
                 const req = createARPRequest(bucket);
@@ -152,7 +161,7 @@ function CreateRequestDialog({
     state,
 }: {
     model: [string, string][];
-    state: BehaviorSubject<string | undefined>;
+    state: BehaviorSubject<{ name: string | undefined; files: File[] }>;
 }) {
     const current = useBehavior(state);
     return (
@@ -164,13 +173,16 @@ function CreateRequestDialog({
                     requests.
                 </Alert.Title>
             </Alert.Root>
-            <SimpleSelect
-                placeholder='Select bucket...'
-                value={current}
-                allowEmpty
-                onChange={(v) => state.next(v)}
-                options={options}
-            />
+            {current.files?.length === 0 && (
+                <SimpleSelect
+                    placeholder='Select bucket...'
+                    value={current.name}
+                    allowEmpty
+                    onChange={(v) => state.next({ ...current, name: v })}
+                    options={options}
+                />
+            )}
+            <FileDropArea onChange={(files) => state.next({ ...current, files })} extensions={['.json']} />
         </VStack>
     );
 }

@@ -7,7 +7,7 @@ import {
     getBucketTemplateWellKey,
     writeBucket,
 } from '@/api/model/bucket';
-import { formatCurve, writeCurve } from '@/api/model/curve';
+import { DilutionCurve, formatCurve, readCurve, writeCurve } from '@/api/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/api/model/plate';
 import { Field } from '@/components/ui/field';
 import { Switch } from '@/components/ui/switch';
@@ -55,6 +55,7 @@ import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from '
 import { formatUnit } from '@/lib/util/units';
 import { CtrlOrMeta, isEventTargetInput } from '@/lib/util/events';
 import { FaEdit, FaUndo } from 'react-icons/fa';
+import { FileDropArea } from '@/lib/components/file-upload';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -136,15 +137,22 @@ class EditBucketModel extends ReactiveModel {
         selectCurve: async (info?: BucketSampleInfo) => {
             const curves = await CurvesApi.list();
             const options = curves.map((c) => [c.id, formatCurve(c)]);
-            const state = new BehaviorSubject('');
+            const state = new BehaviorSubject({ name: '', files: [] });
             DialogService.show({
                 title: 'Select Curve',
                 body: SelectCurveDialog,
                 state,
                 model: options,
-                onOk: (state) => {
-                    const srcCurve = curves.find((c) => c.id === state);
-                    const curve = srcCurve ? writeCurve(srcCurve).data : undefined;
+                onOk: async (state: { name?: string; files: File[] }) => {
+                    let curve: DilutionCurve | undefined;
+
+                    if (state.files.length) {
+                        const json = JSON.parse(await state.files[0].text());
+                        curve = readCurve(json);
+                    } else {
+                        const srcCurve = curves.find((c) => c.id === state.name);
+                        curve = srcCurve ? writeCurve(srcCurve).data : undefined;
+                    }
                     if (!info) {
                         this.update({ curve });
                     } else {
@@ -833,7 +841,7 @@ function SelectCurveDialog({
     state,
 }: {
     model: [string, string][];
-    state: BehaviorSubject<string | undefined>;
+    state: BehaviorSubject<{ name: string | undefined; files: File[] }>;
 }) {
     const current = useBehavior(state);
     return (
@@ -845,13 +853,16 @@ function SelectCurveDialog({
                     to re-select it.
                 </Alert.Title>
             </Alert.Root>
-            <SimpleSelect
-                placeholder='Select curve...'
-                value={current}
-                allowEmpty
-                onChange={(v) => state.next(v)}
-                options={options}
-            />
+            {current.files?.length === 0 && (
+                <SimpleSelect
+                    placeholder='Select curve...'
+                    value={current.name}
+                    allowEmpty
+                    onChange={(v) => state.next({ ...current, name: v })}
+                    options={options}
+                />
+            )}
+            <FileDropArea onChange={(files) => state.next({ ...current, files })} extensions={['.json']} />
         </VStack>
     );
 }
