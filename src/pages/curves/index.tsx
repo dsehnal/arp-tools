@@ -25,6 +25,7 @@ class CurvesModel extends ReactiveModel {
 
     async init() {
         const curves = await CurvesApi.list();
+        curves.sort((a, b) => (b.modified_on || b.created_on || a.name || '').localeCompare(a.modified_on || a.created_on || b.name || ''));
         this.state.curves.next(curves);
     }
 

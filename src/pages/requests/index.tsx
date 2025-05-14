@@ -18,6 +18,7 @@ import { formatISODateString } from '@/lib/util/datetime';
 import { LuCirclePlus, LuPencil, LuTrash } from 'react-icons/lu';
 import { FileDropArea } from '@/components/file-upload';
 import { Bucket, readBucket } from '@/lib/tools/model/bucket';
+import { validateBucket } from '@/lib/tools/bucket';
 
 class RequestsModel extends ReactiveModel {
     state = {
@@ -26,6 +27,7 @@ class RequestsModel extends ReactiveModel {
 
     async init() {
         const requests = await RequestsApi.list();
+        requests.sort((a, b) => (b.modified_on || b.created_on || a.name).localeCompare(a.modified_on || a.created_on || b.name));
         this.state.requests.next(requests);
     }
 
@@ -48,6 +50,11 @@ class RequestsModel extends ReactiveModel {
                     bucket = buckets.find((c) => c.id === state.name);
                 }
                 if (!bucket) return;
+
+                const validation = validateBucket(bucket);
+                if (validation.errors.length) {
+                    throw new Error('The bucket contains errors. Please fix them before creating a request.');
+                }
 
                 const req = createARPRequest(bucket);
                 await RequestsApi.save(req);
