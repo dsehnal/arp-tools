@@ -1,6 +1,6 @@
 import { formatCurve } from '@/lib/tools/model/curve';
 import { PlateLayouts, PlateUtils } from '@/lib/tools/model/plate';
-import { ARPProductionResult, ProductionPlate, ProductionTransfer } from '@/lib/tools/model/production';
+import { ProductionResult, ProductionPlate, ProductionTransfer } from '@/lib/tools/model/production';
 import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/lib/tools/model/request';
 import { getRequestSampleInfo, parseRequestSamplesCSV, validateRequestSample } from '@/lib/tools/request';
 import { writePicklists, writeProductionZip } from '@/lib/tools/request/export';
@@ -37,7 +37,7 @@ import { FileDropArea } from '@/components/file-upload';
 class EditRequestModel extends ReactiveModel {
     state = {
         request: new BehaviorSubject<ARPRequest>(undefined as any),
-        production: new BehaviorSubject<ARPProductionResult | undefined>(undefined),
+        production: new BehaviorSubject<ProductionResult | undefined>(undefined),
     };
 
     plate = new PlateModel(PlateLayouts[384]);

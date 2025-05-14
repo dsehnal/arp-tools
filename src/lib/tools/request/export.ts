@@ -1,11 +1,11 @@
 import { writeCSV } from '@/lib/util/csv';
 import { PlateUtils, WellCoords } from '../model/plate';
-import { ARPProductionResult, ProductionPlate, ProductionTransfer, ProductionWell } from '../model/production';
+import { ProductionResult, ProductionPlate, ProductionTransfer, ProductionWell } from '../model/production';
 import { ARPRequest } from '../model/request';
 import { roundValue } from '@/lib/util/math';
 import { encode as encodeZip } from 'uzip-module';
 
-export function writeProductionZip(request: ARPRequest, production: ARPProductionResult) {
+export function writeProductionZip(request: ARPRequest, production: ProductionResult) {
     const srcPlates = writePlatemaps(
         request,
         production.plates.filter((p) => p.kind !== 'arp')

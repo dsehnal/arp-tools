@@ -3,13 +3,13 @@ import { DilutionCurve, DilutionPoint } from '../model/curve';
 import { ARPRequest, ARPRequestSample } from '../model/request';
 import { arrayMapAdd, setMapAdd } from '@/lib/util/collections';
 import { BucketTemplateWell } from '../model/bucket';
-import { ARPProductionResult, ProductionPlate, ProductionWell } from '../model/production';
+import { ProductionResult, ProductionPlate, ProductionWell } from '../model/production';
 import { PlateUtils } from '../model/plate';
 
 const ConcentrationTolerance = 0.05;
 const VolumeTolerance = 0.05;
 
-export function buildRequest(request: ARPRequest): ARPProductionResult {
+export function buildRequest(request: ARPRequest): ProductionResult {
     const ctx = new BuilderContext(request);
 
     step1_initARPPlates(ctx);
