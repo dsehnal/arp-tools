@@ -1,15 +1,13 @@
-import { BreadcrumbItem } from '../layout';
-import { LuChartNoAxesCombined } from 'react-icons/lu';
-import { resolveRoute } from '../routing';
-import { ReactNode } from 'react';
-import { DilutionCurve, DilutionPoint, writeCurve } from '@/lib/tools/model/curve';
-import { Box, Flex, Table } from '@chakra-ui/react';
-import { formatUnit } from '@/lib/util/units';
-import { roundValue } from '@/lib/util/math';
 import { DialogService } from '@/lib/services/dialog';
+import { DilutionCurve, DilutionPoint, writeCurve } from '@/lib/tools/model/curve';
 import { download } from '@/lib/util/download';
-import { SmartFormatters } from '@/components/input';
-import { Field } from '@/components/ui/field';
+import { roundValue } from '@/lib/util/math';
+import { formatUnit } from '@/lib/util/units';
+import { Box, Flex, Table } from '@chakra-ui/react';
+import { ReactNode } from 'react';
+import { LuChartNoAxesCombined } from 'react-icons/lu';
+import { BreadcrumbItem } from '../layout';
+import { resolveRoute } from '../routing';
 
 export const CurvesBreadcrumb: BreadcrumbItem = {
     icon: <LuChartNoAxesCombined />,
