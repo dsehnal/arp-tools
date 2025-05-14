@@ -27,7 +27,9 @@ class RequestsModel extends ReactiveModel {
 
     async init() {
         const requests = await RequestsApi.list();
-        requests.sort((a, b) => (b.modified_on || b.created_on || a.name).localeCompare(a.modified_on || a.created_on || b.name));
+        requests.sort((a, b) =>
+            (b.modified_on || b.created_on || a.name).localeCompare(a.modified_on || a.created_on || b.name)
+        );
         this.state.requests.next(requests);
     }
 

@@ -23,7 +23,9 @@ class BucketsModel extends ReactiveModel {
 
     async init() {
         const buckets = await BucketsApi.list();
-        buckets.sort((a, b) => (b.modified_on || b.created_on || a.name).localeCompare(a.modified_on || a.created_on || b.name));
+        buckets.sort((a, b) =>
+            (b.modified_on || b.created_on || a.name).localeCompare(a.modified_on || a.created_on || b.name)
+        );
         this.state.buckets.next(buckets);
     }
 
