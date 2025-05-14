@@ -1,7 +1,7 @@
-import { indexedStore } from '@/lib/simple-store';
 import { DilutionCurve } from '@/lib/tools/model/curve';
+import { createStore } from '../store';
 
-const store = indexedStore<DilutionCurve>('curves');
+const store = createStore<DilutionCurve>('curves');
 
 export const CurvesApi = {
     list: () => store.query(),

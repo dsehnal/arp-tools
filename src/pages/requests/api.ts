@@ -1,7 +1,7 @@
-import { indexedStore } from '@/lib/simple-store';
 import { ARPRequest } from '@/lib/tools/model/request';
+import { createStore } from '../store';
 
-const store = indexedStore<ARPRequest>('arp-requests');
+const store = createStore<ARPRequest>('arp-requests');
 
 export const RequestsApi = {
     list: () => store.query(),

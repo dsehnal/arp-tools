@@ -1,4 +1,11 @@
-import { PlateColors, PlateDimensions, PlateLabels, PlateSelection, PlateUtils, WellCoords } from '@/lib/tools/model/plate';
+import {
+    PlateColors,
+    PlateDimensions,
+    PlateLabels,
+    PlateSelection,
+    PlateUtils,
+    WellCoords,
+} from '@/lib/tools/model/plate';
 import { useEffect, useRef } from 'react';
 import * as d3c from 'd3-color';
 import { BehaviorSubject, distinctUntilChanged } from 'rxjs';

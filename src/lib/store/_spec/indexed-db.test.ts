@@ -1,8 +1,8 @@
 import 'fake-indexeddb/auto';
-import { indexedStore } from '../simple-store';
+import { indexedDBStore } from '../indexed-db';
 
 describe('simple-store', () => {
-    const store = indexedStore<any>('test');
+    const store = indexedDBStore<any>('test');
     store.__clear();
 
     it('works', async () => {

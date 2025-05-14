@@ -1,16 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
-import { uuid4 } from './util/uuid';
-
-export type SimpleStoreEntryBase = { id?: string; created_on?: string; modified_on?: string };
-
-export interface SimpleStore<T extends SimpleStoreEntryBase> {
-    name: string;
-    put(v: T[]): Promise<string[]>;
-    remove(id: string | string[]): Promise<void>;
-    get(id: string): Promise<T>;
-    query(id?: string | string[]): Promise<T[]>;
-    __clear(): Promise<void>;
-}
+import { uuid4 } from '../util/uuid';
+import type { SimpleStore, SimpleStoreEntryBase } from '.';
 
 interface Entry {
     id: string;
@@ -28,11 +18,11 @@ function createDB() {
 const DB_VERSION = 1;
 const db = createDB();
 
-export async function dropDB() {
+export async function dropIndexedDB() {
     await db.delete();
 }
 
-export class IndexedDBStore<T extends SimpleStoreEntryBase> implements SimpleStore<T> {
+class IndexedDBStore<T extends SimpleStoreEntryBase> implements SimpleStore<T> {
     get table() {
         return db[this.name];
     }
@@ -84,7 +74,7 @@ export class IndexedDBStore<T extends SimpleStoreEntryBase> implements SimpleSto
 
 const stores = new Map<string, IndexedDBStore<any>>();
 
-export function indexedStore<T extends SimpleStoreEntryBase>(name: string): SimpleStore<T> {
+export function indexedDBStore<T extends SimpleStoreEntryBase>(name: string): SimpleStore<T> {
     if (stores.has(name)) return stores.get(name)!;
     stores.set(name, new IndexedDBStore<T>(name));
     return stores.get(name)!;

@@ -3,10 +3,10 @@ import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { ToastService } from '@/lib/services/toast';
-import { dropDB } from '@/lib/simple-store';
 import { Button, VStack } from '@chakra-ui/react';
 import { Layout } from '../layout';
 import { SettingsBreadcrumb } from './common';
+import { resetDB } from '../store';
 
 class SettingsModel extends ReactiveModel {
     async init() {}
@@ -16,7 +16,7 @@ class SettingsModel extends ReactiveModel {
             title: 'Reset DB',
             message: 'Are you sure you want to reset the database? This cannot be undone.',
             onOk: async () => {
-                await dropDB();
+                await resetDB();
                 ToastService.info('DB Reset', { duration: 3000 });
                 window.location.reload();
             },

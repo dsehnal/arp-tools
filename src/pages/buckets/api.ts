@@ -1,7 +1,7 @@
-import { indexedStore } from '@/lib/simple-store';
 import { Bucket } from '@/lib/tools/model/bucket';
+import { createStore } from '../store';
 
-const store = indexedStore<Bucket>('buckets');
+const store = createStore<Bucket>('buckets');
 
 export const BucketsApi = {
     list: () => store.query(),
