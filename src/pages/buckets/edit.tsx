@@ -579,7 +579,7 @@ function ActionButtons({ model }: { model: EditBucketModel }) {
     const history = useBehavior(model.state.templateHistory);
 
     return (
-        <HStack gap={2} alignItems='flex-start' w='full'>
+        <HStack gap={2} alignItems='flex-start' justifyContent='center' w='full'>
             <Button variant='subtle' size='xs' onClick={model.templateBuilder.copy}>
                 <FaCopy /> Copy
                 {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+C</Kbd>}
@@ -598,7 +598,7 @@ function ActionButtons({ model }: { model: EditBucketModel }) {
                 {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+Shift+V</Kbd>}
             </Button>
             <Button variant='subtle' size='xs' onClick={model.templateBuilder.clear}>
-                <MdOutlineBorderClear /> Clear Selected Wells
+                <MdOutlineBorderClear /> Clear Wells
                 {isPlateActive && <Kbd size='sm'>{CtrlOrMeta}+X</Kbd>}
             </Button>
             <Button variant='subtle' size='xs' onClick={model.templateBuilder.undo} disabled={history.length === 0}>

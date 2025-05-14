@@ -100,6 +100,45 @@ export class PlateModel extends ReactiveModel {
         this.update({ selection: nextSelection });
     }
 
+    extendSelection(dir: [number, number]) {
+        const topLeft: WellCoords = [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER];
+        const bottomRight: WellCoords = [-1, -1];
+
+        let prevSelection = this.state.value.selection;
+        if (PlateUtils.isSelectionEmpty(prevSelection)) {
+            prevSelection = PlateUtils.emptySelection(this.dimensions);
+            prevSelection[0] = 1 as any;
+        }
+
+        const coords: WellCoords = [0, 0];
+        PlateUtils.forEachSelectionIndex(prevSelection, (index) => {
+            PlateUtils.rowMajorIndexToCoords(this.dimensions, index, coords);
+            if (coords[0] < topLeft[0]) topLeft[0] = coords[0];
+            if (coords[1] < topLeft[1]) topLeft[1] = coords[1];
+            if (coords[0] > bottomRight[0]) bottomRight[0] = coords[0];
+            if (coords[1] > bottomRight[1]) bottomRight[1] = coords[1];
+        });
+
+        bottomRight[0] += dir[0];
+        bottomRight[1] += dir[1];
+
+        if (bottomRight[0] < 0) bottomRight[0] = 0;
+        if (bottomRight[0] >= this.dimensions[0]) bottomRight[0] = this.dimensions[0] - 1;
+        if (bottomRight[1] < 0) bottomRight[1] = 0;
+        if (bottomRight[1] >= this.dimensions[1]) bottomRight[1] = this.dimensions[1] - 1;
+
+        if (dir[0] < 0 && bottomRight[0] < topLeft[0]) {
+            return;
+        }
+        if (dir[1] < 0 && bottomRight[1] < topLeft[1]) {
+            return;
+        }
+
+        const nextSelection = PlateUtils.emptySelection(this.dimensions);
+        PlateUtils.applySelectionCoords(this.dimensions, nextSelection, topLeft, bottomRight);
+        this.update({ selection: nextSelection });
+    }
+
     private handleResize = () => {
         const { size } = this;
         if (!size) return;
@@ -168,7 +207,13 @@ export class PlateModel extends ReactiveModel {
 
     private handleKeyDown(ev: KeyboardEvent) {
         if (isEventTargetInput(ev) || !this.isActive) return;
-        if (!ev.key.startsWith('Arrow')) return;
+
+        if (ev.key === 'Escape') {
+            this.update({ selection: PlateUtils.emptySelection(this.dimensions) });
+            return;
+        }
+
+        if (!ev.key.startsWith('Arrow') && ev.key !== 'Escape') return;
 
         ev.preventDefault();
         ev.stopPropagation();
@@ -191,7 +236,11 @@ export class PlateModel extends ReactiveModel {
                 return;
         }
 
-        this.moveSelection(dir);
+        if (ev.shiftKey) {
+            this.extendSelection(dir);
+        } else {
+            this.moveSelection(dir);
+        }
     }
 
     private getWellCoords(ev: MouseEvent, coords: WellCoords) {
