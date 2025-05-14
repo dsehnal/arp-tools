@@ -122,7 +122,7 @@ function CurveProperty({ label, children }: { label: string; children: ReactNode
             <Box fontWeight='bold' fontSize='xs' color='gray.500'>
                 {label}
             </Box>
-            <Box fontSize='sm'>{children}</Box>
+            <Box>{children}</Box>
         </Box>
     );
 }

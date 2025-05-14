@@ -1,4 +1,4 @@
-import { formatCurve } from '@/lib/tools/model/curve';
+import { DilutionCurve, formatCurve } from '@/lib/tools/model/curve';
 import { PlateLayouts, PlateUtils } from '@/lib/tools/model/plate';
 import { ProductionResult, ProductionPlate, ProductionTransfer } from '@/lib/tools/model/production';
 import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/lib/tools/model/request';
@@ -20,10 +20,10 @@ import { download } from '@/lib/util/download';
 import { memoizeLatest } from '@/lib/util/misc';
 import { SingleAsyncQueue } from '@/lib/util/queue';
 import { formatUnit } from '@/lib/util/units';
-import { Alert, Badge, Box, Button, Flex, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
+import { Alert, Badge, Box, Button, Flex, Group, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
 import * as d3s from 'd3-scale-chromatic';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { LuCirclePlus, LuTrash } from 'react-icons/lu';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { LuChartNoAxesCombined, LuCirclePlus, LuTrash } from 'react-icons/lu';
 import { useParams } from 'react-router';
 import { BehaviorSubject, distinctUntilChanged, skip, throttleTime } from 'rxjs';
 import { updateBucketTemplatePlate } from '../buckets/common';
@@ -33,6 +33,9 @@ import { requestBreadcrumb, RequestsBreadcrumb } from './common';
 import { writeCSV } from '@/lib/util/csv';
 import { FaCopy, FaDownload } from 'react-icons/fa';
 import { FileDropArea } from '@/components/file-upload';
+import { BucketLabware } from '@/lib/tools/model/bucket';
+import { FaMagnifyingGlass } from 'react-icons/fa6';
+import { downloadCurve, showCurveDetails } from '../curves/common';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -461,29 +464,105 @@ function PlateLabels({ model }: { model: EditRequestModel }) {
     );
 }
 
+function BucketProperty({ label, children }: { label: string; children: ReactNode }) {
+    return (
+        <Box>
+            <Box fontWeight='bold' fontSize='xs' color='gray.500'>
+                {label}
+            </Box>
+            <Box>{children}</Box>
+        </Box>
+    );
+}
+
+function BucketLabwareInfo({ labware }: { labware: BucketLabware }) {
+    return (
+        <>
+            {PlateUtils.size(labware.dimensions)} wells,
+            {formatUnit(labware.dead_volume_l, 'L', { compact: true })}/
+            {formatUnit(labware.well_volume_l, 'L', { compact: true })} dead/well volume,
+            {labware.name || '<not named>'} {!!labware.shorthand && `(${labware.shorthand})`}
+        </>
+    );
+}
+
+function CurveInfo({ curve }: { curve?: DilutionCurve }) {
+    if (!curve) return null;
+    return (
+        <Group attached>
+            <Button
+                variant='outline'
+                size='xs'
+                colorPalette='blue'
+                maxW={420}
+                overflow='hidden'
+                textOverflow='ellipsis'
+                whiteSpace='normal'
+                onClick={() => showCurveDetails(curve)}
+            >
+                <LuChartNoAxesCombined /> {formatCurve(curve)}
+            </Button>
+            <Button
+                variant='outline'
+                size='xs'
+                colorPalette='blue'
+                onClick={() => downloadCurve(curve)}
+                disabled={!curve}
+            >
+                <FaDownload />
+            </Button>
+        </Group>
+    );
+}
+
 function BucketInfo({ model }: { model: EditRequestModel }) {
-    const req = model.request;
+    const { request } = model;
+    const { bucket } = request;
 
     return (
-        <VStack gap={1} mb={2} alignItems='flex-start'>
-            <Box>
-                <b>Bucket:</b> {req.bucket.name}
-            </Box>
+        <Flex gap={2} mb={2} flexDirection='column' h='full'>
             <Box pos='relative' h='300px' w='full'>
                 <PlateVisual model={model.plate} />
             </Box>
-            <Box>
-                <Badge colorPalette='purple'>Curve</Badge>{' '}
-                {req.bucket.curve ? formatCurve(req.bucket.curve) : 'No curve'}
-            </Box>
-            <Box fontWeight='bold'>Sample Kinds</Box>
-            {req.bucket.sample_info.map((s) => (
-                <Box key={s.kind}>
-                    <Badge colorPalette='blue'>{s.kind}</Badge> {s.curve ? formatCurve(s.curve) : 'Global curve'}
+
+            <Box flexGrow={1} pos='relative'>
+                <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll'>
+                    <Flex gap={2}>
+                        <Flex flexGrow={1} flexDirection='column'>
+                            <BucketProperty label='Name'>{bucket.name}</BucketProperty>
+                            <BucketProperty label='Project'>{bucket.project || 'n/a'}</BucketProperty>
+                            <BucketProperty label='Description'>{bucket.description || 'n/a'}</BucketProperty>
+                            <BucketProperty label='Source Labware'>
+                                <BucketLabwareInfo labware={bucket.source_labware} />
+                            </BucketProperty>
+                            <BucketProperty label='Intermediate Labware'>
+                                <BucketLabwareInfo labware={bucket.intermediate_labware} />
+                            </BucketProperty>
+                            <BucketProperty label='ARP Labware'>
+                                <BucketLabwareInfo labware={bucket.arp_labware} />
+                            </BucketProperty>
+                        </Flex>
+                        <Flex flexGrow={1} gap={1} flexDirection='column'>
+                            <BucketProperty label='Curve'>
+                                {!!bucket.curve && <CurveInfo curve={bucket.curve} />}
+                                {!bucket.curve && <Box color='gray.500'>No curve</Box>}
+                            </BucketProperty>
+                            <BucketProperty label='Well Kinds'>
+                                <Flex gap={1} flexDirection='column'>
+                                    {request.bucket.sample_info.map((s) => (
+                                        <HStack key={s.kind} gap={2}>
+                                            <Badge colorPalette='blue'>{s.kind}</Badge>
+                                            {s.is_control ? <Badge>Control</Badge> : undefined}
+                                            <CurveInfo curve={s.curve} />
+                                        </HStack>
+                                    ))}
+                                </Flex>
+                            </BucketProperty>
+                        </Flex>
+                    </Flex>
                 </Box>
-            ))}
-            <Box>TODO: rest of the bucket info</Box>
-        </VStack>
+            </Box>
+        </Flex>
     );
 }
 
