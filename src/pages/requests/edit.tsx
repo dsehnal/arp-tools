@@ -141,6 +141,16 @@ class EditRequestModel extends ReactiveModel {
         });
     };
 
+    clearSamples = () => {
+        DialogService.confirm({
+            title: 'Remove Sample',
+            message: `Are you sure you want to remove all samples?`,
+            onOk: async () => {
+                this.update({ samples: [] });
+            },
+        });
+    };
+
     removeSample(sample: ARPRequestSample) {
         DialogService.confirm({
             title: 'Remove Sample',
@@ -293,14 +303,14 @@ function ProductionTab({ model }: { model: EditRequestModel }) {
                             {e}
                         </Box>
                     ))}
-                    {production?.errors.length === 0 && 'No errors'}
+                    {production?.errors.length === 0 && <Box color='gray.500'>No errors</Box>}
                     <Box fontWeight='bold'>Warnings</Box>
-                    {production?.errors.map((e, i) => (
+                    {production?.warnings.map((e, i) => (
                         <Box key={`warn${i}`} color='yellow.500'>
                             {e}
                         </Box>
                     ))}
-                    {production?.warnings.length === 0 && 'No warnings'}
+                    {production?.warnings.length === 0 && <Box color='gray.500'>No warnings</Box>}
                 </Box>
             </Flex>
             <ProductionPlates model={model} />
@@ -332,6 +342,10 @@ function ProductionPlates({ model }: { model: EditRequestModel }) {
         [production]
     );
     const [current, setCurrent] = useState('');
+    useEffect(() => {
+        const arp = production?.plates.find((p) => p.kind === 'arp');
+        setCurrent(arp?.label || production?.plates[0]?.label || '');
+    }, [production]);
     const plate = production?.plates.find((p) => p.label === current);
     return (
         <Box w='full' h='full' display='flex' flexDirection='column' gap={2}>
@@ -341,6 +355,7 @@ function ProductionPlates({ model }: { model: EditRequestModel }) {
                 allowEmpty
                 onChange={setCurrent}
                 options={options}
+                size='sm'
             />
             <CurrentPlateVisual model={model} plate={plate} />
             <PlatePicklist model={model} plate={plate} />
@@ -425,40 +440,82 @@ function PlatePicklist({ model, plate }: { model: EditRequestModel; plate?: Prod
         [model, request.production.plate_labels, plate]
     );
 
-    return <Textarea flexGrow={1} style={{ fontFamily: 'monospace' }} value={picklist} readOnly />;
+    return <Textarea flexGrow={1} style={{ fontFamily: 'monospace' }} value={picklist} readOnly whiteSpace='pre' />;
 }
 
 function PlateLabels({ model }: { model: EditRequestModel }) {
     const request = useBehavior(model.state.request);
-    const { production } = model;
+    const { production, bucket } = model;
+
+    const stats = useMemo(
+        () => ({
+            sourcePlates: production?.plates.filter((p) => p.kind !== 'arp'),
+            arpPlates: production?.plates.filter((p) => p.kind === 'arp'),
+            nARPPlates: production?.plates.filter((p) => p.kind === 'arp' && p.copy === 0).length,
+        }),
+        [production]
+    );
 
     if (!production) return <>Production not available</>;
 
+    const renderPlate = (plate: ProductionPlate, idx: number) => (
+        <Field
+            key={plate.label}
+            label={
+                <Flex gap={2}>
+                    <Box fontWeight='bold'>{plate.label}</Box>
+                    <Box fontSize='smaller' color='gray.500'>
+                        {plate.kind === 'source' && (
+                            <>
+                                {PlateUtils.size(bucket.source_labware.dimensions)} well{' '}
+                                {bucket.source_labware.shorthand}
+                            </>
+                        )}
+                        {plate.kind === 'intermediate' && (
+                            <>
+                                {PlateUtils.size(bucket.intermediate_labware.dimensions)} well{' '}
+                                {bucket.intermediate_labware.shorthand}
+                            </>
+                        )}
+                        {plate.kind === 'arp' && (
+                            <>
+                                {PlateUtils.size(bucket.arp_labware.dimensions)} well {bucket.arp_labware.shorthand}
+                            </>
+                        )}
+                    </Box>
+                </Flex>
+            }
+        >
+            <SmartInput
+                placeholder='Enter label...'
+                value={request.production.plate_labels?.[plate.label] ?? ''}
+                parse={SmartParsers.trim}
+                onChange={(v) =>
+                    model.update({
+                        production: {
+                            ...request.production,
+                            plate_labels: {
+                                ...request.production.plate_labels,
+                                [plate.label]: v || undefined,
+                            },
+                        },
+                    })
+                }
+                index={idx}
+                indexGroup='plate-barcodes'
+                size='sm'
+            />
+        </Field>
+    );
+
     return (
         <VStack gap={2} w='full'>
-            {production.plates.map((plate, idx) => (
-                <Field label={plate.label} key={plate.label}>
-                    <SmartInput
-                        placeholder='Enter label...'
-                        value={request.production.plate_labels?.[plate.label] ?? ''}
-                        parse={SmartParsers.trim}
-                        onChange={(v) =>
-                            model.update({
-                                production: {
-                                    ...request.production,
-                                    plate_labels: {
-                                        ...request.production.plate_labels,
-                                        [plate.label]: v || undefined,
-                                    },
-                                },
-                            })
-                        }
-                        index={idx}
-                        indexGroup='plate-barcodes'
-                        size='sm'
-                    />
-                </Field>
-            ))}
+            {stats.sourcePlates?.map(renderPlate)}
+            <Box fontSize='small' fontWeight='bold'>
+                {stats.nARPPlates} ARP Plate{stats.nARPPlates === 1 ? '' : 's'}, {request.n_copies}{' '}
+                {request.n_copies === 1 ? 'copy' : 'copies'}
+            </Box>
+            {stats.arpPlates?.map((p, i) => renderPlate(p, i + (stats.sourcePlates?.length ?? 0)))}
         </VStack>
     );
 }
@@ -636,7 +693,18 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                         <Table.ColumnHeader>Source Well</Table.ColumnHeader>
                         <Table.ColumnHeader>Kinds</Table.ColumnHeader>
                         <Table.ColumnHeader>Comment</Table.ColumnHeader>
-                        <Table.ColumnHeader></Table.ColumnHeader>
+                        <Table.ColumnHeader textAlign='right' p={1}>
+                            <Button
+                                size='2xs'
+                                colorPalette='red'
+                                onClick={model.clearSamples}
+                                title='Remove All'
+                                variant='subtle'
+                                disabled={!canEdit}
+                            >
+                                <LuTrash />
+                            </Button>
+                        </Table.ColumnHeader>
                     </Table.Row>
                 </Table.Header>
 
@@ -670,9 +738,9 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                                     </HStack>
                                 </Table.Cell>
                                 <Table.Cell>{s.comment}</Table.Cell>
-                                <Table.Cell textAlign='right' padding={1}>
+                                <Table.Cell textAlign='right' p={1}>
                                     <Button
-                                        size='xs'
+                                        size='2xs'
                                         colorPalette='red'
                                         onClick={() => model.removeSample(s)}
                                         title='Remove'

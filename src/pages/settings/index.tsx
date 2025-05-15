@@ -3,7 +3,7 @@ import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { ReactiveModel } from '@/lib/reactive-model';
 import { DialogService } from '@/lib/services/dialog';
 import { ToastService } from '@/lib/services/toast';
-import { Button, VStack } from '@chakra-ui/react';
+import { Box, Button, Link, VStack } from '@chakra-ui/react';
 import { Layout } from '../layout';
 import { SettingsBreadcrumb } from './common';
 import { resetDB } from '../store';
@@ -56,16 +56,31 @@ function NavButtons({ model }: { model: SettingsModel }) {
 
 function Settings({ model }: { model: SettingsModel }) {
     return (
-        <VStack gap={2}>
-            <Button w='full' onClick={model.resetStore} variant='outline' colorPalette='red'>
+        <VStack gap={2} alignItems='flex-start'>
+            <Box fontSize='xl' fontWeight='bold'>
+                Data Storage
+            </Box>
+            <Box>
+                All data is stored in locally in the browser using{' '}
+                <Link
+                    textDecor='underline'
+                    href='https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                >
+                    IndexedDB
+                </Link>
+                .
+            </Box>
+            <Button onClick={model.resetStore} variant='outline' colorPalette='red'>
                 Reset DB
             </Button>
-            <Button w='full' onClick={model.exportDB} variant='outline' colorPalette='blue'>
+            {/* <Button w='full' onClick={model.exportDB} variant='outline' colorPalette='blue'>
                 Export DB
             </Button>
             <Button w='full' onClick={model.importDB} variant='outline' colorPalette='blue'>
                 Import DB
-            </Button>
+            </Button> */}
         </VStack>
     );
 }

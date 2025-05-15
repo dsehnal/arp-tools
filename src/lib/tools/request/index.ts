@@ -10,12 +10,18 @@ export function parseRequestSamplesCSV(bucket: Bucket, csv: string) {
         throw new Error('Missing Sample ID column');
     }
 
+    const normalizeKind = (kind: string) => {
+        const sampleInfo = bucket.sample_info.find((s) => s.kind.toLowerCase() === kind.toLowerCase());
+        if (sampleInfo) return sampleInfo.kind;
+        return kind;
+    };
+
     const defaultKind = bucket.sample_info.find((s) => !s.is_control)?.kind;
 
     const samples = data.result.data
         .filter((row: any) => data.get(row, 'Sample ID'))
         .map((row: any) => {
-            const kinds = splitString(data.get(row, 'Kinds').trim() ?? '', /\s+/g);
+            const kinds = splitString(data.get(row, 'Kinds').trim() ?? '', /\s+/g).map(normalizeKind);
             if (kinds.length === 0 && defaultKind) kinds.push(defaultKind);
 
             return {
@@ -72,7 +78,7 @@ export function validateRequestSample(
     }
 
     if ((info.sampleIdCounts.get(sample.id) ?? 0) > 1) {
-        entries.push(['error', 'Sample ID must be unique']);
+        entries.push(['info', 'Duplicate Sample ID']);
     }
 
     for (const kind of sample.kinds) {

@@ -141,13 +141,13 @@ function RequestList({ model }: { model: RequestsModel }) {
                             <Table.Cell>{req.description}</Table.Cell>
                             <Table.Cell>{formatISODateString(req.modified_on)}</Table.Cell>
                             <Table.Cell textAlign='right' padding={1}>
-                                <Button size='xs' colorPalette='blue' variant='subtle' title='Edit' asChild>
+                                <Button size='2xs' colorPalette='blue' variant='subtle' title='Edit' asChild>
                                     <Link to={resolveRoute(RequestsBreadcrumb.path!, req.id)}>
                                         <LuPencil />
                                     </Link>
                                 </Button>
                                 <Button
-                                    size='xs'
+                                    size='2xs'
                                     colorPalette='red'
                                     ms={1}
                                     onClick={() => model.remove(req.id!)}

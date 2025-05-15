@@ -142,13 +142,13 @@ function CurveList({ model }: { model: CurvesModel }) {
                             <Table.Cell>{formatUnit(curve.options?.intermediate_volume_l, 'L')}</Table.Cell>
                             <Table.Cell>{formatISODateString(curve.modified_on)}</Table.Cell>
                             <Table.Cell textAlign='right' padding={1}>
-                                <Button size='xs' colorPalette='blue' variant='subtle' asChild title='Edit'>
+                                <Button size='2xs' colorPalette='blue' variant='subtle' asChild title='Edit'>
                                     <Link to={resolveRoute(CurvesBreadcrumb.path!, curve.id!)}>
                                         <LuPencil />
                                     </Link>
                                 </Button>
                                 <Button
-                                    size='xs'
+                                    size='2xs'
                                     colorPalette='blue'
                                     onClick={() => model.duplicate(curve, navigate)}
                                     variant='subtle'
@@ -158,7 +158,7 @@ function CurveList({ model }: { model: CurvesModel }) {
                                     <LuCopy />
                                 </Button>
                                 <Button
-                                    size='xs'
+                                    size='2xs'
                                     colorPalette='red'
                                     ms={1}
                                     onClick={() => model.remove(curve.id!)}

@@ -35,34 +35,48 @@ class BuilderContext {
         return this.request.bucket;
     }
 
+    private _errors = new Set<string>();
+    error(message: string) {
+        if (this._errors.has(message)) return;
+        this._errors.add(message);
+        this.errors.push(message);
+    }
+
+    private _warnings = new Set<string>();
+    warning(message: string) {
+        if (this._warnings.has(message)) return;
+        this._warnings.add(message);
+        this.warnings.push(message);
+    }
+
     getCurve(sample_kind: string) {
         return this.request.bucket.sample_info.find((s) => s.kind === sample_kind)?.curve ?? this.request.bucket.curve;
     }
 
     getSampleSource(sample_id: string, concentration_m: number, total_volume_l: number): SampleSource | undefined {
         const sources = this.sampleSouces.get(sample_id);
-        if (sources) {
-            for (const src of sources) {
-                if (
-                    isRelativelyClose(src.concentration_m, concentration_m, ConcentrationTolerance) &&
-                    isRelativelyClose(src.total_volume_l, total_volume_l, VolumeTolerance)
-                ) {
-                    return src;
-                }
+        if (!sources) return;
+        for (const src of sources) {
+            if (
+                isRelativelyClose(src.concentration_m, concentration_m, ConcentrationTolerance) &&
+                isRelativelyClose(src.total_volume_l, total_volume_l, VolumeTolerance)
+            ) {
+                return src;
             }
         }
     }
 
     initPoint(sample_id: string, point: DilutionPoint, curve: DilutionCurve): SampleSource {
-        let sources = this.sampleSouces.get(sample_id);
-        if (sources) {
-            for (const src of sources) {
-                if (isRelativelyClose(src.concentration_m, point.actual_concentration_m, ConcentrationTolerance)) {
-                    return src;
-                }
-            }
+        const existing = this.getSampleSource(
+            sample_id,
+            point.target_concentration_m,
+            curve.options.intermediate_volume_l
+        );
+        if (existing) {
+            return existing;
         }
 
+        let sources = this.sampleSouces.get(sample_id);
         if (!sources) {
             sources = [];
             this.sampleSouces.set(sample_id, sources);
@@ -77,7 +91,8 @@ class BuilderContext {
                 curve.options.intermediate_volume_l
             );
             if (!parent) {
-                throw new Error(`Parent sample not found for concentration ${transfer.concentration_m}M`);
+                this.error(`${sample_id}: Source sample not found for concentration ${transfer.concentration_m}M`);
+                continue;
             }
             blueprint.push([parent, transfer.volume_l]);
             depth = Math.max(depth, parent.depth + 1);
@@ -120,7 +135,8 @@ class BuilderContext {
             for (const kind of sample.kinds) {
                 const curve = this.getCurve(kind);
                 if (!curve) {
-                    throw new Error(`Curve for sample kind '${kind}' not assigned`);
+                    this.error(`Curve for sample kind '${kind}' not assigned`);
+                    continue;
                 }
 
                 this.initCurve(sample.id, curve);
@@ -142,7 +158,7 @@ class BuilderContext {
         for (const xfer of point.transfers) {
             const src = this.getSampleSource(sample_id, xfer.concentration_m, curve.options.intermediate_volume_l);
             if (!src) {
-                // TODO: error
+                this.error(`${sample_id}: Source sample not found for concentration ${xfer.concentration_m}M`);
                 continue;
             }
             const use: SampleSourceUse = { sample: src, volume_l: xfer.volume_l };
@@ -242,9 +258,22 @@ function step1_initARPPlates(ctx: BuilderContext) {
 
             const info = infos.get(kind);
             if (info?.is_control) {
-                // TODO: handle error?
-                controlsByKind.set(kind, sample);
+                if (controlsByKind.has(kind)) {
+                    ctx.error(
+                        `Duplicate control sample for kind '${kind}'. Each control kind can only be specified once.`
+                    );
+                } else {
+                    controlsByKind.set(kind, sample);
+                }
             }
+        }
+    }
+
+    for (const w of request.bucket.template) {
+        if (!w) continue;
+        const info = infos.get(w.kind!);
+        if (info?.is_control && !controlsByKind.has(w.kind!)) {
+            ctx.warning(`Control sample for kind '${w.kind}' not found in request samples.`);
         }
     }
 
@@ -496,7 +525,7 @@ function step3_buildSourcePlates(ctx: BuilderContext): ProductionPlate[] {
     }
 
     if (solventDepth > maxDepth && ctx.solvent.wells.length) {
-        ctx.warnings.push(`Solvent normalization is only support for curves with intermediate plates.`);
+        ctx.warning('Solvent normalization is currently only supported for curves with intermediate plates.');
     }
 
     // Build the plates
@@ -519,11 +548,11 @@ function step3_buildSourcePlates(ctx: BuilderContext): ProductionPlate[] {
         }
 
         if (wells.length > capacity) {
-            ctx.errors.push(`Too many wells for depth ${depth}: ${wells.length} wells, capacity ${capacity} wells`);
+            ctx.error(`Too many wells for depth ${depth}: ${wells.length} wells, capacity ${capacity} wells`);
             continue;
         }
 
-        const label = depth === 0 ? 'source' : `Int_P${depth}`;
+        const label = depth === 0 ? 'Source' : `Int_P${depth}`;
         const plate = PlateUtils.empty<ProductionWell>(ctx.bucket.intermediate_labware.dimensions);
 
         let offset = 0;
@@ -556,6 +585,13 @@ function step3_buildSourcePlates(ctx: BuilderContext): ProductionPlate[] {
             if (!well) continue;
             const src = sourceMap.get(well.sample_id);
             if (!src) continue;
+
+            const srcLabel = src[1]?.source_label;
+            const srcWell = src[1]?.source_well;
+
+            if (!srcLabel || !srcWell) {
+                ctx.error(`${well.sample_id}: Source location not assigned`);
+            }
 
             well.transfers.push({
                 source_plate_index: -1,

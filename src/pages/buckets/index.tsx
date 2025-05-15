@@ -138,13 +138,13 @@ function BucketList({ model }: { model: BucketsModel }) {
                             <Table.Cell>{bucket.description}</Table.Cell>
                             <Table.Cell>{formatISODateString(bucket.modified_on)}</Table.Cell>
                             <Table.Cell textAlign='right' padding={1}>
-                                <Button size='xs' colorPalette='blue' variant='subtle' asChild title='Edit'>
+                                <Button size='2xs' colorPalette='blue' variant='subtle' asChild title='Edit'>
                                     <Link to={resolveRoute(BucketsBreadcrumb.path!, bucket.id!)}>
                                         <LuPencil />
                                     </Link>
                                 </Button>
                                 <Button
-                                    size='xs'
+                                    size='2xs'
                                     colorPalette='blue'
                                     onClick={() => model.duplicate(bucket, navigate)}
                                     variant='subtle'
@@ -154,7 +154,7 @@ function BucketList({ model }: { model: BucketsModel }) {
                                     <LuCopy />
                                 </Button>
                                 <Button
-                                    size='xs'
+                                    size='2xs'
                                     colorPalette='red'
                                     ms={1}
                                     onClick={() => model.remove(bucket.id!)}
