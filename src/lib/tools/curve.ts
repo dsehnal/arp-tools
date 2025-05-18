@@ -1,4 +1,3 @@
-import { roundFactor } from '@/lib/util/math';
 import {
     CurvePoints,
     DilutionCurve,
@@ -17,7 +16,7 @@ function getCurvePoints(options: DilutionCurveOptions): CurvePoints {
     }
 
     for (let i = 0; i < options.n_points; i++) {
-        ret[i] = Math.round(1e9 * ret[i]) / 1e9;
+        ret[i] = Math.round(1e15 * ret[i]) / 1e15;
     }
 
     return ret;
@@ -60,7 +59,7 @@ function alias(
         for (const src of concentrations[o]) {
             let t: number;
 
-            if (adjust_intermediate_volume) {
+            if (isIntermediate && adjust_intermediate_volume) {
                 t =
                     (value * targetVolumeL +
                         value * min_transfer_volume_l +
@@ -103,12 +102,13 @@ function alias(
             const nextT = isNextLow ? tLow : tHigh;
 
             if (nextConc < upperBound) {
+                const volume_l = min_transfer_volume_l + nextT * droplet_size_l;
                 aliasedConc = nextConc;
-                currentVolume += min_transfer_volume_l + nextT * droplet_size_l;
-                running += src * (min_transfer_volume_l + nextT * droplet_size_l);
+                currentVolume += volume_l;
+                running += src * volume_l;
 
                 if (xfers) {
-                    xfers.push({ concentration_m: src, volume_l: min_transfer_volume_l + nextT * droplet_size_l });
+                    xfers.push({ concentration_m: src, volume_l });
                 }
             }
 
@@ -122,7 +122,6 @@ function alias(
         if (done) break;
     }
 
-    aliasedConc = roundFactor(aliasedConc, 1e10);
     return aliasedConc;
 }
 
@@ -204,11 +203,11 @@ function evaluateFinal(state: ExploreState): DilutionCurve {
 
         for (const conc of concentrations[d]) {
             const xfers: DilutionTransfer[] = [];
-            alias(options, true, d - 1, d - 1, concentrations, conc, xfers);
+            const aliased = alias(options, true, d - 1, d - 1, concentrations, conc, xfers);
 
             xs.push({
-                target_concentration_m: conc,
-                actual_concentration_m: conc,
+                target_concentration_m: aliased,
+                actual_concentration_m: aliased,
                 transfers: xfers,
             });
         }
@@ -217,7 +216,6 @@ function evaluateFinal(state: ExploreState): DilutionCurve {
     for (const pt of curve) {
         const xfers: DilutionTransfer[] = [];
         const aliased = alias(options, false, 0, concentrations.length - 1, concentrations, pt, xfers);
-
         points.push({
             target_concentration_m: pt,
             actual_concentration_m: aliased,
