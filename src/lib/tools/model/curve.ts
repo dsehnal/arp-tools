@@ -43,8 +43,8 @@ export interface DilutionCurveOptions {
     dilution_factor: number;
     tolerance: number;
 
-    adjust_intermediate_volume: boolean;
-    single_source_transfers: boolean;
+    adjust_intermediate_volume?: boolean;
+    single_source_transfers?: boolean;
 
     min_transfer_volume_l: number;
     max_transfer_volume_l: number;

@@ -1,3 +1,19 @@
+import { AsyncWrapper } from '@/components/async-wrapper';
+import { AsyncActionButton } from '@/components/button';
+import { FileDropArea } from '@/components/file-upload';
+import { SmartFormatters, SmartInput, SmartParsers } from '@/components/input';
+import { PlateModel, PlateVisual } from '@/components/plate';
+import { SimpleSelect } from '@/components/select';
+import { Field } from '@/components/ui/field';
+import { Switch } from '@/components/ui/switch';
+import { InfoTip } from '@/components/ui/toggle-tip';
+import { useAsyncModel } from '@/lib/hooks/use-async-model';
+import { useBehavior } from '@/lib/hooks/use-behavior';
+import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
+import { ReactiveModel } from '@/lib/reactive-model';
+import { DialogService } from '@/lib/services/dialog';
+import { ToastService } from '@/lib/services/toast';
+import { validateBucket } from '@/lib/tools/bucket';
 import {
     Bucket,
     BucketLayouts,
@@ -9,22 +25,11 @@ import {
 } from '@/lib/tools/model/bucket';
 import { DilutionCurve, formatCurve, readCurve, writeCurve } from '@/lib/tools/model/curve';
 import { PlateDimensions, PlateLayouts, PlateUtils } from '@/lib/tools/model/plate';
-import { Field } from '@/components/ui/field';
-import { Switch } from '@/components/ui/switch';
-import { InfoTip } from '@/components/ui/toggle-tip';
-import { AsyncWrapper } from '@/components/async-wrapper';
-import { AsyncActionButton } from '@/components/button';
-import { SmartFormatters, SmartInput, SmartParsers } from '@/components/input';
-import { PlateModel, PlateVisual } from '@/components/plate';
-import { SimpleSelect } from '@/components/select';
-import { useAsyncModel } from '@/lib/hooks/use-async-model';
-import { useBehavior } from '@/lib/hooks/use-behavior';
-import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
-import { ReactiveModel } from '@/lib/reactive-model';
-import { DialogService } from '@/lib/services/dialog';
-import { ToastService } from '@/lib/services/toast';
 import { arrayEqual, arrayMapAdd, resizeArray } from '@/lib/util/collections';
 import { download } from '@/lib/util/download';
+import { CtrlOrMeta, isEventTargetInput } from '@/lib/util/events';
+import { memoizeLatest } from '@/lib/util/misc';
+import { formatUnit } from '@/lib/util/units';
 import { uuid4 } from '@/lib/util/uuid';
 import {
     Alert,
@@ -43,23 +48,27 @@ import {
 } from '@chakra-ui/react';
 import Papa from 'papaparse';
 import { useRef } from 'react';
+import { FaDownload, FaEdit, FaUndo } from 'react-icons/fa';
 import { FaCopy, FaFileExport, FaMagnifyingGlass, FaPaste } from 'react-icons/fa6';
-import { LuChartNoAxesCombined, LuCirclePlus, LuDownload, LuSave, LuSignal, LuTrash } from 'react-icons/lu';
+import {
+    LuChartNoAxesCombined,
+    LuCirclePlus,
+    LuDownload,
+    LuLayoutTemplate,
+    LuSave,
+    LuSignal,
+    LuTrash,
+} from 'react-icons/lu';
 import { MdOutlineBorderClear } from 'react-icons/md';
 import { useParams } from 'react-router';
 import { BehaviorSubject, combineLatest, distinctUntilChanged, distinctUntilKeyChanged } from 'rxjs';
 import { CurvesApi } from '../curves/api';
+import { downloadCurve, showCurveDetails } from '../curves/common';
 import { Layout } from '../layout';
 import { resolvePrefixedRoute } from '../routing';
 import { BucketsApi } from './api';
 import { bucketBreadcrumb, BucketsBreadcrumb, updateBucketTemplatePlate } from './common';
-import { formatUnit } from '@/lib/util/units';
-import { CtrlOrMeta, isEventTargetInput } from '@/lib/util/events';
-import { FaDownload, FaEdit, FaUndo } from 'react-icons/fa';
-import { FileDropArea } from '@/components/file-upload';
-import { memoizeLatest } from '@/lib/util/misc';
-import { validateBucket } from '@/lib/tools/bucket';
-import { downloadCurve, showCurveDetails } from '../curves/common';
+import { BucketPresets } from './presets';
 
 class EditBucketModel extends ReactiveModel {
     state = {
@@ -346,6 +355,19 @@ class EditBucketModel extends ReactiveModel {
         }
     }
 
+    loadPreset = () => {
+        DialogService.show({
+            title: 'Load Preset',
+            body: LoadPresetDialog,
+            state: new BehaviorSubject(BucketPresets.options[0][0]),
+            onOk: async (state: string) => {
+                const preset = BucketPresets.getPreset(state);
+                this.update({ ...preset });
+                ToastService.success(`Loaded preset '${state}'`, { duration: 2000 });
+            },
+        });
+    };
+
     mount(): void {
         this.subscribe(
             combineLatest([
@@ -475,6 +497,10 @@ function Breadcrumb({ model }: { model?: EditBucketModel }) {
 function NavButtons({ model }: { model: EditBucketModel }) {
     return (
         <HStack gap={1}>
+            <Button variant='subtle' size='xs' colorPalette='blue' onClick={model.loadPreset}>
+                <LuLayoutTemplate />
+                Presets
+            </Button>
             <AsyncActionButton action={model.export} size='xs' colorPalette='blue' variant='subtle'>
                 <LuDownload /> Export
             </AsyncActionButton>
@@ -1005,5 +1031,21 @@ function AddWellKindDialog({ state }: { state: BehaviorSubject<string> }) {
             onChange={(v) => state.next(v)}
             autoFocus
         />
+    );
+}
+
+function LoadPresetDialog({ state }: { state: BehaviorSubject<string> }) {
+    const current = useBehavior(state);
+    return (
+        <VStack gap={2}>
+            <Alert.Root status='info'>
+                <Alert.Indicator />
+                <Alert.Title>Loading a preset will overwrite the current bucket options</Alert.Title>
+            </Alert.Root>
+            <SimpleSelect options={BucketPresets.options} value={current} onChange={(v) => state.next(v)} />
+            <Box fontSize='sm' fontStyle='italic'>
+                {BucketPresets.getDescription(current)}
+            </Box>
+        </VStack>
     );
 }
