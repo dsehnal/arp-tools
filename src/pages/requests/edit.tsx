@@ -163,7 +163,9 @@ class EditRequestModel extends ReactiveModel {
     }
 
     private applyAddSamples(csv: string) {
-        this.update({ samples: parseRequestSamplesCSV(this.bucket, csv) });
+        this.update({
+            samples: [...this.request.samples, ...parseRequestSamplesCSV(this.bucket, csv)],
+        });
     }
 
     async init() {

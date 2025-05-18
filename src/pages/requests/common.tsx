@@ -1,5 +1,4 @@
 import { BreadcrumbItem } from '../layout';
-import { resolveRoute } from '../routing';
 import { ReactNode } from 'react';
 import { FaRobot } from 'react-icons/fa';
 
@@ -22,6 +21,5 @@ export function requestBreadcrumb({
     if (!id) return undefined;
     return {
         title: name ?? id,
-        path: resolveRoute(RequestsBreadcrumb.path!, id),
     };
 }

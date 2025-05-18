@@ -7,7 +7,6 @@ import { Box, Flex, Table } from '@chakra-ui/react';
 import { ReactNode } from 'react';
 import { LuChartNoAxesCombined } from 'react-icons/lu';
 import { BreadcrumbItem } from '../layout';
-import { resolveRoute } from '../routing';
 
 export const CurvesBreadcrumb: BreadcrumbItem = {
     icon: <LuChartNoAxesCombined />,
@@ -28,7 +27,6 @@ export function curveBreadcrumb({
     if (!id) return undefined;
     return {
         title: name ?? id,
-        path: resolveRoute(CurvesBreadcrumb.path!, id),
     };
 }
 

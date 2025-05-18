@@ -4,7 +4,6 @@ import * as d3c from 'd3-color';
 import { BreadcrumbItem } from '../layout';
 import { LuLayoutGrid } from 'react-icons/lu';
 import { Bucket, getBucketTemplateWellKey } from '@/lib/tools/model/bucket';
-import { resolveRoute } from '../routing';
 import { ReactNode } from 'react';
 import { PlateUtils } from '@/lib/tools/model/plate';
 import { ProductionPlate } from '@/lib/tools/model/production';
@@ -28,7 +27,6 @@ export function bucketBreadcrumb({
     if (!id) return undefined;
     return {
         title: name ?? id,
-        path: resolveRoute(BucketsBreadcrumb.path!, id),
     };
 }
 
