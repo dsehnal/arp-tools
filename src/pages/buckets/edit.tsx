@@ -205,7 +205,7 @@ class EditBucketModel extends ReactiveModel {
                 template: resizeArray(this.bucket.template, PlateUtils.size(dimensions), undefined),
             });
         },
-        pointIndex: () => {
+        pointIndexUp: () => {
             const byKind = new Map<string, number[]>();
             const { template } = this;
             PlateUtils.forEachSelectionIndex(this.plate.selection, (idx) => {
@@ -218,6 +218,26 @@ class EditBucketModel extends ReactiveModel {
             byKind.forEach((xs) => {
                 for (let i = 0; i < xs.length; i++) {
                     wells[xs[i]] = { ...wells[xs[i]], point_index: i };
+                }
+            });
+
+            this.update({
+                template: wells,
+            });
+        },
+        pointIndexDown: () => {
+            const byKind = new Map<string, number[]>();
+            const { template } = this;
+            PlateUtils.forEachSelectionIndex(this.plate.selection, (idx) => {
+                const key = getBucketTemplateWellKey(template[idx]);
+                if (!key) return;
+                arrayMapAdd(byKind, key, idx);
+            });
+
+            const wells = [...this.template];
+            byKind.forEach((xs) => {
+                for (let i = xs.length - 1; i >= 0; i--) {
+                    wells[xs[xs.length - i - 1]] = { ...wells[xs[i]], point_index: i };
                 }
             });
 
@@ -344,7 +364,7 @@ class EditBucketModel extends ReactiveModel {
             } else if (key === 'x') {
                 return this.templateBuilder.clear;
             } else if (key === 'd') {
-                return this.templateBuilder.pointIndex;
+                return ev.shiftKey ? this.templateBuilder.pointIndexDown : this.templateBuilder.pointIndexUp;
             } else if (key === 'z') {
                 return this.templateBuilder.undo;
             }
@@ -901,16 +921,29 @@ function SampleIndexing({ model }: { model: EditBucketModel }) {
                     </Button>
                 </Group>
 
-                <Button
-                    variant='subtle'
-                    colorPalette='blue'
-                    size='xs'
-                    onClick={model.templateBuilder.pointIndex}
-                    pos='relative'
-                >
-                    <LuSignal /> Linear Point Index
-                    <TemplateShortcut model={model} modifier shortcut='D' />
-                </Button>
+                <Group attached>
+                    <Button
+                        variant='subtle'
+                        colorPalette='blue'
+                        size='xs'
+                        onClick={model.templateBuilder.pointIndexUp}
+                        pos='relative'
+                    >
+                        <LuSignal /> Linear Point Index Up
+                        <TemplateShortcut model={model} modifier shortcut='D' />
+                    </Button>
+
+                    <Button
+                        variant='subtle'
+                        colorPalette='blue'
+                        size='xs'
+                        onClick={model.templateBuilder.pointIndexDown}
+                        pos='relative'
+                    >
+                        Down
+                        <TemplateShortcut model={model} modifier shortcut='Shift+D' />
+                    </Button>
+                </Group>
             </HStack>
         </>
     );
