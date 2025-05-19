@@ -115,7 +115,7 @@ export function showCurveDetails(curve: DilutionCurve) {
 function CurveProperty({ label, children }: { label: string; children: ReactNode }) {
     return (
         <Box>
-            <Box fontWeight='bold' fontSize='xs' color='gray.500'>
+            <Box fontWeight='bold' fontSize='xs' color='fg.subtle'>
                 {label}
             </Box>
             <Box>{children}</Box>

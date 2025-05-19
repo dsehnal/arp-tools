@@ -686,12 +686,12 @@ function Validation({ model }: { model: EditBucketModel }) {
                 </Text>
                 <Box overflow='hidden' overflowY='auto' maxH={100}>
                     {validation.errors.map((msg, i) => (
-                        <Box key={i} color='red.500'>
+                        <Box key={i} color='fg.error'>
                             {msg}
                         </Box>
                     ))}
                     {!validation.errors.length && (
-                        <Box fontStyle='italic' color='gray.500'>
+                        <Box fontStyle='italic' color='fg.subtle'>
                             No errors
                         </Box>
                     )}
@@ -703,12 +703,12 @@ function Validation({ model }: { model: EditBucketModel }) {
                 </Text>
                 <Box overflow='hidden' overflowY='auto' maxH={100}>
                     {validation.warnings.map((msg, i) => (
-                        <Box key={i} color='yellow.500'>
+                        <Box key={i} color='fg.warning'>
                             {msg}
                         </Box>
                     ))}
-                    {!validation.errors.length && (
-                        <Box fontStyle='italic' color='gray.500'>
+                    {!validation.warnings.length && (
+                        <Box fontStyle='italic' color='fg.subtle'>
                             No warnings
                         </Box>
                     )}
@@ -722,16 +722,18 @@ function TemplateShortcut({
     model,
     modifier,
     shortcut,
+    offsetY = '-120%',
 }: {
     model: EditBucketModel;
     modifier?: boolean;
     shortcut: string;
+    offsetY?: string;
 }) {
     const isPlateActive = useBehavior(model.plate.status.isActive);
 
     if (!isPlateActive) return null;
     return (
-        <Kbd size='sm' position='absolute' top='0' transform='translateY(-120%)'>
+        <Kbd size='sm' position='absolute' top='0' transform={`translateY(${offsetY})`}>
             {modifier ? CtrlOrMeta : undefined}
             {modifier ? ' ' : undefined}+{shortcut}
         </Kbd>
@@ -958,8 +960,6 @@ function SampleInfoControlsRow({
     info: BucketSampleInfo;
     index: number;
 }) {
-    const isPlateActive = useBehavior(model.plate.status.isActive);
-
     return (
         <Table.Row>
             <Table.Cell p={1} w={6}>
@@ -970,12 +970,8 @@ function SampleInfoControlsRow({
                     onClick={() => model.templateBuilder.updateWell({ kind: info.kind })}
                 >
                     <FaEdit />
-                    {!isPlateActive && 'Apply'}
-                    {isPlateActive && (
-                        <Kbd size='sm'>
-                            {CtrlOrMeta}+{index + 1}
-                        </Kbd>
-                    )}
+                    Apply
+                    <TemplateShortcut model={model} modifier shortcut={`${index + 1}`} offsetY='-50%' />
                 </Button>
             </Table.Cell>
             <Table.Cell>

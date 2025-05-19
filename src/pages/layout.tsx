@@ -31,7 +31,7 @@ export function Layout({ breadcrumbs, children, buttons, contentPadding }: Layou
 
     return (
         <Flex h='100%' w='full' flexDir='column'>
-            <Flex alignItems='center' bg='gray.800'>
+            <Flex alignItems='center' bg='bg.muted'>
                 <BreadcrumbRoot px={4} py={3}>
                     <MenuRoot>
                         <MenuTrigger asChild>
@@ -68,7 +68,7 @@ export function Layout({ breadcrumbs, children, buttons, contentPadding }: Layou
                 {buttons}
                 <Box w={2} />
             </Flex>
-            <Box flexGrow={1} position='relative' bg='gray.950'>
+            <Box flexGrow={1} position='relative' bg='bg.subtle'>
                 <Box position='absolute' inset={0} p={contentPadding ?? 2} overflow='hidden' overflowY='auto'>
                     {children}
                 </Box>

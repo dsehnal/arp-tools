@@ -301,18 +301,18 @@ function ProductionTab({ model }: { model: EditRequestModel }) {
                 <Box pos='absolute' inset={0} overflow='hidden' overflowY='scroll'>
                     <Box fontWeight='bold'>Errors</Box>
                     {production?.errors.map((e, i) => (
-                        <Box key={`err${i}`} color='red.500'>
+                        <Box key={`err${i}`} color='fg.error'>
                             {e}
                         </Box>
                     ))}
-                    {production?.errors.length === 0 && <Box color='gray.500'>No errors</Box>}
+                    {production?.errors.length === 0 && <Box color='fg.subtle'>No errors</Box>}
                     <Box fontWeight='bold'>Warnings</Box>
                     {production?.warnings.map((e, i) => (
-                        <Box key={`warn${i}`} color='yellow.500'>
+                        <Box key={`warn${i}`} color='fg.warning'>
                             {e}
                         </Box>
                     ))}
-                    {production?.warnings.length === 0 && <Box color='gray.500'>No warnings</Box>}
+                    {production?.warnings.length === 0 && <Box color='fg.subtle'>No warnings</Box>}
                 </Box>
             </Flex>
             <ProductionPlates model={model} />
@@ -466,7 +466,7 @@ function PlateLabels({ model }: { model: EditRequestModel }) {
             label={
                 <Flex gap={2}>
                     <Box fontWeight='bold'>{plate.label}</Box>
-                    <Box fontSize='smaller' color='gray.500'>
+                    <Box fontSize='smaller' color='fg.subtle'>
                         {plate.kind === 'source' && (
                             <>
                                 {PlateUtils.size(bucket.source_labware.dimensions)} well{' '}
@@ -525,7 +525,7 @@ function PlateLabels({ model }: { model: EditRequestModel }) {
 function BucketProperty({ label, children }: { label: string; children: ReactNode }) {
     return (
         <Box>
-            <Box fontWeight='bold' fontSize='xs' color='gray.500'>
+            <Box fontWeight='bold' fontSize='xs' color='fg.subtle'>
                 {label}
             </Box>
             <Box>{children}</Box>
@@ -603,7 +603,7 @@ function BucketInfo({ model }: { model: EditRequestModel }) {
                         <Flex flexGrow={1} gap={1} flexDirection='column'>
                             <BucketProperty label='Curve'>
                                 {!!bucket.curve && <CurveInfo curve={bucket.curve} />}
-                                {!bucket.curve && <Box color='gray.500'>No curve</Box>}
+                                {!bucket.curve && <Box color='fg.subtle'>No curve</Box>}
                             </BucketProperty>
                             <BucketProperty label='Well Kinds'>
                                 <Flex gap={1} flexDirection='column'>
@@ -771,7 +771,7 @@ function SampleValidation({ model, sample }: { model: EditRequestModel; sample: 
     return (
         <VStack gap={1}>
             {validation.map(([type, message], i) => (
-                <Box key={i} color={type === 'error' ? 'red.500' : type === 'warning' ? 'yellow.500' : 'blue.500'}>
+                <Box key={i} color={type === 'error' ? 'fg.error' : type === 'warning' ? 'fg.warning' : 'fg.info'}>
                     {message}
                 </Box>
             ))}
