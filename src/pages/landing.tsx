@@ -7,7 +7,7 @@ export function LandingUI() {
     return (
         <Layout>
             <Flex alignItems='center' justifyContent='center' height='full' flexDir='column' gap={8}>
-                <Box fontSize='4rem' color='gray.700' fontWeight='bold'>
+                <Box fontSize='5rem' color='gray.300' fontWeight='bold' fontFamily='"Pacifico", cursive'>
                     ARP Tools
                 </Box>
                 <HStack gap={4}>

@@ -29,13 +29,13 @@ interface ExploreState {
     bestIntermediates: IntermediateConcentrations;
 }
 
-function alias(
+export function aliasConcentration(
     options: DilutionCurveOptions,
     isIntermediate: boolean,
     minDepth: number,
     maxDepth: number,
     concentrations: IntermediateConcentrations,
-    value: number,
+    concentration: number,
     xfers: DilutionTransfer[] | undefined
 ) {
     const { adjust_intermediate_volume, min_transfer_volume_l, droplet_size_l, tolerance, single_source_transfers } =
@@ -46,8 +46,10 @@ function alias(
         ? options.max_intermediate_transfer_volume_l
         : options.max_transfer_volume_l;
 
-    const lowerBound = value * (1 - tolerance);
-    const upperBound = value * (1 + tolerance);
+    const lowerBound = concentration * (1 - tolerance);
+    const upperBound = concentration * (1 + tolerance);
+
+    const adjustVolume = isIntermediate && adjust_intermediate_volume;
 
     let aliasedConc = 0;
     let currentVolume = 0;
@@ -57,20 +59,29 @@ function alias(
 
     for (let o = minDepth; o <= maxDepth; o++) {
         for (const src of concentrations[o]) {
-            let t: number;
+            let nDrops: number;
 
-            if (isIntermediate && adjust_intermediate_volume) {
-                t =
-                    (value * targetVolumeL +
-                        value * min_transfer_volume_l +
-                        value * currentVolume -
+            if (adjustVolume) {
+                //        running + src * (min_transfer_volume_l + nDrops * droplet_size_l)
+                // ------------------------------------------------------------------------------- = value
+                // targetVolumeL + currentVolume + min_transfer_volume_l + nDrops * droplet_size_l
+                //
+                // solve for nDrops
+                nDrops =
+                    (concentration * targetVolumeL +
+                        concentration * min_transfer_volume_l +
+                        concentration * currentVolume -
                         running -
                         src * min_transfer_volume_l) /
-                    (src * droplet_size_l - value * droplet_size_l);
+                    (src * droplet_size_l - concentration * droplet_size_l);
             } else {
-                t =
-                    (value * targetVolumeL - running - src * min_transfer_volume_l) /
-                    (src * droplet_size_l - value * droplet_size_l);
+                // running + src * (min_transfer_volume_l + nDrops * droplet_size_l)
+                // ----------------------------------------------------------------- = value
+                //                           targetVolumeL
+                //
+                // solve for nDrops
+                nDrops =
+                    (concentration * targetVolumeL - running - src * min_transfer_volume_l) / (src * droplet_size_l);
             }
 
             const maxDrops = Math.ceil((maxTransferVolumeL - min_transfer_volume_l - currentVolume) / droplet_size_l);
@@ -80,26 +91,22 @@ function alias(
                 break;
             }
 
-            if (t < 0) t = 0;
-            else if (t > maxDrops) t = maxDrops;
+            if (nDrops < 0) nDrops = 0;
+            else if (nDrops > maxDrops) nDrops = maxDrops;
 
-            const tLow = Math.floor(t);
-            const tHigh = Math.ceil(t);
+            const nDropsLow = Math.floor(nDrops);
+            const nDropsHigh = Math.ceil(nDrops);
 
-            const cLow =
-                (running + src * (min_transfer_volume_l + tLow * droplet_size_l)) /
-                (adjust_intermediate_volume
-                    ? currentVolume + min_transfer_volume_l + tLow * droplet_size_l + targetVolumeL
-                    : targetVolumeL);
-            const cHigh =
-                (running + src * (min_transfer_volume_l + tHigh * droplet_size_l)) /
-                (adjust_intermediate_volume
-                    ? currentVolume + min_transfer_volume_l + tHigh * droplet_size_l + targetVolumeL
-                    : targetVolumeL);
+            const currentVolumeL = adjustVolume
+                ? currentVolume + min_transfer_volume_l + nDropsLow * droplet_size_l + targetVolumeL
+                : targetVolumeL;
 
-            const isNextLow = Math.abs(cLow - value) < Math.abs(cHigh - value);
-            const nextConc = isNextLow ? cLow : cHigh;
-            const nextT = isNextLow ? tLow : tHigh;
+            const lowConc = (running + src * (min_transfer_volume_l + nDropsLow * droplet_size_l)) / currentVolumeL;
+            const highConc = (running + src * (min_transfer_volume_l + nDropsHigh * droplet_size_l)) / currentVolumeL;
+
+            const useLow = Math.abs(lowConc - concentration) < Math.abs(highConc - concentration);
+            const nextConc = useLow ? lowConc : highConc;
+            const nextT = useLow ? nDropsLow : nDropsHigh;
 
             if (nextConc < upperBound) {
                 const volume_l = min_transfer_volume_l + nextT * droplet_size_l;
@@ -131,7 +138,7 @@ function evaluateFast(state: ExploreState, depth: number, concentrations: Interm
     let maxErr = 0;
 
     for (const pt of curve) {
-        const aliased = alias(options, false, 0, depth, concentrations, pt, undefined);
+        const aliased = aliasConcentration(options, false, 0, depth, concentrations, pt, undefined);
         const err = (pt - aliased) / pt;
         if (Math.abs(err) > maxErr) maxErr = Math.abs(err);
     }
@@ -153,10 +160,13 @@ function explore(state: ExploreState, depth: number, concentrations: Intermediat
         return;
     }
 
-    if (latest.length >= options.max_intermediate_points_per_plate) {
+    if (latest.length > 0) {
         concentrations.push([]);
         explore(state, depth + 1, concentrations);
         concentrations.pop();
+    }
+
+    if (latest.length >= options.max_intermediate_points_per_plate) {
         return;
     }
 
@@ -180,10 +190,13 @@ function explore(state: ExploreState, depth: number, concentrations: Intermediat
 
     latest.push(0);
 
+    let prev = -1;
     for (let i = start; i >= 0; i--) {
         const next = lowerBound + i * delta;
-        const aliased = alias(options, true, depth - 1, depth - 1, concentrations, next, undefined);
+        const aliased = aliasConcentration(options, true, depth - 1, depth - 1, concentrations, next, undefined);
         if (aliased < 1e-10) break;
+        if (aliased === prev) continue;
+        prev = aliased;
         latest[offset] = aliased;
         explore(state, depth, concentrations);
     }
@@ -203,8 +216,7 @@ function evaluateFinal(state: ExploreState): DilutionCurve {
 
         for (const conc of concentrations[d]) {
             const xfers: DilutionTransfer[] = [];
-            const aliased = alias(options, true, d - 1, d - 1, concentrations, conc, xfers);
-
+            const aliased = aliasConcentration(options, true, d - 1, d - 1, concentrations, conc, xfers);
             xs.push({
                 target_concentration_m: aliased,
                 actual_concentration_m: aliased,
@@ -215,7 +227,7 @@ function evaluateFinal(state: ExploreState): DilutionCurve {
 
     for (const pt of curve) {
         const xfers: DilutionTransfer[] = [];
-        const aliased = alias(options, false, 0, concentrations.length - 1, concentrations, pt, xfers);
+        const aliased = aliasConcentration(options, false, 0, concentrations.length - 1, concentrations, pt, xfers);
         points.push({
             target_concentration_m: pt,
             actual_concentration_m: aliased,

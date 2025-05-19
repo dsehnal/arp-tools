@@ -75,7 +75,7 @@ export const DefaultCurveOptions: DilutionCurveOptions = {
 
     min_transfer_volume_l: 2.5e-9,
     max_transfer_volume_l: 60e-9,
-    max_intermediate_transfer_volume_l: 1e-6,
+    max_intermediate_transfer_volume_l: 500e-9,
     droplet_size_l: 2.5e-9,
     num_intermediate_point_samples: 20,
 };
