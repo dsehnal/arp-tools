@@ -1,4 +1,5 @@
 import 'fake-indexeddb/auto';
+import { describe, it, expect } from 'vitest';
 import { indexedDBStore } from '../indexed-db';
 
 describe('simple-store', () => {
