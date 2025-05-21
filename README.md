@@ -2,6 +2,8 @@
 
 A browser-based library/tools/UI for building dose response assays.
 
+Live version available at https://dsehnal.github.io/arp-tools-dev/.
+
 ## Development
 
 - Clone repo
