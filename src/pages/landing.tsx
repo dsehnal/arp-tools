@@ -55,14 +55,12 @@ export function LandingUI() {
 
                 <Box color='fg.subtle' fontSize='smaller' display='flex' mt={2}>
                     v{Version}
-                    {/* TODO: show the GitHub link once repo is public */}
                     <CLink
                         href='https://github.com/dsehnal/arp-tools'
                         target='_blank'
                         ms={2}
                         rel='noopener noreferrer'
                         color='fg.subtle'
-                        display='none'
                     >
                         <svg
                             width='10'
