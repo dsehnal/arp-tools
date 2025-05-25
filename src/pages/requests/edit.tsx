@@ -4,6 +4,8 @@ import { SmartInput, SmartParsers } from '@/components/input';
 import { PlateModel, PlateVisual } from '@/components/plate';
 import { SimpleSelect } from '@/components/select';
 import { Field } from '@/components/ui/field';
+import { MenuContent, MenuItem, MenuRoot, MenuTrigger } from '@/components/ui/menu';
+import { InfoTip } from '@/components/ui/toggle-tip';
 import { useAsyncModel } from '@/lib/hooks/use-async-model';
 import { useBehavior, useBehaviorProp } from '@/lib/hooks/use-behavior';
 import { useReactiveModel } from '@/lib/hooks/use-reactive-model';
@@ -15,7 +17,12 @@ import { DilutionCurve, formatCurve } from '@/lib/tools/model/curve';
 import { PlateLayouts, PlateUtils } from '@/lib/tools/model/plate';
 import { ProductionPlate, ProductionResult, ProductionTransfer } from '@/lib/tools/model/production';
 import { ARPRequest, ARPRequestSample, ARPRequestStatusOptions, writeARPRequest } from '@/lib/tools/model/request';
-import { getRequestSampleInfo, parseRequestSamplesCSV, validateRequestSample } from '@/lib/tools/request';
+import {
+    getRequestSampleInfo,
+    parseRequestRackscanCSV,
+    parseRequestSamplesCSV,
+    validateRequestSample,
+} from '@/lib/tools/request';
 import { writePicklists, writeProductionZip } from '@/lib/tools/request/export';
 import { buildRequest } from '@/lib/tools/request/production';
 import { writeCSV } from '@/lib/util/csv';
@@ -23,11 +30,12 @@ import { download } from '@/lib/util/download';
 import { memoizeLatest, splitString } from '@/lib/util/misc';
 import { SingleAsyncQueue } from '@/lib/util/queue';
 import { formatUnit } from '@/lib/util/units';
-import { Alert, Badge, Box, Button, Flex, Group, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
+import { Alert, Badge, Box, Button, Code, Flex, Group, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
 import * as d3s from 'd3-scale-chromatic';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { FaCopy, FaDownload, FaFileImport } from 'react-icons/fa';
-import { LuChartNoAxesCombined, LuCirclePlus, LuPencil, LuTrash } from 'react-icons/lu';
+import { FaCirclePlus } from 'react-icons/fa6';
+import { LuChartNoAxesCombined, LuChevronDown, LuPencil, LuTrash } from 'react-icons/lu';
 import { useParams } from 'react-router';
 import { BehaviorSubject, distinctUntilChanged, skip, throttleTime } from 'rxjs';
 import { updateBucketTemplatePlate } from '../buckets/common';
@@ -35,7 +43,6 @@ import { downloadCurve, showCurveDetails } from '../curves/common';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
-import { InfoTip } from '@/components/ui/toggle-tip';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -59,6 +66,10 @@ class EditRequestModel extends ReactiveModel {
 
     get production() {
         return this.state.production.value;
+    }
+
+    get defaultKind() {
+        return this.bucket.sample_info.find((s) => !s.is_control)?.kind;
     }
 
     private _sampleInfo = memoizeLatest(getRequestSampleInfo);
@@ -133,16 +144,34 @@ class EditRequestModel extends ReactiveModel {
 
     importSamples = () => {
         DialogService.show({
-            title: 'Add Samples',
+            title: 'Import Samples',
             body: ImportSamplesDialog,
+            state: new BehaviorSubject({ csv: '', files: [] }),
+            model: this,
+            onOk: async (state: { csv: string; files: File[] }) => {
+                if (state.files.length > 0) {
+                    const file = state.files[0];
+                    const text = await file.text();
+                    this.applyImportSamples(text);
+                } else {
+                    this.applyImportSamples(state.csv);
+                }
+            },
+        });
+    };
+
+    importRackscan = () => {
+        DialogService.show({
+            title: 'Import Rackscan',
+            body: ImportRackscanDialog,
             state: new BehaviorSubject({ csv: '', files: [] }),
             onOk: async (state: { csv: string; files: File[] }) => {
                 if (state.files.length > 0) {
                     const file = state.files[0];
                     const text = await file.text();
-                    this.applyAddSamples(text);
+                    this.applyImportRackScan(text);
                 } else {
-                    this.applyAddSamples(state.csv);
+                    this.applyImportRackScan(state.csv);
                 }
             },
         });
@@ -227,10 +256,28 @@ class EditRequestModel extends ReactiveModel {
         });
     }
 
-    private applyAddSamples(csv: string) {
+    private applyImportSamples(csv: string) {
         this.update({
             samples: [...this.request.samples, ...parseRequestSamplesCSV(this.bucket, csv)],
         });
+    }
+
+    private applyImportRackScan(csv: string) {
+        const rackscan = parseRequestRackscanCSV(csv);
+        const mapping = new Map(rackscan.map((s) => [s.sample_id, s]));
+
+        const samples = this.request.samples.map((s) => {
+            const rack = mapping.get(s.id);
+            if (!rack) return s;
+
+            return {
+                ...s,
+                source_label: rack.source_label,
+                source_well: rack.source_well,
+            };
+        });
+
+        this.update({ samples });
     }
 
     async init() {
@@ -309,14 +356,24 @@ function NavButtons({ model }: { model: EditRequestModel }) {
     useBehavior(model.state.request);
     return (
         <HStack gap={1}>
-            <Group attached>
-                <Button onClick={model.addSamples} size='xs' colorPalette='green' disabled={!model.canEdit}>
-                    <LuCirclePlus /> Add Samples
-                </Button>
-                <Button ms='2px' onClick={model.importSamples} size='xs' colorPalette='green' disabled={!model.canEdit}>
-                    <FaFileImport /> Import Samples
-                </Button>
-            </Group>
+            <Button size='xs' colorPalette='green' variant='subtle' onClick={model.importRackscan}>
+                <FaFileImport /> Rackscan
+            </Button>
+            <MenuRoot>
+                <MenuTrigger asChild>
+                    <Button size='xs' colorPalette='green'>
+                        Samples <LuChevronDown />
+                    </Button>
+                </MenuTrigger>
+                <MenuContent>
+                    <MenuItem value='add' onClick={model.addSamples}>
+                        <FaCirclePlus /> Add
+                    </MenuItem>
+                    <MenuItem value='import' onClick={model.importSamples}>
+                        <FaFileImport /> Import CSV
+                    </MenuItem>
+                </MenuContent>
+            </MenuRoot>
         </HStack>
     );
 }
@@ -859,16 +916,64 @@ function SampleValidation({ model, sample }: { model: EditRequestModel; sample: 
     );
 }
 
-function ImportSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string; files: File[] }> }) {
+function ImportSamplesDialog({
+    state,
+    model,
+}: {
+    state: BehaviorSubject<{ csv: string; files: File[] }>;
+    model: EditRequestModel;
+}) {
+    const current = useBehavior(state);
+    const { defaultKind } = model;
+    return (
+        <VStack gap={2}>
+            <Alert.Root status='info'>
+                <Alert.Indicator />
+                <Alert.Title>
+                    <Box>Paste or drop a CSV file</Box>
+                    <Box as='ul' listStyleType='circle' ms={4}>
+                        <li>
+                            <Code variant='outline'>Sample ID, Kinds, Source Label, Source Well, Comment</Code>
+                            columns
+                        </li>
+                        <li>
+                            <Code variant='outline'>Kinds, Source Label, Source Well, Comment</Code> are optional
+                        </li>
+                        <li>
+                            <Code variant='outline'>Kinds</Code> can be separated by whitespace, if unset{' '}
+                            <b>{defaultKind}</b> is assigned automatically
+                        </li>
+                    </Box>
+                </Alert.Title>
+            </Alert.Root>
+            {current.files?.length === 0 && (
+                <Textarea
+                    value={current.csv}
+                    style={{ fontFamily: 'monospace' }}
+                    onChange={(e) => state.next({ csv: e.target.value, files: [] })}
+                    rows={7}
+                    autoFocus
+                />
+            )}
+            <FileDropArea onChange={(files) => state.next({ ...current, files })} extensions={['.csv']} />
+        </VStack>
+    );
+}
+
+function ImportRackscanDialog({ state }: { state: BehaviorSubject<{ csv: string; files: File[] }> }) {
     const current = useBehavior(state);
     return (
         <VStack gap={2}>
             <Alert.Root status='info'>
                 <Alert.Indicator />
                 <Alert.Title>
-                    Paste or drop a CSV file with <code>Sample ID, Kinds, Source Label, Source Well, Comment</code>{' '}
-                    columns.
-                    <code>Kinds</code> can be separated by whitespace.
+                    Paste or drop a CSV file
+                    <Box as='ul' listStyleType='circle' ms={4}>
+                        <li>
+                            <Code variant='outline'>Sample ID, Source Label, Source Well</Code>
+                            columns
+                        </li>
+                    </Box>
                 </Alert.Title>
             </Alert.Root>
             {current.files?.length === 0 && (
@@ -893,6 +998,8 @@ function EditSampleDialog({
     model: { model: EditRequestModel; isNew?: boolean };
 }) {
     const current = useBehavior(state);
+    const { defaultKind } = model;
+
     return (
         <VStack gap={2}>
             <Field
@@ -913,24 +1020,8 @@ function EditSampleDialog({
                     size='sm'
                     disabled={!isNew}
                     index={0}
-                />
-            </Field>
-            <Field label='Source Label'>
-                <SmartInput
-                    value={current.source_label}
-                    parse={SmartParsers.trim}
-                    onChange={(v) => state.next({ ...current, source_label: v || undefined })}
-                    size='sm'
-                    index={1}
-                />
-            </Field>
-            <Field label='Source Well'>
-                <SmartInput
-                    value={current.source_well}
-                    parse={SmartParsers.trim}
-                    onChange={(v) => state.next({ ...current, source_well: v || undefined })}
-                    size='sm'
-                    index={2}
+                    multiline={isNew}
+                    autoFocus
                 />
             </Field>
             <Field label='Kinds'>
@@ -939,7 +1030,7 @@ function EditSampleDialog({
                     options={model.sampleKindOptions}
                     onChange={(v) => state.next({ ...current, kinds: v })}
                     size='sm'
-                    placeholder='Select sample kinds...'
+                    placeholder={defaultKind || 'Select kind...'}
                     multiple
                 />
             </Field>
@@ -952,6 +1043,28 @@ function EditSampleDialog({
                     index={3}
                 />
             </Field>
+            {!isNew && (
+                <Field label='Source Label'>
+                    <SmartInput
+                        value={current.source_label}
+                        parse={SmartParsers.trim}
+                        onChange={(v) => state.next({ ...current, source_label: v || undefined })}
+                        size='sm'
+                        index={1}
+                    />
+                </Field>
+            )}
+            {!isNew && (
+                <Field label='Source Well'>
+                    <SmartInput
+                        value={current.source_well}
+                        parse={SmartParsers.trim}
+                        onChange={(v) => state.next({ ...current, source_well: v || undefined })}
+                        size='sm'
+                        index={2}
+                    />
+                </Field>
+            )}
         </VStack>
     );
 }

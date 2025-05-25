@@ -1,4 +1,4 @@
-import { Input } from '@chakra-ui/react';
+import { Input, Textarea } from '@chakra-ui/react';
 import { useEffect, useRef } from 'react';
 import { roundValue } from '@/lib/util/math';
 
@@ -14,6 +14,8 @@ export interface SmartInputProps<T> {
     indexGroup?: string;
     index?: number;
     autoFocus?: boolean;
+    multiline?: boolean;
+    rows?: number;
 }
 
 export function SmartInput<T>({
@@ -28,16 +30,20 @@ export function SmartInput<T>({
     index,
     indexGroup,
     autoFocus,
+    multiline,
+    rows = 3,
 }: SmartInputProps<T>) {
-    const ref = useRef<HTMLInputElement>(null);
+    const ref = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
     useEffect(() => {
         ref.current!.value = applyFormat(value, format);
     }, [value]);
 
+    const InputEl = multiline ? Textarea : Input;
+
     return (
-        <Input
-            ref={ref}
+        <InputEl
+            ref={ref as any}
             size={size}
             readOnly={readOnly}
             disabled={disabled}
@@ -54,10 +60,13 @@ export function SmartInput<T>({
                 if (parsed !== value) onChange?.(parsed);
             }}
             onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                const shouldApply = multiline ? e.key === 'Enter' && (e.ctrlKey || e.metaKey) : e.key === 'Enter';
+                if (shouldApply) {
                     ref.current!.blur();
                     if (typeof index === 'number') {
-                        const next = document.querySelector(`input[data-index="${indexGroup ?? ''}-${index + 1}"]`);
+                        const next = document.querySelector(
+                            `${multiline ? 'textarea' : 'input'}[data-index="${indexGroup ?? ''}-${index + 1}"]`
+                        );
                         if (next) {
                             (next as HTMLElement).focus();
                         }
@@ -67,6 +76,7 @@ export function SmartInput<T>({
                     ref.current!.blur();
                 }
             }}
+            rows={rows}
         />
     );
 }

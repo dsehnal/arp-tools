@@ -36,6 +36,18 @@ export function parseRequestSamplesCSV(bucket: Bucket, csv: string) {
     return samples;
 }
 
+export function parseRequestRackscanCSV(csv: string) {
+    const data = parseCSV(csv, ['Sample ID', 'Source Label', 'Source Well']);
+
+    return data.result.data
+        .filter((row: any) => data.get(row, 'Sample ID'))
+        .map((row: any) => ({
+            sample_id: data.get(row, 'Sample ID') as string,
+            source_label: data.get(row, 'Source Label') as string | undefined,
+            source_well: data.get(row, 'Source Well') as string | undefined,
+        }));
+}
+
 export interface ARPRequestSampleInfo {
     request: ARPRequest;
     kindToInfo: Map<string, BucketSampleInfo>;
