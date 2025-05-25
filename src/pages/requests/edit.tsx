@@ -20,14 +20,14 @@ import { writePicklists, writeProductionZip } from '@/lib/tools/request/export';
 import { buildRequest } from '@/lib/tools/request/production';
 import { writeCSV } from '@/lib/util/csv';
 import { download } from '@/lib/util/download';
-import { memoizeLatest } from '@/lib/util/misc';
+import { memoizeLatest, splitString } from '@/lib/util/misc';
 import { SingleAsyncQueue } from '@/lib/util/queue';
 import { formatUnit } from '@/lib/util/units';
 import { Alert, Badge, Box, Button, Flex, Group, HStack, Table, Tabs, Textarea, VStack } from '@chakra-ui/react';
 import * as d3s from 'd3-scale-chromatic';
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
-import { FaCopy, FaDownload } from 'react-icons/fa';
-import { LuChartNoAxesCombined, LuCirclePlus, LuTrash } from 'react-icons/lu';
+import { FaCopy, FaDownload, FaFileImport } from 'react-icons/fa';
+import { LuChartNoAxesCombined, LuCirclePlus, LuPencil, LuTrash } from 'react-icons/lu';
 import { useParams } from 'react-router';
 import { BehaviorSubject, distinctUntilChanged, skip, throttleTime } from 'rxjs';
 import { updateBucketTemplatePlate } from '../buckets/common';
@@ -35,6 +35,7 @@ import { downloadCurve, showCurveDetails } from '../curves/common';
 import { Layout } from '../layout';
 import { RequestsApi } from './api';
 import { requestBreadcrumb, RequestsBreadcrumb } from './common';
+import { InfoTip } from '@/components/ui/toggle-tip';
 
 class EditRequestModel extends ReactiveModel {
     state = {
@@ -63,6 +64,13 @@ class EditRequestModel extends ReactiveModel {
     private _sampleInfo = memoizeLatest(getRequestSampleInfo);
     get sampleInfo() {
         return this._sampleInfo(this.request);
+    }
+
+    private _sampleKindOptions = memoizeLatest((req: ARPRequest) => {
+        return req.bucket.sample_info.map((s) => [s.kind, s.kind] as [string, string]);
+    });
+    get sampleKindOptions() {
+        return this._sampleKindOptions(this.request);
     }
 
     update(next: Partial<ARPRequest>) {
@@ -120,14 +128,13 @@ class EditRequestModel extends ReactiveModel {
 
     produce = async () => {
         const production = buildRequest(this.request);
-        console.log(production);
         this.state.production.next(production);
     };
 
-    addSamples = () => {
+    importSamples = () => {
         DialogService.show({
             title: 'Add Samples',
-            body: AddSamplesDialog,
+            body: ImportSamplesDialog,
             state: new BehaviorSubject({ csv: '', files: [] }),
             onOk: async (state: { csv: string; files: File[] }) => {
                 if (state.files.length > 0) {
@@ -140,6 +147,64 @@ class EditRequestModel extends ReactiveModel {
             },
         });
     };
+
+    addSamples = () => {
+        DialogService.show({
+            title: 'Add Samples',
+            body: EditSampleDialog,
+            state: new BehaviorSubject<ARPRequestSample>({
+                id: '',
+                kinds: [],
+                comment: '',
+                source_label: '',
+                source_well: '',
+            }),
+            model: {
+                model: this,
+                isNew: true,
+            },
+            onOk: async (state: ARPRequestSample) => {
+                const ids = splitString(state.id);
+                if (ids.length === 0) throw new Error('No sample IDs provided');
+
+                const defaultKind = this.bucket.sample_info.find((s) => !s.is_control)?.kind;
+                const defaultKinds = defaultKind ? [defaultKind] : [];
+                const kinds = state.kinds.length > 0 ? state.kinds : defaultKinds;
+
+                const samples: ARPRequestSample[] = ids.map((id) => ({
+                    ...state,
+                    id: id.trim(),
+                    kinds,
+                }));
+
+                this.update({
+                    samples: [...this.request.samples, ...samples],
+                });
+            },
+        });
+    };
+
+    editSample(index: number) {
+        DialogService.show({
+            title: 'Edit Sample',
+            body: EditSampleDialog,
+            state: new BehaviorSubject<ARPRequestSample>(this.request.samples[index]),
+            model: { model: this },
+            onOk: async (state: ARPRequestSample) => {
+                const defaultKind = this.bucket.sample_info.find((s) => !s.is_control)?.kind;
+                const defaultKinds = defaultKind ? [defaultKind] : [];
+                const kinds = state.kinds.length > 0 ? state.kinds : defaultKinds;
+
+                const samples = [...this.request.samples];
+                samples[index] = {
+                    ...state,
+                    kinds,
+                };
+
+                this.update({ samples });
+            },
+        });
+    }
 
     clearSamples = () => {
         DialogService.confirm({
@@ -244,9 +309,14 @@ function NavButtons({ model }: { model: EditRequestModel }) {
     useBehavior(model.state.request);
     return (
         <HStack gap={1}>
-            <Button onClick={model.addSamples} size='xs' colorPalette='green' disabled={!model.canEdit}>
-                <LuCirclePlus /> Add Samples
-            </Button>
+            <Group attached>
+                <Button onClick={model.addSamples} size='xs' colorPalette='green' disabled={!model.canEdit}>
+                    <LuCirclePlus /> Add Samples
+                </Button>
+                <Button ms='2px' onClick={model.importSamples} size='xs' colorPalette='green' disabled={!model.canEdit}>
+                    <FaFileImport /> Import Samples
+                </Button>
+            </Group>
         </HStack>
     );
 }
@@ -343,7 +413,7 @@ function ProductionPlates({ model }: { model: EditRequestModel }) {
         () => production?.plates.map((p) => [p.label, p.label] as [string, string]) ?? [],
         [production]
     );
-    const [current, setCurrent] = useState('');
+    const [current, setCurrent] = useState('') as [string, (v: string) => void];
     useEffect(() => {
         const arp = production?.plates.find((p) => p.kind === 'arp');
         setCurrent(arp?.label || production?.plates[0]?.label || '');
@@ -743,10 +813,20 @@ function SampleTable({ model }: { model: EditRequestModel }) {
                                 <Table.Cell textAlign='right' p={1}>
                                     <Button
                                         size='2xs'
+                                        colorPalette='blue'
+                                        variant='subtle'
+                                        title='Edit'
+                                        onClick={() => model.editSample(i)}
+                                    >
+                                        <LuPencil />
+                                    </Button>
+                                    <Button
+                                        size='2xs'
                                         colorPalette='red'
                                         onClick={() => model.removeSample(s)}
                                         title='Remove'
                                         variant='subtle'
+                                        ms={1}
                                         disabled={!canEdit}
                                     >
                                         <LuTrash />
@@ -779,7 +859,7 @@ function SampleValidation({ model, sample }: { model: EditRequestModel; sample: 
     );
 }
 
-function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string; files: File[] }> }) {
+function ImportSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string; files: File[] }> }) {
     const current = useBehavior(state);
     return (
         <VStack gap={2}>
@@ -801,6 +881,77 @@ function AddSamplesDialog({ state }: { state: BehaviorSubject<{ csv: string; fil
                 />
             )}
             <FileDropArea onChange={(files) => state.next({ ...current, files })} extensions={['.csv']} />
+        </VStack>
+    );
+}
+
+function EditSampleDialog({
+    state,
+    model: { model, isNew },
+}: {
+    state: BehaviorSubject<ARPRequestSample>;
+    model: { model: EditRequestModel; isNew?: boolean };
+}) {
+    const current = useBehavior(state);
+    return (
+        <VStack gap={2}>
+            <Field
+                label={
+                    isNew ? (
+                        <>
+                            Sample IDs <InfoTip>Can be a whitespace/comma separated list</InfoTip>
+                        </>
+                    ) : (
+                        'Sample ID'
+                    )
+                }
+            >
+                <SmartInput
+                    value={current.id}
+                    parse={SmartParsers.trim}
+                    onChange={(v) => state.next({ ...current, id: v })}
+                    size='sm'
+                    disabled={!isNew}
+                    index={0}
+                />
+            </Field>
+            <Field label='Source Label'>
+                <SmartInput
+                    value={current.source_label}
+                    parse={SmartParsers.trim}
+                    onChange={(v) => state.next({ ...current, source_label: v || undefined })}
+                    size='sm'
+                    index={1}
+                />
+            </Field>
+            <Field label='Source Well'>
+                <SmartInput
+                    value={current.source_well}
+                    parse={SmartParsers.trim}
+                    onChange={(v) => state.next({ ...current, source_well: v || undefined })}
+                    size='sm'
+                    index={2}
+                />
+            </Field>
+            <Field label='Kinds'>
+                <SimpleSelect
+                    value={current.kinds}
+                    options={model.sampleKindOptions}
+                    onChange={(v) => state.next({ ...current, kinds: v })}
+                    size='sm'
+                    placeholder='Select sample kinds...'
+                    multiple
+                />
+            </Field>
+            <Field label='Comment'>
+                <SmartInput
+                    value={current.comment}
+                    parse={SmartParsers.trim}
+                    onChange={(v) => state.next({ ...current, comment: v || undefined })}
+                    size='sm'
+                    index={3}
+                />
+            </Field>
         </VStack>
     );
 }

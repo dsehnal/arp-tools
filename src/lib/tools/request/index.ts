@@ -41,12 +41,14 @@ export interface ARPRequestSampleInfo {
     kindToInfo: Map<string, BucketSampleInfo>;
     sampleIdCounts: Map<string, number>;
     sampleKindCounts: Map<string, number>;
+    pivots: Map<string, ARPRequestSample>;
 }
 
 export function getRequestSampleInfo(request: ARPRequest): ARPRequestSampleInfo {
     const sampleIdCounts = new Map<string, number>();
     const sampleKindCounts = new Map<string, number>();
     const kindToInfo = new Map<string, BucketSampleInfo>();
+    const pivots = new Map<string, ARPRequestSample>();
 
     for (const sampleInfo of request.bucket.sample_info) {
         kindToInfo.set(sampleInfo.kind, sampleInfo);
@@ -56,6 +58,9 @@ export function getRequestSampleInfo(request: ARPRequest): ARPRequestSampleInfo 
         const id = sample.id;
         if (!id) continue;
 
+        if (!pivots.has(id)) {
+            pivots.set(id, sample);
+        }
         sampleIdCounts.set(id, (sampleIdCounts.get(id) ?? 0) + 1);
 
         for (const kind of sample.kinds) {
@@ -63,7 +68,7 @@ export function getRequestSampleInfo(request: ARPRequest): ARPRequestSampleInfo 
         }
     }
 
-    return { request, kindToInfo, sampleIdCounts, sampleKindCounts };
+    return { request, kindToInfo, sampleIdCounts, sampleKindCounts, pivots };
 }
 
 export function validateRequestSample(
@@ -95,11 +100,13 @@ export function validateRequestSample(
         }
     }
 
-    if (!sample.source_label) {
-        entries.push(['warning', 'Source Label is not specified']);
+    if (!sample.source_label || !sample.source_well) {
+        entries.push(['error', 'Source location is not specified']);
     }
-    if (!sample.source_well) {
-        entries.push(['error', 'Source Well is not specified']);
+
+    const pivot = info.pivots.get(sample.id);
+    if (pivot?.source_label !== sample.source_label || pivot?.source_well !== sample.source_well) {
+        entries.push(['error', 'All instances of the same Sample ID must have the same location']);
     }
 
     return entries;

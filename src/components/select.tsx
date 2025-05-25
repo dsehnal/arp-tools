@@ -1,18 +1,19 @@
-import { SelectContent, SelectItem, SelectRoot, SelectTrigger, SelectValueText } from '@/components/ui/select';
-import { createListCollection } from '@chakra-ui/react';
+import { SelectContent, SelectItem } from '@/components/ui/select';
+import { createListCollection, Select } from '@chakra-ui/react';
 import { useMemo } from 'react';
 
-export interface SimpleSelectProps<T extends string> {
-    options: ([T, string] | T)[];
+export interface SimpleSelectProps<T extends string | string[]> {
+    options: ([string, string] | T)[];
     value: T | undefined;
     onChange: (value: T) => void;
     readOnly?: boolean;
     size?: 'xs' | 'sm';
     placeholder?: string;
     allowEmpty?: boolean;
+    multiple?: boolean;
 }
 
-export function SimpleSelect<T extends string>({
+export function SimpleSelect<T extends string | string[]>({
     options,
     value,
     onChange,
@@ -20,6 +21,7 @@ export function SimpleSelect<T extends string>({
     readOnly,
     placeholder,
     allowEmpty,
+    multiple = false,
 }: SimpleSelectProps<T>) {
     const col = useMemo(() => {
         return createListCollection({
@@ -30,16 +32,18 @@ export function SimpleSelect<T extends string>({
     }, [options]);
 
     return (
-        <SelectRoot
+        <Select.Root
             collection={col}
             size={size}
-            value={value ? [value] : []}
-            onValueChange={(e) => onChange(e.value[0] as any)}
+            value={value ? (Array.isArray(value) ? value : [value]) : []}
+            onValueChange={(e) => onChange(multiple ? e.value : (e.value[0] as any))}
             readOnly={readOnly}
+            multiple={multiple}
         >
-            <SelectTrigger>
-                <SelectValueText placeholder={placeholder ?? 'Select value...'} />
-            </SelectTrigger>
+            <Select.Trigger>
+                <Select.ValueText placeholder={placeholder ?? 'Select value...'} />
+            </Select.Trigger>
+            <Select.IndicatorGroup />
             <SelectContent portalled={false}>
                 {allowEmpty && (
                     <SelectItem item={{ label: placeholder ?? 'Select value...', value: '' }}>
@@ -52,6 +56,6 @@ export function SimpleSelect<T extends string>({
                     </SelectItem>
                 ))}
             </SelectContent>
-        </SelectRoot>
+        </Select.Root>
     );
 }
