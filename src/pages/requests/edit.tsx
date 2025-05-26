@@ -84,6 +84,33 @@ class EditRequestModel extends ReactiveModel {
         return this._sampleKindOptions(this.request);
     }
 
+    private _productionValidation = memoizeLatest((_: ARPRequest, production?: ProductionResult) => {
+        const seenPlateLabels = new Set<string>();
+        const isDuplicatePlateLabel = new Set<string>();
+
+        if (!production) {
+            return { isDuplicatePlateLabel };
+        }
+
+        const { request } = this;
+
+        for (const plate of production.plates) {
+            const label = request.production.plate_labels?.[plate.label];
+            if (!label) continue;
+
+            if (seenPlateLabels.has(label)) {
+                isDuplicatePlateLabel.add(plate.label);
+            } else {
+                seenPlateLabels.add(label);
+            }
+        }
+
+        return { isDuplicatePlateLabel };
+    });
+    get productionValidation() {
+        return this._productionValidation(this.request, this.production);
+    }
+
     update(next: Partial<ARPRequest>) {
         this.state.request.next({ ...this.request, ...next });
     }
@@ -587,9 +614,13 @@ function PlateLabels({ model }: { model: EditRequestModel }) {
 
     if (!production) return <>Production not available</>;
 
+    const validation = model.productionValidation;
+
     const renderPlate = (plate: ProductionPlate, idx: number) => (
         <Field
             key={plate.label}
+            invalid={validation.isDuplicatePlateLabel.has(plate.label)}
+            errorText={validation.isDuplicatePlateLabel.has(plate.label) ? 'Duplicate plate label' : undefined}
             label={
                 <Flex gap={2}>
                     <Box fontWeight='bold'>{plate.label}</Box>
@@ -633,6 +664,7 @@ function PlateLabels({ model }: { model: EditRequestModel }) {
                 index={idx}
                 indexGroup='plate-barcodes'
                 size='sm'
+                selectOnFocus
             />
         </Field>
     );

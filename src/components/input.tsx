@@ -14,6 +14,7 @@ export interface SmartInputProps<T> {
     indexGroup?: string;
     index?: number;
     autoFocus?: boolean;
+    selectOnFocus?: boolean;
     multiline?: boolean;
     rows?: number;
 }
@@ -29,6 +30,7 @@ export function SmartInput<T>({
     disabled,
     index,
     indexGroup,
+    selectOnFocus,
     autoFocus,
     multiline,
     rows = 3,
@@ -50,6 +52,11 @@ export function SmartInput<T>({
             placeholder={placeholder}
             data-index={`${indexGroup ?? ''}-${index}`}
             autoFocus={autoFocus}
+            onFocus={() => {
+                if (selectOnFocus && ref.current) {
+                    ref.current.select();
+                }
+            }}
             onBlur={() => {
                 const parsed = parse ? parse(ref.current!.value) : (ref.current!.value as unknown as T);
                 if (parsed === null) {

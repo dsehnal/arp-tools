@@ -12,7 +12,7 @@ export function writeProductionZip(request: ARPRequest, production: ProductionRe
     );
     const arpPlates = writePlatemaps(
         request,
-        production.plates.filter((p) => p.kind !== 'arp')
+        production.plates.filter((p) => p.kind === 'arp')
     );
 
     const nARPPicklist = writePicklists(
@@ -157,7 +157,7 @@ function writePicklist(request: ARPRequest, plate: ProductionPlate, plateIndexin
             transfer.source_well,
             request.production.plate_labels?.[plate.label] ?? `<${plate.label}>`,
             PlateUtils.rowMajorWellIndexToLabel(plate.plate.dimensions, wI),
-            `${roundValue(transfer.volume_l * (isNArp ? 1e6 : 1e9), 0)}`,
+            `${roundValue(transfer.volume_l * (isNArp ? 1e6 : 1e9), isNArp ? 1 : 3)}`,
             isNArp ? 'uL' : 'nL',
             transfer.concentration_m ? well.sample_id : '<solvent>',
         ]);
