@@ -3,7 +3,7 @@ import { Layout, Pages } from './layout';
 import { Link } from 'react-router';
 import { resolveRoute } from './routing';
 import { Version } from '@/version';
-import { FaLightbulb, FaMoon } from 'react-icons/fa';
+import { FaLightbulb, FaMoon, FaQuestionCircle } from 'react-icons/fa';
 import { ColorTheme, setTheme } from './theme';
 
 export function LandingUI() {
@@ -35,6 +35,24 @@ export function LandingUI() {
                         </Button>
                     ))}
                 </HStack>
+
+                <Button
+                    variant='ghost'
+                    padding={4}
+                    lineHeight='unset'
+                    height='unset'
+                    fontSize='1.5rem'
+                    fontWeight='bold'
+                    mt={8}
+                    asChild
+                >
+                    <a href={`${import.meta.env.BASE_URL}docs`} target='_blank' rel='noopener noreferrer'>
+                        <VStack gap={1}>
+                            <FaQuestionCircle />
+                            Docs
+                        </VStack>
+                    </a>
+                </Button>
 
                 <Group attached mt={8}>
                     <Button

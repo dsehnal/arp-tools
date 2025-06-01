@@ -33,3 +33,6 @@ tsconfig.commonjs.tsbuildinfo
 .idea
 
 .DS_Store
+
+# Docs
+docs/site

@@ -9,7 +9,7 @@ import { CurvesBreadcrumb } from './curves/common';
 import { RequestsBreadcrumb } from './requests/common';
 import { resolveRoute } from './routing';
 import { SettingsBreadcrumb } from './settings/common';
-import { FaHome } from 'react-icons/fa';
+import { FaHome, FaQuestionCircle } from 'react-icons/fa';
 
 export interface BreadcrumbItem {
     icon?: ReactNode;
@@ -52,6 +52,11 @@ export function Layout({ breadcrumbs, children, buttons, contentPadding }: Layou
                                 <Link to='/'>
                                     <FaHome /> Home
                                 </Link>
+                            </MenuItem>
+                            <MenuItem value='<docs>' asChild style={{ cursor: 'pointer' }}>
+                                <a href={`${import.meta.env.BASE_URL}docs`} target='_blank' rel='noopener noreferrer'>
+                                    <FaQuestionCircle /> Documentation
+                                </a>
                             </MenuItem>
                         </MenuContent>
                     </MenuRoot>
